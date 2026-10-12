@@ -8,7 +8,8 @@ local myTeam = Spring.GetMyTeamID()
 local SC
 local ids = {}
 local byName = {}
-local endFrame = (scenario == "vsai" and 30 * 60 * 9) or (scenario == "ai" and 30 * 60 * 4) or 30 * 60 * 6
+local isDuel = scenario == "duel" or scenario == "duelrules"
+local endFrame = (isDuel and 30 * 60 * 25) or (scenario == "vsai" and 30 * 60 * 9) or (scenario == "ai" and 30 * 60 * 4) or 30 * 60 * 6
 local outFile = io and io.open and io.open("sctest_out.txt", "w")
 local function out(...)
 	local parts = { "[" .. Spring.GetGameFrame() .. "]" }
@@ -30,7 +31,8 @@ local function report()
 	out(string.format("t=%ds metal %.0f/%.0f +%.1f energy %.0f/%.0f +%.1f", Spring.GetGameFrame() / 30, m, mS, mInc, e, eS, eInc))
 	local counts = {}
 	for _, u in ipairs(Spring.GetTeamUnits(myTeam)) do
-		local n = UnitDefs[Spring.GetUnitDefID(u)].name
+		local defID = Spring.GetUnitDefID(u)
+		local n = defID and UnitDefs[defID].name or "?"
 		counts[n] = (counts[n] or 0) + 1
 	end
 	local parts = {}
@@ -43,7 +45,7 @@ local function report()
 		local tasks = {}
 		for _, u in ipairs(s.units) do
 			if u.task then
-				tasks[#tasks + 1] = u.name .. ":" .. u.task .. (u.manual and "(manual)" or "")
+				tasks[#tasks + 1] = tostring(u.name) .. ":" .. u.task .. (u.manual and "(manual)" or "")
 			end
 		end
 		out(string.format("  [%d] %s %s/%s B%d F%d C%d threats=%d spend=%.1f | %s", s.id, s.name, s.role, s.posture, s.counts.builders, s.counts.factories, s.counts.combat, s.threats, s.spendMetal, table.concat(tasks, ", ")))
@@ -54,6 +56,15 @@ local function report()
 			out("     " .. (s.recent[i].ai and "AI: " or "log: ") .. s.recent[i].text)
 		end
 	end
+end
+
+-- the player orders what they have selected (the widget ignores orders to unselected units)
+-- (the order arrives a frame later, so the selection is cleared a few frames after)
+local deselectAt
+local function playerOrder(unitID, cmdID, params, opts)
+	Spring.SelectUnitArray({ unitID })
+	Spring.GiveOrderToUnit(unitID, cmdID, params, opts or {})
+	deselectAt = Spring.GetGameFrame() + 5
 end
 
 local function give(n, name, team, x, z)
@@ -84,6 +95,207 @@ local function queueOf(u)
 	end
 	local x, _, z = Spring.GetUnitPosition(u)
 	return string.format("pos=%d,%d queue=[%s]", x, z, table.concat(parts, " "))
+end
+
+--------------------------------------------------------------------------------
+-- duel / duelrules: 1v1 against BARbarian with no cheats. The harness plays a
+-- light-touch human who delegates: builds the first lab with the commander,
+-- hands units and factories to sub-commanders and gives standing orders. duel
+-- runs the AI strategist (test bridge on 17878), duelrules only the rule engine.
+--------------------------------------------------------------------------------
+
+local duelState = { stage = 0 }
+local enemyX, enemyZ
+
+local function towardEnemy(f, r)
+	local dx, dz = enemyX - cx, enemyZ - cz
+	local d = math.max(math.sqrt(dx * dx + dz * dz), 1)
+	return { kind = "circle", x = cx + dx * f, z = cz + dz * f, r = r }, dx / d, dz / d
+end
+
+-- a spot for a building near (x, z), searching outward
+local function findSpot(defName, x, z, facing)
+	local defID = UnitDefNames[defName].id
+	for ring = 0, 12 do
+		for k = 0, math.max(ring * 6, 1) - 1 do
+			local a = k / math.max(ring * 6, 1) * 2 * math.pi
+			local px, pz = x + math.cos(a) * ring * 64, z + math.sin(a) * ring * 64
+			local bx, by, bz = Spring.Pos2BuildPos(defID, px, Spring.GetGroundHeight(px, pz), pz, facing)
+			if Spring.TestBuildOrder(defID, bx, by, bz, facing) > 0 then
+				return bx, bz
+			end
+		end
+	end
+end
+
+local function facingFor(dx, dz)
+	if math.abs(dx) > math.abs(dz) then
+		return dx > 0 and 1 or 3
+	end
+	return dz > 0 and 0 or 2
+end
+
+local function playerBuild(builder, defName, fx, fz, dx, dz)
+	local facing = facingFor(dx, dz)
+	local x, z = findSpot(defName, fx, fz, facing)
+	if x then
+		playerOrder(builder, -UnitDefNames[defName].id, { x, Spring.GetGroundHeight(x, z), z, facing })
+		out(string.format("player: %s builds %s at %d,%d", UnitDefs[Spring.GetUnitDefID(builder)].name, defName, x, z))
+	end
+end
+
+local function ownedBy(subID, name)
+	local list = {}
+	for _, s in ipairs(SC.list()) do
+		if s.id == subID then
+			for _, u in ipairs(s.units) do
+				if u.name == name then
+					list[#list + 1] = u.id
+				end
+			end
+		end
+	end
+	return list
+end
+
+local function teamStats(team)
+	local n = Spring.GetTeamStatsHistory(team)
+	local h = n and n > 0 and Spring.GetTeamStatsHistory(team, n)
+	h = h and h[1]
+	if not h then
+		return "n/a"
+	end
+	return string.format("metalProduced=%.0f energyProduced=%.0f unitsProduced=%d unitsKilled=%d unitsDied=%d damageDealt=%.0f damageReceived=%.0f",
+		h.metalProduced or 0, h.energyProduced or 0, h.unitsProduced or 0, h.unitsKilled or 0, h.unitsDied or 0, h.damageDealt or 0, h.damageReceived or 0)
+end
+
+local function armyValue(team)
+	local v = 0
+	for _, u in ipairs(Spring.GetTeamUnits(team) or {}) do
+		local ud = UnitDefs[Spring.GetUnitDefID(u)]
+		if ud and (ud.speed or 0) > 0 and #(ud.weapons or {}) > 0 and not ud.isBuilder then
+			v = v + ud.metalCost
+		end
+	end
+	return v
+end
+
+local function duelResult(why)
+	if duelState.done then
+		return
+	end
+	duelState.done = true
+	pcall(report)
+	out("RESULT " .. why .. string.format(" t=%ds", Spring.GetGameFrame() / 30))
+	out("  us:    " .. teamStats(myTeam) .. string.format(" armyValue=%.0f", armyValue(myTeam)))
+	out("  enemy: " .. teamStats(1))
+	out("DONE")
+	Spring.SendCommands("screenshot png", "quitforce")
+end
+
+local function duel(n)
+	local ai = scenario == "duel"
+	if n == 12 then
+		Spring.SendCommands("setmaxspeed 20", "setspeed 3")
+		enemyX, _, enemyZ = Spring.GetTeamStartPosition(1)
+		if not enemyX or enemyX <= 0 then
+			-- not available to us: assume the mirrored position
+			enemyX, enemyZ = Game.mapSizeX - cx, Game.mapSizeZ - cz
+		end
+		out(string.format("enemy start %d,%d  us %d,%d  ai=%s", enemyX, enemyZ, cx, cz, tostring(ai)))
+		local com = Spring.GetTeamUnits(myTeam)[1]
+		ids.com = com
+		ids.eco = SC.create("economy")
+		SC.assign(ids.eco, { com })
+		SC.setAI(ids.eco, ai)
+		SC.setDirective(ids.eco, "grow the economy: take every safe metal spot, keep energy ahead of spending")
+		-- the player uses the commander for the first lab, then leaves it to Economy
+		local _, dx, dz = towardEnemy(0.1, 0)
+		playerBuild(com, "leglab", cx + dx * 220, cz + dz * 220, dx, dz)
+	end
+	if duelState.stage == 0 then
+		local lab = (byName.leglab or {})[1]
+		if lab and not Spring.GetUnitIsBeingBuilt(lab) then
+			duelState.stage = 1
+			-- the first lab makes constructors for the economy
+			SC.assign(ids.eco, { lab })
+			out("player: first lab to Economy")
+		end
+	elseif duelState.stage == 1 then
+		local cons = ownedBy(ids.eco, "legck")
+		if #cons >= 3 then
+			duelState.stage = 2
+			local zone, dx, dz = towardEnemy(0.22, 1000)
+			ids.def = SC.create("defense")
+			SC.assign(ids.def, { cons[1] })
+			SC.clearZones(ids.def)
+			SC.addZone(ids.def, zone)
+			SC.setAI(ids.def, ai)
+			SC.setDirective(ids.def, "hold the side of the base facing the enemy")
+			-- second lab toward the front for the army
+			playerBuild(cons[2], "leglab", cx + dx * 700, cz + dz * 700, dx, dz)
+			duelState.lab2Builder = cons[2]
+			out("player: Defense created, second lab ordered")
+		end
+	elseif duelState.stage == 2 then
+		local labs = byName.leglab or {}
+		local lab2 = labs[2]
+		if lab2 and not Spring.GetUnitIsBeingBuilt(lab2) then
+			duelState.stage = 3
+			ids.army = SC.create("army")
+			SC.assign(ids.army, { lab2 })
+			SC.clearZones(ids.army)
+			SC.addZone(ids.army, (towardEnemy(0.35, 1100)))
+			SC.setAI(ids.army, ai)
+			SC.setDirective(ids.army, "control our half of the map; attack when we are clearly stronger")
+			out("player: second lab to Army")
+		end
+	elseif duelState.stage == 3 and n >= 30 * 60 * 4 then
+		local cons = ownedBy(ids.eco, "legck")
+		if #cons >= 3 then
+			duelState.stage = 4
+			SC.assign(ids.def, { cons[1] })
+			out("player: second constructor to Defense")
+		end
+	elseif duelState.stage == 4 and n >= 30 * 60 * 6 then
+		local cons = ownedBy(ids.eco, "legck")
+		if #cons >= 3 then
+			duelState.stage = 5
+			ids.aa = SC.create("airdefense")
+			SC.assign(ids.aa, { cons[1] })
+			SC.setAI(ids.aa, ai)
+			SC.setDirective(ids.aa, "keep the base and the economy safe from air")
+			out("player: Air Defense created")
+		end
+	elseif duelState.stage == 5 and n >= 30 * 60 * 8 then
+		local cons = ownedBy(ids.eco, "legck")
+		if #cons >= 3 then
+			duelState.stage = 6
+			ids.intel = SC.create("intelligence")
+			SC.assign(ids.intel, { cons[1] })
+			SC.clearZones(ids.intel)
+			SC.addZone(ids.intel, (towardEnemy(0.3, 1500)))
+			SC.setAI(ids.intel, ai)
+			SC.setDirective(ids.intel, "watch the approaches to our base and take out enemy radar")
+			out("player: Intelligence created")
+		end
+	end
+	if n % (30 * 60) == 0 then
+		out(string.format("value: army us=%.0f  units us=%d", armyValue(myTeam), #Spring.GetTeamUnits(myTeam)))
+	end
+	if #Spring.GetTeamUnits(myTeam) == 0 then
+		duelResult("LOSS (no units left)")
+	end
+end
+
+function widget:GameOver(winners)
+	local won = false
+	for _, a in ipairs(winners or {}) do
+		if a == Spring.GetMyAllyTeamID() then
+			won = true
+		end
+	end
+	duelResult(won and "WIN" or "LOSS")
 end
 
 local function gameFrame(n)
@@ -144,7 +356,7 @@ local function gameFrame(n)
 			out("com", queueOf(ids.com))
 		end
 		if n == 30 * 60 then
-			Spring.GiveOrderToUnit(ids.com, CMD.MOVE, { cx + 500, Spring.GetGroundHeight(cx + 500, cz + 300), cz + 300 }, {})
+			playerOrder(ids.com, CMD.MOVE, { cx + 500, Spring.GetGroundHeight(cx + 500, cz + 300), cz + 300 })
 			out("player move order")
 		end
 		if n == 30 * 62 or n == 30 * 75 then
@@ -253,7 +465,7 @@ local function gameFrame(n)
 			-- the player takes the constructor and builds a lab with it
 			local ck = (byName.legck or {})[1]
 			local x, z = cx - 450, cz - 300
-			Spring.GiveOrderToUnit(ck, -UnitDefNames.leglab.id, { x, Spring.GetGroundHeight(x, z), z, 0 }, {})
+			playerOrder(ck, -UnitDefNames.leglab.id, { x, Spring.GetGroundHeight(x, z), z, 0 })
 			out("player ordered the constructor to build a Bot Lab")
 		elseif n == 30 * 110 then
 			local labs = byName.leglab or {}
@@ -297,6 +509,9 @@ local function gameFrame(n)
 			SC.assign(ids.aa, { ck[3] })
 		end
 	end
+	if scenario == "duel" or scenario == "duelrules" then
+		duel(n)
+	end
 	if scenario == "multi" then
 		if n == 40 then
 			give(2, "legck", myTeam, cx + 200, cz)
@@ -326,7 +541,7 @@ local function gameFrame(n)
 			for _, u in ipairs(com) do
 				if UnitDefs[Spring.GetUnitDefID(u)].name == "legcom" then
 					ids.com = u
-					Spring.GiveOrderToUnit(u, CMD.MOVE, { cx + 500, Spring.GetGroundHeight(cx + 500, cz + 300), cz + 300 }, {})
+					playerOrder(u, CMD.MOVE, { cx + 500, Spring.GetGroundHeight(cx + 500, cz + 300), cz + 300 })
 				end
 			end
 			out("player ordered commander to move")
@@ -362,6 +577,10 @@ local function gameFrame(n)
 			end
 		end
 	end
+	if isDuel and n == endFrame then
+		duelResult("TIMEOUT")
+		return
+	end
 	if n == endFrame - 30 then
 		Spring.SendCommands("screenshot png")
 	elseif n == endFrame then
@@ -372,6 +591,10 @@ local function gameFrame(n)
 end
 
 function widget:GameFrame(n)
+	if deselectAt and n >= deselectAt then
+		deselectAt = nil
+		Spring.SelectUnitArray({})
+	end
 	local ok, err = pcall(gameFrame, n)
 	if not ok then
 		out("HARNESS ERROR: " .. tostring(err))

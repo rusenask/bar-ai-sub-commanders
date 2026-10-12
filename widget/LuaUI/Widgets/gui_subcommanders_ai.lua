@@ -40,7 +40,10 @@ local inbuf, outbuf = "", ""
 local lastStateFrame = -STATE_EVERY
 local announcedOffline = false
 
-local ROLE_OK = { economy = true, defense = true, airdefense = true, army = true }
+-- decision model behind the bridge (optional): requests waiting for an answer
+local decider = { enabled = false, nextID = 0, pending = {} }
+
+local ROLE_OK = { economy = true, defense = true, airdefense = true, army = true, intelligence = true }
 local POSTURE_OK = { conserve = true, balanced = true, spend = true }
 
 local function now()
@@ -62,6 +65,11 @@ local function disconnect(reason)
 	if client then
 		client:close()
 	end
+	for id, cb in pairs(decider.pending) do
+		decider.pending[id] = nil
+		cb.fn(nil, "bridge disconnected")
+	end
+	decider.enabled = false
 	client = nil
 	inbuf, outbuf = "", ""
 	if link == "online" then
@@ -84,6 +92,9 @@ local function gameInfo()
 		faction = side,
 		player = name,
 		frame = Spring.GetGameFrame(),
+		windMin = Game.windMin or 0,
+		windMax = Game.windMax or 0,
+		tidal = Game.tidal or 0,
 	}
 end
 
@@ -172,7 +183,7 @@ local function apply(msg)
 		sc.setPosture(sub.id, args.posture)
 	elseif op == "set_role" then
 		if not ROLE_OK[args.role] then
-			return nil, "role must be economy, defense, airdefense or army"
+			return nil, "role must be economy, defense, airdefense, army or intelligence"
 		end
 		sc.setRole(sub.id, args.role)
 	elseif op == "set_focus" then
@@ -238,6 +249,17 @@ local function handle(line)
 	local ok, msg = pcall(Json.decode, line)
 	if not ok or type(msg) ~= "table" then
 		Spring.Echo("Sub-Commanders AI: bad message from bridge")
+		return
+	end
+	if msg.type == "config" then
+		decider.enabled = type(msg.args) == "table" and msg.args.decider == true
+		return
+	elseif msg.type == "decision" then
+		local cb = decider.pending[msg.id]
+		decider.pending[msg.id] = nil
+		if cb then
+			cb.fn(msg.ok and msg.data or nil, msg.error)
+		end
 		return
 	end
 	if msg.type == "action" then
@@ -367,6 +389,20 @@ function widget:Initialize()
 			return link
 		end,
 		address = address,
+		-- is a decision model available behind the bridge?
+		deciderReady = function()
+			return link == "online" and decider.enabled
+		end,
+		-- ask the decision model: state (text), questions (systemone format); fn(answers, err) runs later
+		decide = function(sub, state, questions, fn)
+			if link ~= "online" or not decider.enabled then
+				return false
+			end
+			decider.nextID = decider.nextID + 1
+			decider.pending[-decider.nextID] = { fn = fn, frame = Spring.GetGameFrame() }
+			send({ type = "decide", id = -decider.nextID, sub = sub, args = { state = state, questions = questions } })
+			return true
+		end,
 	}
 end
 

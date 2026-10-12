@@ -25,6 +25,9 @@ type Info struct {
 	Faction  string  `json:"faction"`
 	Player   string  `json:"player"`
 	Frame    int     `json:"frame"`
+	WindMin  float64 `json:"windMin"`
+	WindMax  float64 `json:"windMax"`
+	Tidal    float64 `json:"tidal"`
 }
 
 // LogEntry is one line of a sub-commander's activity log.
@@ -58,8 +61,10 @@ type Sub struct {
 	Composition json.RawMessage `json:"composition,omitempty"`
 	Activity    json.RawMessage `json:"activity,omitempty"`
 	ManualUnits int             `json:"manualUnits"`
-	UnitCount   int             `json:"unitCount"`
-	Recent      []LogEntry      `json:"recent"`
+	// what the player's own constructors queue and how many of their units are in this sub's zones
+	PlayerActivity json.RawMessage `json:"playerActivity,omitempty"`
+	UnitCount      int             `json:"unitCount"`
+	Recent         []LogEntry      `json:"recent"`
 }
 
 // Economy is the team's resource state.
@@ -114,10 +119,16 @@ type result struct {
 // ErrOffline is returned when no game is connected.
 var ErrOffline = errors.New("game is not connected")
 
+// DecideFunc answers a widget's "decide" request (state and typed questions) with the answers object.
+type DecideFunc func(ctx context.Context, state string, questions json.RawMessage) (json.RawMessage, error)
+
 // Server accepts the widget connection (one at a time; a new one replaces the old).
 type Server struct {
 	addr string
 	log  *slog.Logger
+
+	// Decide, when set, serves the widget's requests to a decision model (set before Run).
+	Decide DecideFunc
 
 	mu      sync.Mutex
 	conn    net.Conn
@@ -196,6 +207,12 @@ func (s *Server) handle(msg message) {
 			s.over = false
 			s.log.Info("game", "map", msg.Game.Map, "faction", msg.Game.Faction, "frame", msg.Game.Frame)
 		}
+		// tell the widget what the bridge offers
+		go s.write(message{Type: "config", Args: map[string]any{"decider": s.Decide != nil}})
+	case "decide":
+		if s.Decide != nil {
+			go s.decide(msg)
+		}
 	case "state":
 		if msg.State != nil {
 			s.state = msg.State
@@ -262,6 +279,27 @@ func (s *Server) Do(ctx context.Context, sub int, op string, args map[string]any
 		return r.data, r.err
 	case <-ctx.Done():
 		return nil, context.Cause(ctx)
+	}
+}
+
+// decide answers one "decide" request: args {state, questions}; the reply carries the answers or an error.
+func (s *Server) decide(msg message) {
+	state, _ := msg.Args["state"].(string)
+	questions, err := json.Marshal(msg.Args["questions"])
+	reply := message{Type: "decision", ID: msg.ID}
+	if err == nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		reply.Data, err = s.Decide(ctx, state, questions)
+		cancel()
+	}
+	if err != nil {
+		reply.Error = err.Error()
+		s.log.Warn("decision failed", "err", err)
+	} else {
+		reply.OK = true
+	}
+	if err := s.write(reply); err != nil && !errors.Is(err, ErrOffline) {
+		s.log.Warn("decision reply", "err", err)
 	}
 }
 

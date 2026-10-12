@@ -2,7 +2,7 @@ BAR_DIR ?= $(HOME)/Library/Application Support/Beyond-All-Reason-mac
 MODEL ?= lightning/deepseek-v4.1-flash
 BAR_REF ?= 8247b61
 
-.PHONY: build install run up down restart logs test-game ref lint
+.PHONY: build install run up down restart logs test-game test-bridge ref lint
 
 build:
 	go build -o bin/scbridge ./cmd/scbridge
@@ -32,11 +32,22 @@ logs:
 	docker compose logs -f --tail=100
 
 # scripted test game in an isolated write dir: make test-game SCENARIO=ai
+# 1v1 against BARbarian: make test-game SCENARIO=duel SCRIPT=script_vsai.txt AI_PROFILE=medium TIMEOUT=1200
 SCENARIO ?= multi
 SCRIPT ?= script_nullai.txt
+TIMEOUT ?= 420
 test-game:
-	testenv/run.sh "$(CURDIR)/testenv/$(SCRIPT)" 420 $(SCENARIO)
+	AI_PROFILE=$(AI_PROFILE) testenv/run.sh "$(CURDIR)/testenv/$(SCRIPT)" $(TIMEOUT) $(SCENARIO)
 	@cat testenv/sctest_out.txt
+
+# bridge for test games (port 17878, opencode on 14517), separate from the one real games use
+test-bridge:
+	docker build -q -t bar-scbridge:test .
+	-docker rm -f scbridge-test
+	docker run -d --name scbridge-test -p 127.0.0.1:17878:7878 -p 127.0.0.1:14517:4517 \
+		-v "$(CURDIR)/strategist:/app/strategist:ro" -v "$$(sed -n 's/^LLM_API_KEY_FILE=//p' .env):/run/secrets/llm_api_key:ro" \
+		-e SCBRIDGE_MODEL=$${MODEL:-$$(sed -n 's/^MODEL=//p' .env)} -e SCBRIDGE_DECIDER_URL=$(DECIDER_URL) \
+		$(TEST_BRIDGE_ARGS) bar-scbridge:test
 
 lint:
 	luac -p widget/LuaUI/Widgets/*.lua testenv/LuaUI/Widgets/*.lua

@@ -14,10 +14,11 @@
       "description": "Beyond All Reason sub-commander strategist (driven by scbridge)",
       "mode": "primary",
       "prompt": "{file:./prompts/subcommander.md}",
-      "steps": 6,
+      "steps": 8,
       "permission": {
         "*": "deny",
-        "bar_*": "allow"
+        "bar_*": "allow",
+        "skill": "allow"
       }
     }
   }

@@ -73,12 +73,13 @@ local MAX_THINKS_PER_PASS = 8
 -- Roles and postures
 --------------------------------------------------------------------------------
 
-local ROLES = { "economy", "defense", "airdefense", "army" }
+local ROLES = { "economy", "defense", "airdefense", "army", "intelligence" }
 local ROLE_INFO = {
 	economy = { label = "Economy", short = "ECO" },
 	defense = { label = "Defense", short = "DEF" },
 	airdefense = { label = "Air Defense", short = "AA" },
 	army = { label = "Army", short = "ARMY" },
+	intelligence = { label = "Intelligence", short = "INTEL" },
 }
 
 -- minM/minE: don't start new spending below this fraction of storage
@@ -158,6 +159,7 @@ for defID, ud in pairs(UnitDefs) do
 	d.builder = ud.isBuilder and mobile and #buildOptions > 0
 	d.reclaimer = d.builder and ud.canReclaim and (ud.reclaimSpeed or 0) > 0
 	d.nano = ud.isBuilder and not mobile and not ud.isFactory and (ud.buildSpeed or 0) > 0
+	d.buildRange = ud.buildDistance or 0
 	d.combat = mobile and d.armed and not d.builder and (ud.transportCapacity or 0) == 0
 	d.staticDef = not mobile and not ud.isFactory and not ud.isBuilder and d.armed and not EXCLUDED_DEFENSE_GROUPS[group] and d.range > 0 and d.range <= 1200 and not cp.stockpilelimit
 	d.mex = (ud.extractsMetal or 0) > 0 and not mobile and ud.extractsMetal or 0
@@ -166,6 +168,71 @@ for defID, ud in pairs(UnitDefs) do
 	d.mstore = (not mobile and d.mex == 0 and group == "metal" and (ud.metalStorage or 0) >= 500) and ud.metalStorage or 0
 	d.estore = (not mobile and d.energy == 0 and group == "energy" and (ud.energyStorage or 0) >= 1000) and ud.energyStorage or 0
 	d.radar = (not mobile and not d.armed and (ud.radarDistance or 0) >= 1200 and d.cost < 200) and ud.radarDistance or 0
+	-- intelligence
+	d.radarRange = ud.radarDistance or 0
+	d.jammer = (ud.radarDistanceJam or 0) > 0 and ud.radarDistanceJam or 0
+	d.sonar = (not mobile and (ud.sonarDistance or 0) > 0) and ud.sonarDistance or 0
+	d.seismic = (ud.seismicDistance or 0) > 0 and ud.seismicDistance or 0
+	d.sight = ud.sightDistance or ud.losRadius or 0
+	d.camera = not mobile and not d.armed and (ud.cloakCost or 0) > 0 and d.cost < 100
+	d.scout = mobile and not d.builder and not d.air and d.cost < 45 and (ud.speed or 0) >= 120 and d.sight >= 550
+	d.spy = mobile and (ud.cloakCost or 0) > 0 and ud.stealth and d.builder and not d.commander
+	d.intelStructure = not mobile and (d.radarRange >= 1000 or d.jammer > 0 or d.sonar > 0 or d.seismic > 0 or d.camera)
+	-- what a weapon loadout says about a unit
+	local bomb, arty = false, false
+	for i = 1, #weapons do
+		local wd = WeaponDefs[weapons[i].weaponDef]
+		if wd then
+			bomb = bomb or wd.type == "AircraftBomb"
+			arty = arty or (wd.highTrajectory == 1 and (wd.range or 0) >= 600)
+		end
+	end
+	local move = ud.moveDef and ud.moveDef.name or ""
+	d.naval = mobile and not d.air and (move:find("boat") ~= nil or (ud.minWaterDepth or 0) > 0)
+	d.hover = mobile and move:find("hover") ~= nil
+	d.speed = ud.speed or 0
+	d.health = ud.health or 0
+	d.transport = (ud.transportCapacity or 0) > 0
+	if d.commander then
+		d.kind = "commander"
+	elseif ud.isFactory then
+		d.kind = "factory"
+	elseif d.builder or d.nano then
+		d.kind = "constructor"
+	elseif not mobile then
+		if d.staticDef then
+			d.kind = d.aaOnly and "anti-air turret" or "turret"
+		elseif d.armed and d.range > 1200 then
+			d.kind = "long-range artillery"
+		elseif d.intelStructure then
+			d.kind = d.jammer > 0 and "jammer" or (d.camera and "camera" or "radar")
+		else
+			d.kind = "economy"
+		end
+	elseif d.air then
+		d.kind = d.transport and "air transport" or (not d.armed and "scout plane") or (d.aaOnly and "fighter") or (bomb and "bomber") or "gunship"
+	elseif d.naval then
+		d.kind = "naval"
+	elseif not d.armed then
+		d.kind = d.jammer > 0 and "mobile jammer" or (d.radarRange > 0 and "mobile radar" or "utility")
+	elseif d.aaOnly then
+		d.kind = "mobile anti-air"
+	elseif arty then
+		d.kind = "artillery"
+	elseif d.scout then
+		d.kind = "scout"
+	elseif d.range >= 500 then
+		d.kind = "skirmisher"
+	elseif d.speed >= 70 and d.cost <= 120 then
+		d.kind = "raider"
+	elseif d.cost >= 300 or d.health >= 2000 then
+		d.kind = "heavy"
+	else
+		d.kind = "assault"
+	end
+	if d.hover and d.mobile and not d.air then
+		d.kind = "hover " .. d.kind
+	end
 	defs[defID] = d
 end
 
@@ -187,6 +254,9 @@ local planned = {} -- builderID -> { sub, defID, x, z, frame }
 local badSpots = {} -- { x, z, untilFrame }
 local spotCooldown = {} -- metal spot index -> frame it may be retried
 local enemySightings = {} -- ring buffer of { x, z, frame }
+local baseThreats = {} -- enemies inside any sub-commander's zone (refreshed every combat pass)
+-- enemy units we identified: units[unitID] = { defID, first, last, x, z }
+local Enemy = { units = {}, known = 0, mixFrame = -1 }
 local econ = { m = 0, mS = 1, mInc = 0, e = 0, eS = 1, eInc = 0, ePull = 0, mFrac = 0, eFrac = 0 }
 
 local activeSub -- sub selected in the panel
@@ -246,6 +316,21 @@ local function econUpdate()
 	econ.e, econ.eS, econ.ePull, econ.eInc = e, max(eS, 1), ePull, eInc
 	econ.mFrac = m / econ.mS
 	econ.eFrac = e / econ.eS
+	-- what our energy converters burn (they switch themselves off when energy runs low)
+	if frame - (econ.convFrame or -999) >= 90 then
+		econ.convFrame = frame
+		local use = 0
+		for _, u in ipairs(Spring.GetTeamUnits(myTeam) or {}) do
+			local ud = unitDef(u)
+			if ud and ud.conv > 0 then
+				local _, _, _, eUse = Spring.GetUnitResources(u)
+				use = use + (eUse or 0)
+			end
+		end
+		econ.convUse = use
+	end
+	-- energy demand without the converters: what "short of energy" should be judged on
+	econ.eNeed = max(0, (econ.ePull or 0) - (econ.convUse or 0))
 end
 
 --------------------------------------------------------------------------------
@@ -398,7 +483,85 @@ local function getEnemyStarts()
 			end
 		end
 	end
+	if #enemyStarts == 0 then
+		-- not revealed: guess the point mirrored through the map centre (right for most 1v1 maps)
+		local x, _, z = Spring.GetTeamStartPosition(myTeam)
+		if not x or x <= 0 then
+			local u = (Spring.GetTeamUnits(myTeam) or {})[1]
+			if u then
+				x, _, z = spGetUnitPosition(u)
+			end
+		end
+		if x then
+			enemyStarts[1] = { x = MAP_X - x, z = MAP_Z - z, guess = true }
+		else
+			enemyStarts = nil
+			return {}
+		end
+	end
 	return enemyStarts
+end
+
+-- What the enemy fields, from units seen in the last `window` frames: counts per
+-- kind (mobile units and defences) plus the share of kinds that matter for counters.
+local COMPOSITION_WINDOW = 30 * 60 * 5
+
+function Enemy.mix()
+	if Enemy.mixFrame == frame then
+		return Enemy.mixCache
+	end
+	Enemy.mixFrame = frame
+	local mix = { total = 0, air = 0, bombers = 0, ranged = 0, raiders = 0, heavy = 0, naval = 0, tech2 = 0, kinds = {}, recentKinds = {}, types = {} }
+	for _, e in pairs(Enemy.units) do
+		local d = defs[e.defID]
+		if frame - e.last < COMPOSITION_WINDOW and (d.mobile or d.staticDef) and d.kind ~= "constructor" and d.kind ~= "commander" then
+			mix.total = mix.total + 1
+			mix.kinds[d.kind] = (mix.kinds[d.kind] or 0) + 1
+			if frame - e.first < 30 * 180 then
+				mix.recentKinds[d.kind] = (mix.recentKinds[d.kind] or 0) + 1
+			end
+			mix.types[d.human] = (mix.types[d.human] or 0) + 1
+			if d.air and d.armed and not d.aaOnly then
+				mix.air = mix.air + 1
+				if d.kind == "bomber" then
+					mix.bombers = mix.bombers + 1
+				end
+			end
+			if d.kind == "artillery" or d.kind == "skirmisher" or d.kind == "long-range artillery" then
+				mix.ranged = mix.ranged + 1
+			elseif d.kind:find("raider") or d.kind:find("scout") then
+				mix.raiders = mix.raiders + 1
+			elseif d.kind:find("heavy") then
+				mix.heavy = mix.heavy + 1
+			end
+			if d.naval then
+				mix.naval = mix.naval + 1
+			end
+			if d.tech >= 2 then
+				mix.tech2 = mix.tech2 + 1
+			end
+		end
+	end
+	Enemy.mixCache = mix
+	return mix
+end
+
+-- metal value of armed enemy units seen near (x, z) in the last 20 s
+function Enemy.powerNear(x, z, r)
+	local power = 0
+	for _, e in pairs(Enemy.units) do
+		local d = defs[e.defID]
+		if d.mobile and d.armed and frame - e.last < 30 * 20 and dist2(x, z, e.x, e.z) < r * r then
+			power = power + d.cost
+		end
+	end
+	return power
+end
+
+-- share of a counter-relevant group in what the enemy fields (0 when nothing seen)
+function Enemy.share(field)
+	local mix = Enemy.mix()
+	return mix.total > 0 and mix[field] / mix.total or 0
 end
 
 -- where we expect the enemy to come from, as seen from (x, z)
@@ -504,9 +667,42 @@ local function halfSize(d, facing)
 	return d.hx, d.hz
 end
 
+-- The player's own constructors (not ours, or taken over): what they have queued, so we
+-- never build on a spot the player picked. Refreshed every 2 s: list of { defID, x, z, facing, builder }.
+local Player = { plans = {}, builders = {}, frame = -999 }
+
+function Player.refresh()
+	if frame - Player.frame < 60 then
+		return
+	end
+	Player.frame = frame
+	local plans, builders = {}, {}
+	for _, u in ipairs(Spring.GetTeamUnits(myTeam) or {}) do
+		local d = unitDef(u)
+		if d and (d.builder or d.commander) then
+			local st = ustate[u]
+			if not owner[u] or (st and st.manual) then
+				builders[#builders + 1] = u
+				for _, c in ipairs(Spring.GetUnitCommands(u, 12) or {}) do
+					if c.id < 0 and defs[-c.id] and c.params[3] then
+						plans[#plans + 1] = { defID = -c.id, x = c.params[1], z = c.params[3], facing = c.params[4] or 0, builder = u }
+					end
+				end
+			end
+		end
+	end
+	Player.plans, Player.builders = plans, builders
+end
+
 local function plannedConflict(d, x, z, gap, facing)
 	local hx, hz = halfSize(d, facing or 0)
 	for _, p in pairs(planned) do
+		local phx, phz = halfSize(defs[p.defID], p.facing or 0)
+		if abs(p.x - x) < hx + phx + gap and abs(p.z - z) < hz + phz + gap then
+			return true
+		end
+	end
+	for _, p in ipairs(Player.plans) do
 		local phx, phz = halfSize(defs[p.defID], p.facing or 0)
 		if abs(p.x - x) < hx + phx + gap and abs(p.z - z) < hz + phz + gap then
 			return true
@@ -575,18 +771,47 @@ local function blocksFactory(x, z, hx, hz)
 	return false
 end
 
+-- A grid of lanes across the whole map stays free of our structures, so units can always
+-- get through; buildings pack into the blocks between lanes. Factories and extractors are
+-- exempt (they go where they must), and so is anything too big for a block.
+local Lanes = { spacing = 320, width = 56 }
+
+function Lanes.blocks(d, x, z, hx, hz)
+	if d.factory or d.mex > 0 or 2 * max(hx, hz) > Lanes.spacing - Lanes.width then
+		return false
+	end
+	local S, half = Lanes.spacing, Lanes.width * 0.5
+	local lx = floor(x / S + 0.5) * S
+	local lz = floor(z / S + 0.5) * S
+	return abs(x - lx) < hx + half or abs(z - lz) < hz + half
+end
+
+-- space to keep around a structure inside a block: tight packing, more for things that blow up big
+function Lanes.gapFor(d)
+	if d.estore > 0 or d.energy >= 250 or d.factory then
+		return 64
+	elseif d.staticDef then
+		return 32
+	end
+	return 8
+end
+
 -- footprints (plus gap) must not overlap any structure, so units keep walking lanes
 local MAX_HALF = 96
 local function areaClear(d, x, z, gap, facing)
 	local hx, hz = halfSize(d, facing or 0)
-	local reach = gap + MAX_HALF
+	if Lanes.blocks(d, x, z, hx, hz) then
+		return false
+	end
+	local reach = max(gap, 64) + MAX_HALF
 	local units = Spring.GetUnitsInRectangle(x - hx - reach, z - hz - reach, x + hx + reach, z + hz + reach)
 	for i = 1, #units do
 		local od = unitDef(units[i])
 		if od and not od.mobile then
 			local ox, _, oz = spGetUnitPosition(units[i])
 			local ohx, ohz = halfSize(od, Spring.GetUnitBuildFacing(units[i]) or 0)
-			if abs(ox - x) < hx + ohx + gap and abs(oz - z) < hz + ohz + gap then
+			local g = max(gap, Lanes.gapFor(od))
+			if abs(ox - x) < hx + ohx + g and abs(oz - z) < hz + ohz + g then
 				return false
 			end
 		end
@@ -721,6 +946,40 @@ local function enemiesNear(x, z, r)
 	return false
 end
 
+-- a metal spot outside the zones worth taking: closer to our zones than to the enemy,
+-- not too far, and no enemy seen or known defence near it lately
+function Jobs.safeExpansion(sub, spot)
+	local zone = nearestZone(sub, spot.x, spot.z)
+	if not zone then
+		return false
+	end
+	local zx, zz = Zone.center(zone)
+	local dHome = sqrt(dist2(spot.x, spot.z, zx, zz))
+	if dHome > 3500 then
+		return false
+	end
+	for _, st in ipairs(getEnemyStarts()) do
+		if sqrt(dist2(spot.x, spot.z, st.x, st.z)) < dHome * 1.15 then
+			return false
+		end
+	end
+	for i = #enemySightings, 1, -1 do
+		local e = enemySightings[i]
+		if frame - e.frame > 30 * 90 then
+			break
+		end
+		if dist2(spot.x, spot.z, e.x, e.z) < 900 * 900 then
+			return false
+		end
+	end
+	for _, e in pairs(Enemy.units) do
+		if defs[e.defID].staticDef and dist2(spot.x, spot.z, e.x, e.z) < 800 * 800 then
+			return false
+		end
+	end
+	return true
+end
+
 function Jobs.mex(sub, unitID, d, ux, uz)
 	local spots = metalSpots()
 	local finder = WG.resource_spot_finder
@@ -739,11 +998,13 @@ function Jobs.mex(sub, unitID, d, ux, uz)
 	local candidates = {}
 	for i = 1, #spots do
 		local spot = spots[i]
-		if (spotCooldown[i] or 0) <= frame and inSubZones(sub, spot.x, spot.z) and not plannedConflict(defs[bestMex], spot.x, spot.z, EXTRACTOR_RADIUS) then
+		local inZone = inSubZones(sub, spot.x, spot.z)
+		-- economy also expands to safe spots on our side of the map beyond its zones
+		if (spotCooldown[i] or 0) <= frame and (inZone or (sub.role == "economy" and Jobs.safeExpansion(sub, spot))) and not plannedConflict(defs[bestMex], spot.x, spot.z, EXTRACTOR_RADIUS) then
 			local exID, exDef = extractorAt(spot)
 			local upgrade = exID and exDef.mex < bestYield and spGetUnitTeam(exID) == myTeam and not spGetUnitIsBeingBuilt(exID)
 			if not exID or upgrade then
-				candidates[#candidates + 1] = { i = i, spot = spot, d = dist2(ux, uz, spot.x, spot.z) + (upgrade and 400 * 400 or 0) }
+				candidates[#candidates + 1] = { i = i, spot = spot, d = dist2(ux, uz, spot.x, spot.z) + (upgrade and 400 * 400 or 0) + (inZone and 0 or 700 * 700) }
 			end
 		end
 	end
@@ -780,7 +1041,7 @@ local function buildCheapestUseful(sub, unitID, d, ax, az, filter, value, why, k
 	for i = 1, min(#options, 3) do
 		local o = options[i]
 		if canSpend(sub, defs[o], kind) then
-			local x, z = findBuildSpot(sub, o, ax, az, { gap = gap or 24, rings = 12 })
+			local x, z = findBuildSpot(sub, o, ax, az, { gap = gap or Lanes.gapFor(defs[o]), rings = 12 })
 			if x then
 				return issueBuild(sub, unitID, o, x, z, 0, why)
 			end
@@ -844,6 +1105,66 @@ function Jobs.converter(sub, unitID, d, ux, uz)
 	end, function(od)
 		return od.conv / max(od.cost, 1)
 	end, "energy converter (surplus)")
+end
+
+-- metal piling up: construction turrets next to a busy factory turn it into units faster
+function Jobs.buildPower(sub, unitID, d, ux, uz)
+	if econ.mFrac < 0.6 or econ.eFrac < 0.4 then
+		return false
+	end
+	local options = buildableBy(d, function(od)
+		return od.nano and od.buildRange > 0
+	end)
+	if #options == 0 or not canSpend(sub, defs[options[1]]) then
+		return false
+	end
+	local o = options[1]
+	local reach = defs[o].buildRange
+	local limit = 2 * POSTURE_INFO[sub.posture].density
+	local best, bestN
+	for _, teamID in ipairs({ myTeam }) do
+		for _, u in ipairs(Spring.GetTeamUnits(teamID) or {}) do
+			local fd = unitDef(u)
+			if fd and fd.factory and not spGetUnitIsBeingBuilt(u) and (spGetFactoryCommandCount(u) or 0) > 0 then
+				local fx, _, fz = spGetUnitPosition(u)
+				if dist2(ux, uz, fx, fz) < 2500 * 2500 then
+					local n = 0
+					local near = spGetUnitsInCylinder(fx, fz, reach)
+					for i = 1, #near do
+						local nd = unitDef(near[i])
+						if nd and nd.nano and spGetUnitTeam(near[i]) == myTeam then
+							n = n + 1
+						end
+					end
+					for _, p in pairs(planned) do
+						if defs[p.defID].nano and dist2(p.x, p.z, fx, fz) < reach * reach then
+							n = n + 1
+						end
+					end
+					if n < limit and (not bestN or n < bestN) then
+						best, bestN = u, n
+					end
+				end
+			end
+		end
+	end
+	if not best then
+		return false
+	end
+	local fx, _, fz = spGetUnitPosition(best)
+	-- close enough to reach the factory, but beside it (its exit and ring stay clear)
+	local x, z = findBuildSpot(sub, o, fx, fz, {
+		gap = 8,
+		rings = 8,
+		samples = 4,
+		score = function(x, z)
+			return -abs(sqrt(dist2(x, z, fx, fz)) - reach * 0.6)
+		end,
+	})
+	if x and dist2(x, z, fx, fz) < (reach * 0.9) ^ 2 then
+		return issueBuild(sub, unitID, o, x, z, 0, "construction turret (metal piling up)")
+	end
+	return false
 end
 
 -- help finish something one of our builders started, or an abandoned frame in our zone
@@ -1025,6 +1346,15 @@ end
 
 local function pickDefense(sub, d, aa)
 	local cap = costCap(sub)
+	-- turret types the strategist (or player) focused on, when we can build and afford them
+	if sub.focus then
+		local focused = buildableBy(d, function(od, o)
+			return sub.focus[o] and od.staticDef and od.aaOnly == aa and od.cost <= cap * 1.5
+		end)
+		if #focused > 0 then
+			return focused[random(#focused)]
+		end
+	end
 	local options = buildableBy(d, function(od)
 		return od.staticDef and (od.aaOnly == aa) and od.cost <= cap
 	end)
@@ -1159,6 +1489,282 @@ function Jobs.airDefense(sub, unitID, d, ux, uz)
 	return x and issueBuild(sub, unitID, o, x, z, 0, "air defense") or false
 end
 
+--------------------------------------------------------------------------------
+-- Intelligence: radar network on high ground, cameras at the front, a jammer over
+-- what matters most, sonar on water; scouts look around, raiders hunt enemy intel.
+--------------------------------------------------------------------------------
+
+local Intel = {}
+
+-- the highest buildable spot near (ax, az), among a few candidates
+function Intel.highSpot(sub, defID, ax, az, rings)
+	return findBuildSpot(sub, defID, ax, az, {
+		gap = 24,
+		rings = rings or 8,
+		samples = 8,
+		score = function(x, z)
+			return spGetGroundHeight(x, z)
+		end,
+	})
+end
+
+-- is (x, z) inside the range of one of our radars (built or planned)?
+function Intel.radarCovered(x, z, share)
+	local units = spGetUnitsInCylinder(x, z, 3600)
+	for i = 1, #units do
+		local ud = unitDef(units[i])
+		if ud and ud.radarRange >= 1000 and not ud.mobile and spGetUnitTeam(units[i]) == myTeam then
+			local ux, _, uz = spGetUnitPosition(units[i])
+			if dist2(x, z, ux, uz) < (ud.radarRange * share) ^ 2 then
+				return true
+			end
+		end
+	end
+	for _, p in pairs(planned) do
+		local pd = defs[p.defID]
+		if pd.radarRange >= 1000 and not pd.mobile and dist2(x, z, p.x, p.z) < (pd.radarRange * share) ^ 2 then
+			return true
+		end
+	end
+	return false
+end
+
+-- points the radar net must cover: every zone's centre and its edge toward the enemy
+function Intel.watchPoints(sub)
+	local points = {}
+	for _, zone in ipairs(sub.zones) do
+		local cx, cz = Zone.center(zone)
+		local ex, ez = enemyDirectionRef(cx, cz)
+		local fx, fz = Zone.edgeToward(zone, ex, ez, 0)
+		points[#points + 1] = { fx, fz }
+		points[#points + 1] = { cx, cz }
+	end
+	return points
+end
+
+function Jobs.radarNet(sub, unitID, d, ux, uz)
+	local options = buildableBy(d, function(od)
+		return od.radarRange >= 1000 and not od.mobile and not od.armed
+	end)
+	if #options == 0 then
+		return false
+	end
+	-- the longest range we can afford
+	tsort(options, function(a, b)
+		return defs[a].radarRange > defs[b].radarRange
+	end)
+	local o
+	for _, opt in ipairs(options) do
+		if canSpend(sub, defs[opt]) then
+			o = opt
+			break
+		end
+	end
+	if not o then
+		return false
+	end
+	for _, p in ipairs(Intel.watchPoints(sub)) do
+		if not Intel.radarCovered(p[1], p[2], 0.7) then
+			local x, z = Intel.highSpot(sub, o, p[1], p[2])
+			if x then
+				return issueBuild(sub, unitID, o, x, z, 0, "radar on high ground")
+			end
+		end
+	end
+	return false
+end
+
+function Jobs.cameras(sub, unitID, d, ux, uz)
+	local options = buildableBy(d, function(od)
+		return od.camera
+	end)
+	local zone = zoneFor(sub, ux, uz)
+	if #options == 0 or not zone or not canSpend(sub, defs[options[1]]) then
+		return false
+	end
+	local o = options[1]
+	local limit = 1 + POSTURE_INFO[sub.posture].density
+	if countStatics(sub, zone, function(od)
+		return od.camera
+	end) >= limit then
+		return false
+	end
+	local cx, cz = Zone.center(zone)
+	local ex, ez = enemyDirectionRef(cx, cz)
+	local fx, fz = Zone.edgeToward(zone, ex, ez, 60)
+	local dx, dz = ex - cx, ez - cz
+	local len = max(sqrt(dx * dx + dz * dz), 1)
+	local spread = (random() - 0.5) * 2 * min(700, sqrt(Zone.area(zone)) * 0.5)
+	local x, z = findBuildSpot(sub, o, fx - dz / len * spread, fz + dx / len * spread, { gap = 16, rings = 6 })
+	return x and issueBuild(sub, unitID, o, x, z, 0, "camera at the front") or false
+end
+
+function Jobs.jammer(sub, unitID, d, ux, uz)
+	local options = buildableBy(d, function(od)
+		return od.jammer > 0 and not od.mobile
+	end)
+	local zone = zoneFor(sub, ux, uz)
+	if #options == 0 or not zone then
+		return false
+	end
+	local o = options[1]
+	-- jammers cost a lot of energy: only with a healthy grid
+	if econ.eInc < defs[o].energyCost / 40 or not canSpend(sub, defs[o]) then
+		return false
+	end
+	-- hide the most valuable cluster: weighted centre of factories and big structures
+	local sx, sz, w = 0, 0, 0
+	for _, u in ipairs(Zone.units(zone)) do
+		local ud = unitDef(u)
+		if ud and not ud.mobile and spGetUnitTeam(u) == myTeam and (ud.factory or ud.cost >= 150) then
+			local x, _, z = spGetUnitPosition(u)
+			sx, sz, w = sx + x * ud.cost, sz + z * ud.cost, w + ud.cost
+		end
+	end
+	if w == 0 then
+		return false
+	end
+	local tx, tz = sx / w, sz / w
+	local units = spGetUnitsInCylinder(tx, tz, defs[o].jammer)
+	for i = 1, #units do
+		local ud = unitDef(units[i])
+		if ud and ud.jammer > 0 and Spring.AreTeamsAllied(spGetUnitTeam(units[i]), myTeam) then
+			return false
+		end
+	end
+	if plannedConflict(defs[o], tx, tz, defs[o].jammer * 0.5) then
+		return false
+	end
+	local x, z = findBuildSpot(sub, o, tx, tz, { gap = 24, rings = 8 })
+	return x and issueBuild(sub, unitID, o, x, z, 0, "jammer over the base") or false
+end
+
+function Jobs.sonar(sub, unitID, d, ux, uz)
+	local options = buildableBy(d, function(od)
+		return od.sonar > 0
+	end)
+	local zone = zoneFor(sub, ux, uz)
+	if #options == 0 or not zone or not canSpend(sub, defs[options[1]]) then
+		return false
+	end
+	if countStatics(sub, zone, function(od)
+		return od.sonar > 0
+	end) > 0 then
+		return false
+	end
+	-- only where there is water
+	local x1, z1, x2, z2 = Zone.bounds(zone)
+	for _ = 1, 12 do
+		local x, z = x1 + random() * (x2 - x1), z1 + random() * (z2 - z1)
+		if Zone.contains(zone, x, z) and spGetGroundHeight(x, z) < -20 then
+			local bx, bz = findBuildSpot(sub, options[1], x, z, { gap = 24, rings = 4 })
+			if bx then
+				return issueBuild(sub, unitID, options[1], bx, bz, 0, "sonar")
+			end
+		end
+	end
+	return false
+end
+
+-- known enemy radar/jammer/camera to hit next: near our zones, not covered by known turrets
+function Intel.huntTarget(sub, x, z)
+	local best, bestD
+	for u, e in pairs(Enemy.units) do
+		local ed = defs[e.defID]
+		if ed.intelStructure then
+			local dd = dist2(x, z, e.x, e.z)
+			if dd < 4000 * 4000 and (not bestD or dd < bestD) then
+				local guarded = 0
+				for _, o in pairs(Enemy.units) do
+					if defs[o.defID].staticDef and not defs[o.defID].aaOnly and dist2(o.x, o.z, e.x, e.z) < 650 * 650 then
+						guarded = guarded + 1
+					end
+				end
+				if guarded == 0 then
+					best, bestD = u, dd
+				end
+			end
+		end
+	end
+	return best
+end
+
+-- scouting: visit the enemy start and metal spots outside our zones, least recently seen first
+function Intel.nextScoutPoint(sub, x, z)
+	sub.scouted = sub.scouted or {}
+	local candidates = {}
+	for _, st in ipairs(getEnemyStarts()) do
+		candidates[#candidates + 1] = { x = st.x, z = st.z, key = "start" .. floor(st.x) }
+	end
+	for i, spot in ipairs(metalSpots() or {}) do
+		if not inSubZones(sub, spot.x, spot.z) then
+			candidates[#candidates + 1] = { x = spot.x, z = spot.z, key = i }
+		end
+	end
+	local best, bestScore
+	for _, c in ipairs(candidates) do
+		if Spring.IsPosInLos(c.x, 0, c.z, myAlly) then
+			sub.scouted[c.key] = frame
+		end
+		local age = frame - (sub.scouted[c.key] or -30 * 600)
+		local score = age - sqrt(dist2(x, z, c.x, c.z)) * 0.5
+		if not bestScore or score > bestScore then
+			best, bestScore = c, score
+		end
+	end
+	if best then
+		sub.scouted[best.key] = frame
+	end
+	return best
+end
+
+-- intelligence units: scouts look around, the rest hunt enemy intel, then guard the zone edge
+function Intel.thinkUnit(sub, unitID, d, st, threats)
+	local x, _, z = spGetUnitPosition(unitID)
+	if not x then
+		return
+	end
+	local busy = (spGetUnitCommandCount(unitID) or 0) > 0
+	if d.scout or (d.air and not d.armed) then
+		if not busy or (st.softUntil and frame > st.softUntil) then
+			local p = Intel.nextScoutPoint(sub, x, z)
+			if p then
+				order(unitID, CMD.MOVE, { p.x, spGetGroundHeight(p.x, p.z), p.z })
+				setTask(unitID, "scout", "scouting", true)
+			end
+		end
+		return
+	end
+	if not d.armed then
+		-- mobile radar / jammer: stay at the zone edge toward the enemy
+		local zone = nearestZone(sub, x, z)
+		if zone and not busy then
+			local cx, cz = Zone.center(zone)
+			local ex, ez = enemyDirectionRef(cx, cz)
+			local fx, fz = Zone.edgeToward(zone, ex, ez, d.jammer > 0 and 300 or 100)
+			order(unitID, CMD.MOVE, { fx, spGetGroundHeight(fx, fz), fz })
+			setTask(unitID, "post", d.jammer > 0 and "jamming" or "radar post", true)
+		end
+		return
+	end
+	local target = Intel.huntTarget(sub, x, z)
+	if target then
+		if st.hunting ~= target or not busy then
+			local e = Enemy.units[target]
+			if spGetUnitPosition(target) then
+				order(unitID, CMD.ATTACK, { target })
+			else
+				order(unitID, CMD.FIGHT, { e.x, spGetGroundHeight(e.x, e.z), e.z })
+			end
+			st.hunting = target
+			setTask(unitID, "hunt", "hunting " .. defs[e.defID].human, true)
+		end
+		return
+	end
+	st.hunting = nil
+	Intel.combat(sub, unitID, d, st, threats)
+end
+
 -- factories only join when the player assigns them, so an army without one asks for one
 function Jobs.needFactory(sub, unitID, d, ux, uz)
 	if sub.counts.factories == 0 and frame - (sub.factoryNoted or -99999) > 30 * 90 then
@@ -1183,7 +1789,7 @@ function Jobs.goToZone(sub, unitID, d, ux, uz)
 end
 
 local function energyShort()
-	return econ.eFrac < 0.15 or (econ.eFrac < 0.4 and econ.eInc < max(econ.ePull, econ.mInc * 9))
+	return econ.eFrac < 0.15 or (econ.eFrac < 0.4 and econ.eInc < max(econ.eNeed or econ.ePull, econ.mInc * 9))
 end
 
 -- metal extractors and energy, alternating when both are short so a constant
@@ -1223,6 +1829,7 @@ local BUILDER_PLANS = {
 		return Jobs.removeMarked(sub, u, d, x, z)
 			or Jobs.basicEconomy(sub, u, d, x, z)
 			or (energyWanted() and Jobs.energy(sub, u, d, x, z, false))
+			or Jobs.buildPower(sub, u, d, x, z)
 			or Jobs.storage(sub, u, d, x, z)
 			or Jobs.converter(sub, u, d, x, z)
 			or Jobs.helpBuild(sub, u, d, x, z)
@@ -1248,6 +1855,17 @@ local BUILDER_PLANS = {
 			or Jobs.airDefense(sub, u, d, x, z)
 			or Jobs.helpBuild(sub, u, d, x, z)
 			or Jobs.assistFactory(sub, u, d, x, z)
+			or Jobs.reclaim(sub, u, d, x, z)
+			or Jobs.goToZone(sub, u, d, x, z)
+	end,
+	intelligence = function(sub, u, d, x, z)
+		return Jobs.removeMarked(sub, u, d, x, z)
+			or Jobs.radarNet(sub, u, d, x, z)
+			or Jobs.cameras(sub, u, d, x, z)
+			or Jobs.sonar(sub, u, d, x, z)
+			or Jobs.jammer(sub, u, d, x, z)
+			or Jobs.repair(sub, u, d, x, z)
+			or Jobs.helpBuild(sub, u, d, x, z)
 			or Jobs.reclaim(sub, u, d, x, z)
 			or Jobs.goToZone(sub, u, d, x, z)
 	end,
@@ -1304,7 +1922,44 @@ local function pickProduction(sub, facID, fd)
 			return nil, "factory can't make constructors"
 		end
 	end
-	local armyCap = p.army * (sub.role == "army" and 1.5 or 1)
+	if sub.role == "intelligence" then
+		-- a few scouts, one mobile radar / jammer, then fast raiders to hunt enemy intel
+		local scoutCap = sub.posture == "conserve" and 1 or (sub.posture == "spend" and 4 or 2)
+		if counts.scouts < scoutCap then
+			local options = buildableBy(fd, function(od)
+				return (od.scout or (od.air and not od.armed and not od.transport and od.radarRange > 0)) and od.cost <= cap
+			end)
+			tsort(options, function(a, b)
+				return defs[a].cost < defs[b].cost
+			end)
+			if options[1] then
+				return options[1], "scout"
+			end
+		end
+		if counts.intelUnits < 1 then
+			local options = buildableBy(fd, function(od)
+				return od.mobile and not od.armed and not od.builder and (od.jammer > 0 or od.radarRange > 0) and od.cost <= cap
+			end)
+			if options[1] then
+				return options[1], "mobile intel"
+			end
+		end
+		if counts.combat - counts.scouts >= max(2, floor(p.army / 3)) then
+			return nil, "enough raiders"
+		end
+		local options = buildableBy(fd, function(od)
+			return od.combat and not od.aaOnly and not od.air and od.cost <= cap
+		end)
+		tsort(options, function(a, b)
+			return defs[a].speed > defs[b].speed
+		end)
+		if options[1] then
+			return options[1], "raider"
+		end
+		return nil, "nothing to build"
+	end
+	-- metal piling up: units are how it turns into map control
+	local armyCap = p.army * (sub.role == "army" and 1.5 or 1) * (econ.mFrac > 0.8 and 2 or 1)
 	if counts.combat >= armyCap then
 		return nil, "at unit cap"
 	end
@@ -1323,6 +1978,107 @@ local function pickProduction(sub, facID, fd)
 	return pick, wantAA and "anti-air" or "army"
 end
 
+-- Decision model (optional, behind the bridge): picks the next combat unit from the factory's
+-- options given what the enemy fields and what we have. Answers arrive a few frames later;
+-- without an answer within 2 s the rules decide.
+local Decider = {}
+
+function Decider.describe(d)
+	local traits = {}
+	if d.air then
+		traits[#traits + 1] = "aircraft"
+	end
+	if d.aaOnly then
+		traits[#traits + 1] = "shoots aircraft only"
+	end
+	return sformat("%s (%s): %s, range %d, speed %d, health %d, cost %d metal%s", d.human, d.name, d.kind, d.range, d.speed, d.health, d.metal, #traits > 0 and (", " .. tconcat(traits, ", ")) or "")
+end
+
+function Decider.countsText(map)
+	local list = {}
+	for k, n in pairs(map) do
+		list[#list + 1] = { k, n }
+	end
+	tsort(list, function(a, b)
+		return a[2] > b[2]
+	end)
+	local parts = {}
+	for _, kv in ipairs(list) do
+		parts[#parts + 1] = kv[2] .. " " .. kv[1]
+	end
+	return #parts > 0 and tconcat(parts, ", ") or "none"
+end
+
+function Decider.state(sub)
+	local mix = Enemy.mix()
+	local ours = {}
+	for u in pairs(sub.units) do
+		local d = unitDef(u)
+		if d and d.combat then
+			ours[d.kind] = (ours[d.kind] or 0) + 1
+		end
+	end
+	local air = 0
+	for _, t in ipairs(sub.threats) do
+		if t.air then
+			air = air + 1
+		end
+	end
+	return sformat("Beyond All Reason RTS. Our %s sub-commander's factory is choosing its next unit. Enemy units seen in the last 5 minutes: %s. First seen in the last 3 minutes: %s. Our units: %s. Enemies in our zone now: %d (%d aircraft). Metal %d/%d (+%.1f/s), energy %d/%d (+%.0f/s).",
+		ROLE_INFO[sub.role].label, Decider.countsText(mix.kinds), Decider.countsText(mix.recentKinds), Decider.countsText(ours), #sub.threats, air, econ.m, econ.mS, econ.mInc, econ.e, econ.eS, econ.eInc)
+end
+
+-- returns a defID to build, nil while waiting for an answer, or false to let the rules decide
+function Decider.production(sub, facID, fd, st)
+	local ai = WG.SubCommandersAI
+	if not (ai and ai.deciderReady and ai.deciderReady()) or sub.focus then
+		return false
+	end
+	if st.pick and frame - st.pickFrame < 300 then
+		local pick = st.pick
+		st.pick = nil
+		return pick
+	end
+	if st.asking then
+		if frame - st.asking < 60 then
+			return nil
+		end
+		st.asking, st.askFailed = nil, frame
+	end
+	if st.askFailed and frame - st.askFailed < 300 then
+		return false
+	end
+	local cap = costCap(sub, 1.2)
+	local options = buildableBy(fd, function(od)
+		return od.combat and od.cost <= cap and (sub.role ~= "airdefense" or od.aaOnly)
+	end)
+	if #options < 2 then
+		return false
+	end
+	tsort(options, function(a, b)
+		return defs[a].cost > defs[b].cost
+	end)
+	local criteria = {}
+	for i = 1, min(#options, 8) do
+		criteria[defs[options[i]].name] = Decider.describe(defs[options[i]])
+	end
+	local questions = { unit = { type = "choice", instructions = "Which unit should the factory build next to best counter the enemy and complement our army?", criteria = criteria } }
+	local sent = ai.decide(sub.id, Decider.state(sub), questions, function(answers, err)
+		st.asking = nil
+		local choice = answers and answers.unit and answers.unit.choice
+		if choice and UnitDefNames[choice] then
+			st.pick, st.pickFrame = UnitDefNames[choice].id, frame
+		else
+			st.askFailed = frame
+		end
+	end)
+	if not sent then
+		return false
+	end
+	st.asking = frame
+	return nil
+end
+
 local function thinkFactory(sub, facID, fd, st)
 	if spGetUnitIsBeingBuilt(facID) then
 		return
@@ -1334,6 +2090,15 @@ local function thinkFactory(sub, facID, fd, st)
 	if not defID then
 		st.factoryNote = why
 		return
+	end
+	if why == "army" or why == "anti-air" then
+		local pick = Decider.production(sub, facID, fd, st)
+		if pick == nil then
+			st.factoryNote = "deciding"
+			return
+		elseif pick then
+			defID, why = pick, "decision model"
+		end
 	end
 	if not canSpend(sub, defs[defID]) then
 		st.factoryNote = "waiting for resources"
@@ -1401,6 +2166,21 @@ local function thinkCombat(sub, unitID, d, st, threats)
 			end
 		end
 	end
+	if not target and sub.role == "army" then
+		-- no intruder in our zones: help the other sub-commanders, if we aren't badly outnumbered
+		for i = 1, #baseThreats do
+			local t = baseThreats[i]
+			if (not t.air or d.air or d.aaOnly) and not (d.aaOnly and not t.air) then
+				local dd = dist2(x, z, t.x, t.z)
+				if dd < 3500 * 3500 and (not targetD or dd < targetD) then
+					target, targetD = t, dd
+				end
+			end
+		end
+		if target and sub.counts.power < 0.8 * Enemy.powerNear(target.x, target.z, 900) then
+			target = nil
+		end
+	end
 	local busy = (spGetUnitCommandCount(unitID) or 0) > 0
 	if target then
 		if st.engaged ~= target.id or not busy or frame - (st.engagedFrame or 0) > 150 then
@@ -1415,6 +2195,8 @@ local function thinkCombat(sub, unitID, d, st, threats)
 		patrolZone(sub, unitID, x, z)
 	end
 end
+
+Intel.combat = thinkCombat
 
 --------------------------------------------------------------------------------
 -- Sub-commander lifecycle
@@ -1443,7 +2225,7 @@ local function createSub(role, name)
 		log = {},
 		status = "waiting for units",
 		colorIndex = ((id - 1) % #PALETTE) + 1,
-		counts = { builders = 0, factories = 0, combat = 0, nanos = 0, statics = 0, total = 0 },
+		counts = { builders = 0, factories = 0, combat = 0, nanos = 0, statics = 0, total = 0, scouts = 0, intelUnits = 0, power = 0 },
 		spendM = 0,
 		spendE = 0,
 		threats = {},
@@ -1605,12 +2387,20 @@ end
 --------------------------------------------------------------------------------
 
 local function updateCounts(sub)
-	local c = { builders = 0, factories = 0, combat = 0, nanos = 0, statics = 0, total = 0 }
+	local c = { builders = 0, factories = 0, combat = 0, nanos = 0, statics = 0, total = 0, scouts = 0, intelUnits = 0, power = 0 }
 	local spendM, spendE = 0, 0
 	for u in pairs(sub.units) do
 		local d = unitDef(u)
 		if d then
 			c.total = c.total + 1
+			if d.scout or (d.air and not d.armed and not d.transport) then
+				c.scouts = c.scouts + 1
+			elseif d.mobile and not d.builder and (d.jammer > 0 or d.radarRange > 0) and not d.armed then
+				c.intelUnits = c.intelUnits + 1
+			end
+			if d.combat and not spGetUnitIsBeingBuilt(u) then
+				c.power = c.power + d.cost
+			end
 			if d.builder then
 				c.builders = c.builders + 1
 			elseif d.factory then
@@ -1707,10 +2497,6 @@ local function thinkNano(sub, unitID, st)
 end
 
 local function runSub(sub, budget, combatPass)
-	if combatPass then
-		updateCounts(sub)
-		sub.threats = scanThreats(sub)
-	end
 	if sub.paused then
 		return budget
 	end
@@ -1734,9 +2520,13 @@ local function runSub(sub, budget, combatPass)
 					if combatPass then
 						thinkNano(sub, unitID, st)
 					end
-				elseif d.combat then
+				elseif d.combat or (d.mobile and not d.builder and not d.commander) then
 					if combatPass then
-						thinkCombat(sub, unitID, d, st, sub.threats)
+						if sub.role == "intelligence" then
+							Intel.thinkUnit(sub, unitID, d, st, sub.threats)
+						elseif d.combat then
+							thinkCombat(sub, unitID, d, st, sub.threats)
+						end
 					end
 				end
 			end
@@ -1836,6 +2626,22 @@ local function summarize(sub)
 			focus[#focus + 1] = defs[defID].name
 		end
 	end
+	-- what the player does in our zones: their queued builds by kind, and their units there
+	local playerBuilds, playerUnits = {}, 0
+	for _, p in ipairs(Player.plans) do
+		if inSubZones(sub, p.x, p.z) then
+			local k = defs[p.defID].kind
+			playerBuilds[k] = (playerBuilds[k] or 0) + 1
+		end
+	end
+	for _, zone in ipairs(sub.zones) do
+		for _, u in ipairs(Zone.units(zone)) do
+			local ud = unitDef(u)
+			if ud and ud.mobile and spGetUnitTeam(u) == myTeam and (not owner[u] or (ustate[u] and ustate[u].manual)) then
+				playerUnits = playerUnits + 1
+			end
+		end
+	end
 	return {
 		id = sub.id,
 		name = sub.name,
@@ -1856,6 +2662,7 @@ local function summarize(sub)
 		composition = tally(byType),
 		activity = tally(byTask),
 		manualUnits = manual,
+		playerActivity = (playerUnits > 0 or next(playerBuilds)) and { queuedBuilds = tally(playerBuilds), unitsInZones = playerUnits } or nil,
 		units = units,
 		recent = recent,
 	}
@@ -1883,9 +2690,48 @@ local function enemyIntel()
 	end
 	local starts = {}
 	for _, st in ipairs(getEnemyStarts()) do
-		starts[#starts + 1] = { x = floor(st.x), z = floor(st.z) }
+		starts[#starts + 1] = { x = floor(st.x), z = floor(st.z), guess = st.guess or nil }
 	end
-	return { recentSightings = recent, startPositions = starts }
+	-- known enemy structures worth knowing about: intel (targets for the intelligence role) and defences
+	local intel, defenses = {}, {}
+	for u, e in pairs(Enemy.units) do
+		local d = defs[e.defID]
+		local entry = { x = floor(e.x), z = floor(e.z), kind = d.kind, name = d.human, secondsAgo = floor((frame - e.last) / 30) }
+		if d.intelStructure then
+			intel[#intel + 1] = entry
+		elseif d.staticDef or d.kind == "long-range artillery" then
+			defenses[#defenses + 1] = entry
+		end
+	end
+	local byRecent = function(a, b)
+		return a.secondsAgo < b.secondsAgo
+	end
+	tsort(intel, byRecent)
+	tsort(defenses, byRecent)
+	for i = #intel, 13, -1 do
+		intel[i] = nil
+	end
+	local defenseCount = #defenses
+	for i = #defenses, 13, -1 do
+		defenses[i] = nil
+	end
+	local mix = Enemy.mix()
+	local types = tally(mix.types)
+	for i = #types, 9, -1 do
+		types[i] = nil
+	end
+	return {
+		recentSightings = recent,
+		startPositions = starts,
+		-- what they field (units seen in the last 5 min), per kind; newKinds: first seen in the last 3 min
+		composition = tally(mix.kinds),
+		newKinds = tally(mix.recentKinds),
+		topTypes = types,
+		tech2Units = mix.tech2,
+		intelStructures = intel,
+		defenses = defenses,
+		defenseCount = defenseCount,
+	}
 end
 
 local function defKind(d)
@@ -1937,10 +2783,10 @@ local function buildOptions(sub)
 	return out
 end
 
-local MAX_LISTED_STRUCTURES = 60
+local Api = { MAX_LISTED_STRUCTURES = 60 } -- helpers behind the WG.SubCommanders strategist hooks
 
 -- the sub's own structures (factories excluded), ones in a factory's keep-out area first
-local function structureList(sub, kind, blockingOnly)
+function Api.structureList(sub, kind, blockingOnly)
 	local out, total = {}, 0
 	for u in pairs(sub.units) do
 		local d = unitDef(u)
@@ -1964,14 +2810,14 @@ local function structureList(sub, kind, blockingOnly)
 		end
 		return a.id < b.id
 	end)
-	for i = #out, MAX_LISTED_STRUCTURES + 1, -1 do
+	for i = #out, Api.MAX_LISTED_STRUCTURES + 1, -1 do
 		out[i] = nil
 	end
 	return { total = total, listed = #out, structures = out }
 end
 
 -- mark own structures for reclaiming; an empty list cancels pending removals
-local function markRemovals(sub, unitIDs)
+function Api.markRemovals(sub, unitIDs)
 	if #unitIDs == 0 then
 		sub.removals = {}
 		log(sub, "pending removals cancelled")
@@ -2022,7 +2868,7 @@ local function markRemovals(sub, unitIDs)
 end
 
 -- area for a map picture: the whole map, or the sub's zones with some surroundings
-local function viewBounds(sub, view)
+function Api.viewBounds(sub, view)
 	if view ~= "zones" or #sub.zones == 0 then
 		return 0, 0, MAP_X, MAP_Z
 	end
@@ -2037,8 +2883,8 @@ local function viewBounds(sub, view)
 end
 
 -- everything the strategist bridge needs to draw a picture of x1..x2, z1..z2 (terrain comes separately)
-local function mapView(sub, view)
-	local x1, z1, x2, z2 = viewBounds(sub, view)
+function Api.mapView(sub, view)
+	local x1, z1, x2, z2 = Api.viewBounds(sub, view)
 	local out = { bounds = { x1 = x1, z1 = z1, x2 = x2, z2 = z2 }, subs = {}, zones = {}, metal = {}, units = {}, enemies = {}, intel = enemyIntel() }
 	for _, s in ipairs(subs) do
 		out.subs[#out.subs + 1] = { id = s.id, name = s.name, color = s.color }
@@ -2239,18 +3085,18 @@ local function exportAPI()
 		end,
 		structures = function(id, kind, blockingOnly)
 			local sub = findSub(id)
-			return sub and structureList(sub, kind, blockingOnly)
+			return sub and Api.structureList(sub, kind, blockingOnly)
 		end,
 		removeStructures = function(id, unitIDs)
 			local sub = findSub(id)
 			if not sub then
 				return nil, "no sub-commander with id " .. tostring(id)
 			end
-			return markRemovals(sub, unitIDs or {})
+			return Api.markRemovals(sub, unitIDs or {})
 		end,
 		mapView = function(id, view)
 			local sub = findSub(id)
-			return sub and mapView(sub, view)
+			return sub and Api.mapView(sub, view)
 		end,
 		enemyIntel = enemyIntel,
 		frame = function()
@@ -2290,9 +3136,9 @@ local HELP = {
 -- Nothing after the tag clears the orders.
 --------------------------------------------------------------------------------
 
-local myName = Spring.GetPlayerInfo(myPlayer, false)
+local Chat = { myName = Spring.GetPlayerInfo(myPlayer, false) }
 
-local function subsForTag(tag)
+function Chat.subsForTag(tag)
 	if tag == "" then
 		return { activeSub }
 	elseif tag == "all" then
@@ -2308,8 +3154,8 @@ local function subsForTag(tag)
 	return {}
 end
 
-local function chatOrders(tag, text)
-	local targets = subsForTag(tag:lower())
+function Chat.chatOrders(tag, text)
+	local targets = Chat.subsForTag(tag:lower())
 	if #targets == 0 then
 		spEcho("Sub-Commanders: no sub-commander matches @" .. tag .. " (use @<id>, @<name or role>, @ for the selected one, or @all)")
 		return
@@ -2325,10 +3171,10 @@ local function chatOrders(tag, text)
 end
 
 function widget:AddConsoleLine(lines)
-	if not myName then
+	if not Chat.myName then
 		return
 	end
-	local prefix = "<" .. myName .. "> "
+	local prefix = "<" .. Chat.myName .. "> "
 	lines = lines:match("^%[f=%-?%d+%] (.*)$") or lines
 	for line in lines:gmatch("[^\n]+") do
 		if line:sub(1, #prefix) == prefix then
@@ -2336,7 +3182,7 @@ function widget:AddConsoleLine(lines)
 			text = text:match("^Allies: (.*)$") or text
 			local tag, rest = text:match("^@(%S*)%s*(.-)%s*$")
 			if tag then
-				chatOrders(tag, rest)
+				Chat.chatOrders(tag, rest)
 			end
 		end
 	end
@@ -3081,6 +3927,10 @@ function widget:UnitDestroyed(unitID, unitDefID, unitTeam)
 		releaseUnit(unitID, true)
 	end
 	ustate[unitID] = nil
+	if Enemy.units[unitID] then
+		Enemy.units[unitID] = nil
+		Enemy.known = Enemy.known - 1
+	end
 end
 
 function widget:UnitTaken(unitID, unitDefID, unitTeam, newTeam)
@@ -3126,6 +3976,11 @@ function widget:UnitCommand(unitID, unitDefID, unitTeam, cmdID, cmdParams, cmdOp
 	if type(cmdOpts) == "table" and cmdOpts.internal then
 		return
 	end
+	-- the player orders what they have selected; helper widgets order unselected units
+	-- (e.g. "Idle Constructor Guard After Build" makes builders guard a factory forever)
+	if not Spring.IsUnitSelected(unitID) then
+		return
+	end
 	if cmdID < 0 or MANUAL_CMDS[cmdID] then
 		if not st.manual then
 			local d = defs[unitDefID]
@@ -3148,6 +4003,33 @@ function widget:UnitEnteredLos(unitID, unitTeam)
 		if #enemySightings > 64 then
 			tremove(enemySightings, 1)
 		end
+		local defID = Spring.GetUnitDefID(unitID)
+		if defID and defs[defID] then
+			local e = Enemy.units[unitID]
+			if not e then
+				e = { defID = defID, first = frame }
+				Enemy.units[unitID] = e
+				Enemy.known = Enemy.known + 1
+			end
+			e.last, e.x, e.z = frame, x, z
+		end
+	end
+end
+
+-- forget enemies that died, and structures whose spot we can see empty
+function Enemy.prune()
+	local oldest, oldestFrame
+	for u, e in pairs(Enemy.units) do
+		if not defs[e.defID].mobile and Spring.IsPosInLos(e.x, 0, e.z, myAlly) and not spGetUnitPosition(u) then
+			Enemy.units[u] = nil
+			Enemy.known = Enemy.known - 1
+		elseif not oldestFrame or e.last < oldestFrame then
+			oldest, oldestFrame = u, e.last
+		end
+	end
+	if Enemy.known > 1500 and oldest then
+		Enemy.units[oldest] = nil
+		Enemy.known = Enemy.known - 1
 	end
 end
 
@@ -3162,10 +4044,25 @@ function widget:GameFrame(n)
 	end
 	local combatPass = n % COMBAT_EVERY == 0
 	econUpdate()
+	Player.refresh()
+	if n % 300 == 0 then
+		Enemy.prune()
+	end
 	-- forget stale plans
 	for unitID, p in pairs(planned) do
 		if n - p.frame > 30 * 90 or not owner[unitID] then
 			planned[unitID] = nil
+		end
+	end
+	if combatPass then
+		-- threats everywhere first: armies also answer raids on the other sub-commanders' zones
+		baseThreats = {}
+		for _, sub in ipairs(subs) do
+			updateCounts(sub)
+			sub.threats = scanThreats(sub)
+			for _, t in ipairs(sub.threats) do
+				baseThreats[#baseThreats + 1] = t
+			end
 		end
 	end
 	local budget = MAX_THINKS_PER_PASS

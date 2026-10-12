@@ -29,12 +29,12 @@ type postureArgs struct {
 
 type roleArgs struct {
 	SubID int    `json:"sub_id" jsonschema:"your sub-commander id"`
-	Role  string `json:"role" jsonschema:"economy | defense | airdefense | army"`
+	Role  string `json:"role" jsonschema:"economy | defense | airdefense | army | intelligence"`
 }
 
 type focusArgs struct {
 	SubID int      `json:"sub_id" jsonschema:"your sub-commander id"`
-	Units []string `json:"units" jsonschema:"unit names from get_build_options (e.g. legcen); empty list = automatic production"`
+	Units []string `json:"units" jsonschema:"unit names from get_build_options: mobile units for factories, turret types for constructors (e.g. legcen, leglht); empty list = automatic"`
 }
 
 type zoneArgs struct {
@@ -236,7 +236,7 @@ func Handler(g *game.Server, guard Guard) http.Handler {
 
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "set_focus",
-		Description: "Restrict what your FACTORIES produce to these mobile unit types (names from get_build_options, by=factory). It cannot make constructors build a structure and does nothing if you own no factory. Empty list returns to automatic production for your role.",
+		Description: "Restrict what you produce to these types (names from get_build_options): mobile units for your FACTORIES (by=factory), and turret types (kind defense turret / anti-air turret, by=constructors) for the defences your constructors build. Other structures can't be focused. Empty list returns to automatic choices for your role.",
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in focusArgs) (*mcp.CallToolResult, any, error) {
 		units := in.Units
 		if units == nil {

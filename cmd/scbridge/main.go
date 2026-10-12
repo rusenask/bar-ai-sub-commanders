@@ -21,6 +21,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/rusenask/bar-ai-sub-commanders/internal/decider"
 	"github.com/rusenask/bar-ai-sub-commanders/internal/game"
 	"github.com/rusenask/bar-ai-sub-commanders/internal/opencode"
 	"github.com/rusenask/bar-ai-sub-commanders/internal/strategist"
@@ -49,6 +50,8 @@ func run() error {
 		urgent      = flag.Duration("urgent", 8*time.Second, "minimum game time between reviews when something happens")
 		turnTimeout = flag.Duration("turn-timeout", 3*time.Minute, "limit for one review")
 		host        = flag.String("opencode-host", "127.0.0.1", "interface for the opencode server scbridge starts (0.0.0.0 in a container)")
+		deciderURL  = flag.String("decider-url", os.Getenv("SCBRIDGE_DECIDER_URL"), "optional System One decision model (Kev, Clef: /v1/systemone) for the widget's fast choices, e.g. http://100.108.100.25:8009")
+		deciderName = flag.String("decider-model", cmp.Or(os.Getenv("SCBRIDGE_DECIDER_MODEL"), "kev-latest"), "model name sent to the decision model")
 	)
 	flag.Parse()
 
@@ -69,6 +72,10 @@ func run() error {
 	defer stop()
 
 	g := game.NewServer(*gameAddr, log)
+	if *deciderURL != "" {
+		g.Decide = decider.New(*deciderURL, *deciderName).Decide
+		log.Info("decision model", "url", *deciderURL, "model", *deciderName)
+	}
 	var strat *strategist.Strategist
 	guard := func(sub int) error {
 		if strat == nil {
