@@ -18,7 +18,8 @@ if [ -n "$AI_PROFILE" ] || [ -n "$MAP" ]; then
   sed -e "s/profile=[a-z_]*;/profile=${AI_PROFILE:-hard};/" -e "s/mapname=[^;]*;/mapname=${MAP:-All That Simmers v1.1.1};/" "$1" > "$T/_script_run.txt"
   SCRIPT="$T/_script_run.txt"
 fi
-cp "$T"/../widget/LuaUI/Widgets/gui_subcommanders*.lua "$T/LuaUI/Widgets/"
+# WIDGET_SRC=/path/to/Widgets runs another version of the widgets (A/B tests)
+cp "${WIDGET_SRC:-$T/../widget/LuaUI/Widgets}"/gui_subcommanders*.lua "$T/LuaUI/Widgets/"
 [ -n "$3" ] && echo "$3" > "$T/sctest_scenario.txt"
 # SPEED=10 runs the game that fast (as far as the machine keeps up); LOCKSTEP=1 pauses it while the
 # AI strategist is thinking, so it sees the game as often as at normal speed

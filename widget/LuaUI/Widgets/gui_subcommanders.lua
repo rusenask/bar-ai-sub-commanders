@@ -1159,9 +1159,10 @@ function Jobs.rebuildFactory(sub, unitID, d, ux, uz)
 	return false
 end
 
--- raiders in the economy's zone: one cheap turret next to the extractors they go for
+-- raiders in the economy's zone: cheap turrets next to what they go for (extractors, generators),
+-- a few per zone, one at a time
 function Jobs.guardTurret(sub, unitID, d, ux, uz)
-	if d.commander or #sub.threats == 0 or sub.guardTurretFrame and frame - sub.guardTurretFrame < 30 * 60 then
+	if d.commander or #sub.threats == 0 or sub.guardTurretFrame and frame - sub.guardTurretFrame < 30 * 40 then
 		return false
 	end
 	local options = buildableBy(d, function(od)
@@ -1177,12 +1178,22 @@ function Jobs.guardTurret(sub, unitID, d, ux, uz)
 	if not canSpend(sub, defs[o], "essential") then
 		return false
 	end
-	-- the extractor of ours nearest to the intruders
 	local t = sub.threats[1]
+	local turrets = 0
+	for u in pairs(sub.units) do
+		local ud = unitDef(u)
+		if ud and ud.staticDef and not ud.aaOnly then
+			turrets = turrets + 1
+		end
+	end
+	if turrets >= 2 + POSTURE_INFO[sub.posture].density then
+		return false
+	end
+	-- our structure nearest to the intruders
 	local best, bestD
 	for u in pairs(sub.units) do
 		local ud = unitDef(u)
-		if ud and ud.mex > 0 then
+		if ud and not ud.mobile and not ud.staticDef then
 			local x, _, z = spGetUnitPosition(u)
 			local dd = x and dist2(x, z, t.x, t.z)
 			if dd and (not bestD or dd < bestD) then
@@ -1194,7 +1205,7 @@ function Jobs.guardTurret(sub, unitID, d, ux, uz)
 		return false
 	end
 	local x, z = findBuildSpot(sub, o, best[1], best[2], { gap = 16, rings = 5 })
-	if x and issueBuild(sub, unitID, o, x, z, facingToward(x, z, t.x, t.z), "turret: raiders at the extractors") then
+	if x and issueBuild(sub, unitID, o, x, z, facingToward(x, z, t.x, t.z), "turret: raiders in the economy") then
 		sub.guardTurretFrame = frame
 		return true
 	end
@@ -2369,8 +2380,54 @@ local function patrolZone(sub, unitID, ux, uz)
 	setTask(unitID, "patrol", "patrolling zone", true)
 end
 
+local Tactics = {} -- commander safety, army counter-push and rally point
+
+-- Counter-push: a clearly stronger army with nothing to defend goes for the nearest known enemy
+-- structure few turrets guard (extractors, radar, expansions), and comes home when that changes.
+function Tactics.updatePush(sub)
+	if sub.role ~= "army" or not sub.armyX or sub.paused then
+		sub.pushTarget = nil
+		return
+	end
+	local power = sub.counts.power
+	local near = Enemy.powerNear(sub.armyX, sub.armyZ, 1800)
+	if #baseThreats > 0 or power < 2000 or power < 1.5 * near then
+		if sub.pushTarget then
+			log(sub, "push called off: " .. (#baseThreats > 0 and "the base needs us" or "not strong enough here"))
+		end
+		sub.pushTarget = nil
+		return
+	end
+	local t = sub.pushTarget
+	if t and Enemy.units[t.id] then
+		return
+	end
+	local best, bestD
+	for u, e in pairs(Enemy.units) do
+		local ed = defs[e.defID]
+		if not ed.mobile and not ed.staticDef and frame - e.last < 30 * 600 then
+			local dd = dist2(sub.armyX, sub.armyZ, e.x, e.z)
+			if dd < 4500 * 4500 and (not bestD or dd < bestD) then
+				local guard = 0
+				for _, o in pairs(Enemy.units) do
+					if defs[o.defID].staticDef and dist2(o.x, o.z, e.x, e.z) < 700 * 700 then
+						guard = guard + defs[o.defID].cost
+					end
+				end
+				if guard * 2 < power then
+					best, bestD = { id = u, x = e.x, z = e.z, name = ed.human }, dd
+				end
+			end
+		end
+	end
+	if best and not (t and t.id == best.id) then
+		log(sub, sformat("pushing: %s at %d,%d (we are clearly stronger)", best.name, best.x, best.z))
+	end
+	sub.pushTarget = best
+end
+
 -- army rally point: inside the main zone, on its edge toward the enemy
-local function rallyPoint(sub)
+function Tactics.rallyPoint(sub)
 	local zone = largestZone(sub)
 	if not zone then
 		return nil
@@ -2464,9 +2521,19 @@ local function thinkCombat(sub, unitID, d, st, threats)
 		return
 	end
 	st.engaged = nil
+	if sub.role == "army" and sub.pushTarget then
+		local p = sub.pushTarget
+		if st.pushing ~= p.id or not busy or frame - (st.pushFrame or 0) > 300 then
+			order(unitID, CMD.FIGHT, { p.x, spGetGroundHeight(p.x, p.z), p.z })
+			st.pushing, st.pushFrame = p.id, frame
+			setTask(unitID, "push", "pushing " .. p.name, true)
+		end
+		return
+	end
+	st.pushing = nil
 	if sub.role == "army" then
 		-- gather: the army waits together at its rally point instead of spreading out on patrol
-		local rx, rz = rallyPoint(sub)
+		local rx, rz = Tactics.rallyPoint(sub)
 		if rx and (not busy or (st.softUntil and frame > st.softUntil)) and dist2(x, z, rx, rz) > 260 * 260 then
 			local a = (unitID % 12) / 12 * 2 * pi
 			local gx, gz = clampToMap(rx + cos(a) * 120, rz + sin(a) * 120)
@@ -2524,7 +2591,7 @@ local function createSub(role, name)
 end
 
 -- build priority: the posture's, but low while the player builds and metal is short
-local function subPriority(sub)
+function Player.subPriority(sub)
 	return Player.yield and 0 or POSTURE_INFO[sub.posture].priority
 end
 
@@ -2533,16 +2600,16 @@ local function applyPriority(sub, unitID)
 	if CMD_PRIORITY and d and (d.builder or d.factory or d.nano) and not d.commander then
 		-- a unit the player took over works for the player: normal priority
 		local st = ustate[unitID]
-		order(unitID, CMD_PRIORITY, { (st and st.manual) and 1 or subPriority(sub) })
+		order(unitID, CMD_PRIORITY, { (st and st.manual) and 1 or Player.subPriority(sub) })
 	end
 end
 
 Player.restorePriority = applyPriority
 
 -- re-apply when the priority a sub-commander should have changes (player started/stopped building)
-local function refreshPriorities()
+function Player.refreshPriorities()
 	for _, sub in ipairs(subs) do
-		local want = subPriority(sub)
+		local want = Player.subPriority(sub)
 		if sub.appliedPriority ~= want then
 			sub.appliedPriority = want
 			for u in pairs(sub.units) do
@@ -2807,9 +2874,8 @@ end
 
 -- The commander: in BAR's default game mode its death loses the game. It falls back from
 -- armed enemies close by, or when hurt, toward our turrets and away from the threat.
-local Commander = {}
 
-function Commander.guard(sub, unitID, st)
+function Tactics.guardCommander(sub, unitID, st)
 	if st.fleeing and frame - st.fleeing < 30 * 15 then
 		return true
 	end
@@ -2903,7 +2969,7 @@ local function runSub(sub, budget, combatPass)
 			local st = getState(unitID)
 			if d and not spGetUnitIsBeingBuilt(unitID) and not manualHeld(unitID, st, d) then
 				if d.builder then
-					if d.commander and ((combatPass and Commander.guard(sub, unitID, st)) or (st.fleeing and frame - st.fleeing < 30 * 15)) then
+					if d.commander and ((combatPass and Tactics.guardCommander(sub, unitID, st)) or (st.fleeing and frame - st.fleeing < 30 * 15)) then
 						-- the commander is getting out of danger
 					elseif budget > 0 and builderNeedsThink(unitID, st) then
 						thinkBuilder(sub, unitID, d, st)
@@ -4517,7 +4583,7 @@ function widget:GameFrame(n)
 	econUpdate()
 	Player.refresh()
 	if n % 60 == 0 then
-		refreshPriorities()
+		Player.refreshPriorities()
 	end
 	if n % 300 == 0 then
 		Enemy.prune()
@@ -4538,6 +4604,11 @@ function widget:GameFrame(n)
 			for _, t in ipairs(sub.threats) do
 				baseThreats[#baseThreats + 1] = t
 			end
+		end
+	end
+	if combatPass then
+		for _, sub in ipairs(subs) do
+			Tactics.updatePush(sub)
 		end
 	end
 	local budget = MAX_THINKS_PER_PASS

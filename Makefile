@@ -40,10 +40,10 @@ test-game:
 	AI_PROFILE=$(AI_PROFILE) MAP="$(MAP)" SPEED=$(SPEED) LOCKSTEP=$(LOCKSTEP) testenv/run.sh "$(CURDIR)/testenv/$(SCRIPT)" $(TIMEOUT) $(SCENARIO)
 	@cat testenv/sctest_out.txt
 
-# several fast games in a row with a summary: make test-batch GAMES=5 SCENARIO=duelrules AI_PROFILE=medium
+# several fast games against BARbarian with a summary: make test-batch GAMES=5 BATCH_SCENARIO=duel AI_PROFILE=hard
 GAMES ?= 3
 test-batch:
-	AI_PROFILE=$(AI_PROFILE) MAP="$(MAP)" SPEED=$(or $(SPEED),15) LOCKSTEP=$(LOCKSTEP) testenv/batch.sh $(GAMES) $(SCENARIO) $(SCRIPT)
+	AI_PROFILE=$(or $(AI_PROFILE),medium) MAP="$(MAP)" SPEED=$(or $(SPEED),15) LOCKSTEP=$(LOCKSTEP) testenv/batch.sh $(GAMES) $(or $(BATCH_SCENARIO),duelrules) script_vsai.txt
 
 # bridge for test games (port 17878, opencode on 14517), separate from the one real games use
 test-bridge:

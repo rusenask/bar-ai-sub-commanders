@@ -285,6 +285,12 @@ The panel's log shows `factory: <unit> (decision model)` when it decides.
   `make test-game SCENARIO=duel SCRIPT=script_vsai.txt AI_PROFILE=medium TIMEOUT=1100` (`duelrules` = rules
   only, no strategist; profiles easy, medium, hard, hard_aggressive). It ends with
   `RESULT WIN|LOSS|TIMEOUT` and team stats.
+- Faster: `SPEED=15` runs any scenario at up to 15x (a 25-minute duel takes about two minutes here);
+  `LOCKSTEP=1` pauses the game while the strategist thinks, so it sees the game as often as at normal
+  speed; `MAP="Altair_Crossing_V4.1"` picks another map (names as in BAR's archive cache).
+- `make test-batch GAMES=5 BATCH_SCENARIO=duelrules AI_PROFILE=hard` plays several fast games and prints a
+  line per game and a summary; `WIDGET_SRC=/path/to/Widgets testenv/batch.sh ...` runs another version of
+  the widgets, for A/B comparisons. Results so far: [docs/research/test-games.md](docs/research/test-games.md).
 - `bin/fakegame` exercises the bridge and the model without starting BAR.
 - `make ref` checks out BAR's Lua source at the installed version into `ref/` for API lookups.
 

@@ -8,7 +8,8 @@ Intelligence as constructors become available, gives each a standing order, and 
 when metal keeps piling up. `duel` runs the AI strategist (deepseek-v4.1-flash), `duelrules` only the rules.
 
 Results vary a lot between games with the same code (BARbarian is not deterministic), so single games
-show direction, not precise strength.
+show direction, not precise strength. Games 1-11 ran at 3x (about 10 minutes each); from game 12 on, rules
+games run at 15x (two minutes each) in batches.
 
 | # | Code | Opponent | Mode | Result | Metal produced | Killed / lost | What we learned |
 |---|---|---|---|---|---|---|---|
@@ -26,5 +27,11 @@ Fixes after #8: the economy's factory replaces lost constructors for Defense / A
 the player's build spot is reserved the moment the order arrives; the decider also picks Defense turret
 types; Intelligence stops building scouts as raiders.
 
+| 10 | + factory rebuild | medium | strategist + decider | LOSS 8:42 | - | - | the whole team died with the commander (BAR's default mode): the economy had walked it to a far expansion |
+| 11 | + commander protection, order race fix | medium | rules, 15x | TIMEOUT (alive) | 16.7k | 21 / 113 | first fast run: the player's first lab had been replaced by a racing sub-commander order |
+
 Fixes after #9: the economy rebuilds a destroyed factory the player had assigned (and hands it back); the
 army gathers under our turrets when the enemy near the front outweighs it.
+
+Fixes after #10/#11: the commander only builds inside its zones and falls back from armed enemies or when
+hurt; a player order replaced by a racing sub-commander order is put back.

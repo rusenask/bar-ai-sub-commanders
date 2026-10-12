@@ -212,11 +212,29 @@ local function duel(n)
 		SC.assign(ids.eco, { com })
 		SC.setAI(ids.eco, ai)
 		SC.setDirective(ids.eco, "grow the economy: take every safe metal spot, keep energy ahead of spending")
-		-- the player uses the commander for the first lab, then leaves it to Economy
-		local _, dx, dz = towardEnemy(0.1, 0)
-		playerBuild(com, "leglab", cx + dx * 220, cz + dz * 220, dx, dz)
+		duelState.stage = -1
 	end
-	if duelState.stage == 0 then
+	-- a normal opener: the commander takes the first extractors and generators (Economy does that),
+	-- then the player has it build the lab
+	if duelState.stage == -1 then
+		local mex, gen = 0, 0
+		for _, u in ipairs(Spring.GetTeamUnits(myTeam)) do
+			local ud = UnitDefs[Spring.GetUnitDefID(u)]
+			if not Spring.GetUnitIsBeingBuilt(u) then
+				if (ud.extractsMetal or 0) > 0 then
+					mex = mex + 1
+				elseif (ud.speed or 0) == 0 and ((ud.windGenerator or 0) > 0 or (ud.energyMake or 0) > 0) then
+					gen = gen + 1
+				end
+			end
+		end
+		if (mex >= 2 and gen >= 2) or n > 30 * 75 then
+			duelState.stage = 0
+			local _, dx, dz = towardEnemy(0.1, 0)
+			playerBuild(ids.com, "leglab", cx + dx * 220, cz + dz * 220, dx, dz)
+			out(string.format("player: opener done (%d extractors, %d generators), commander builds the lab", mex, gen))
+		end
+	elseif duelState.stage == 0 then
 		local lab = (byName.leglab or {})[1]
 		if lab and not Spring.GetUnitIsBeingBuilt(lab) then
 			duelState.stage = 1
