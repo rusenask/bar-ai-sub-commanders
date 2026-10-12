@@ -35,3 +35,26 @@ army gathers under our turrets when the enemy near the front outweighs it.
 
 Fixes after #10/#11: the commander only builds inside its zones and falls back from armed enemies or when
 hurt; a player order replaced by a racing sub-commander order is put back.
+
+## Fast batches (15x, rules only, `testenv/batch.sh`)
+
+Each line is a batch of games against BARbarian medium on All That Simmers, 25-minute limit. "Alive" means
+still standing at 25 minutes (BARbarian wasn't beaten in any game yet). Averages per game.
+
+| Batch | Code | Games | Alive / lost | Metal | Kills / losses | Damage dealt / taken |
+|---|---|---|---|---|---|---|
+| A | commander protection, order race fix (lab-first opener) | 4 | 2 / 2 | 34.4k | 64 / 197 | 0.70 |
+| B | A + army counter-push | 4 | 4 / 0 | 22.7k | 20 / 130 | 0.54 |
+| C | B + raid turrets, extractors-first opener, decider on | 6 | 5 / 1 | 39.2k | 51 / 184 | 0.57 |
+| D | C without the decider | 6 | 5 / 1 | 35.1k | 46 / 185 | 0.63 |
+
+- The counter-push triggered in only one game of B (the army rarely gets 1.5x stronger than what it sees);
+  A vs B is mostly noise.
+- C vs D: the decision model (Clef-flash) makes sensible production and turret picks but doesn't change
+  results measurably in rules-only play. It stays optional.
+- Same code, wildly different games: metal produced ranges from 9k to 66k. Early raids that reach the
+  wind farm or the extractors decide most games.
+| E | D + basic solar allowed when energy runs out | 6 | 4 / 2 | 30.1k | 37 / 203 | 0.48 |
+
+- E reverted: letting the emergency energy rule pick basic solar (150 metal) instead of only cheap wind
+  didn't help (worse on every average).

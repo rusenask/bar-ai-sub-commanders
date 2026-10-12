@@ -249,7 +249,12 @@ make decider-deploy DECIDER_HOST=my-gpu-host DECIDER=clef-flash   # or kev-4b / 
 echo "DECIDER_URL=http://my-gpu-host:8010" >> .env && make up
 ```
 
-The panel's log shows `factory: <unit> (decision model)` when it decides.
+The panel's log shows `factory: <unit> (decision model)` and `turrets: <type> (decision model)` when it
+decides (it picks Army / Air Defense factory production and the Defense turret type).
+
+In practice: in 6 + 6 fast rules-only games against BARbarian medium, with and without Clef-flash, results
+were the same within the (large) game-to-game variance. The model's picks are sensible, but the rules
+already choose reasonably, so treat it as an experiment rather than a strength upgrade.
 
 ### Troubleshooting
 
