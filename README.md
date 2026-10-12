@@ -315,8 +315,11 @@ Other widgets can drive sub-commanders through `WG.SubCommanders`: `list()`, `ge
   a clear lane in front of every factory exit (own and allied) and room around factories. It doesn't yet
   reason about cliffs and ramps beyond the zones the strategist picks.
 - Armies hold, gather and defend; attacking is done by the strategist moving the army's zone forward.
-- In 1v1 tests against BARbarian (medium) a delegating player holds for 25 minutes but still trades units
-  badly; hard is harder.
+- Strength, measured in fast 1v1 test games with a light-touch delegating player (details in
+  [docs/research/test-games.md](docs/research/test-games.md)): against BARbarian medium, 5 of 6 games still
+  standing at 25 minutes, none won; against hard, 1 of 6. Units still trade badly (about 1 kill per 4
+  losses), and the AI strategist doesn't add measurable strength against a scripted AI: its value is
+  following your orders and explaining itself.
 - Geothermal, nukes, long-range artillery and factories are not built automatically. Give an Army
   sub-commander a factory to produce with; until then it asks for one.
 - Metal extractor upgrades by T2 constructors are implemented but untested.

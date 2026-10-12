@@ -64,3 +64,12 @@ still standing at 25 minutes (BARbarian wasn't beaten in any game yet). Averages
   40 of them to *conserve*, because the prompt read low metal storage as a stall; conserve cuts
   constructor and unit caps. Prompt fixed (low storage is normal; conserve is rare) and posture changes
   are refused within 90 s of the last one.
+| AI-2 | AI-1 + prompt fix, posture cooldown | 3 | 2 / 1 | 25.6k | 47 / 217 | 0.57 |
+
+- AI-2: posture flip-flopping is gone (26 changes, 38 refused by the cooldown) and survival is back to the
+  rules' level, but the strategist still doesn't beat rules-only play against BARbarian. Against a scripted
+  AI the rule engine decides most of the outcome; the strategist's value is in following the player's
+  orders, explaining itself and covering what the player asks, not in raw strength.
+| H | D, against BARbarian **hard** | 6 | 1 / 5 | 29.7k | 50 / 214 | 0.44 |
+
+- H: hard is out of reach for a light-touch delegating player so far (losses between 14 and 24 minutes).
