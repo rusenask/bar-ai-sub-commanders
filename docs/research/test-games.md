@@ -58,3 +58,9 @@ still standing at 25 minutes (BARbarian wasn't beaten in any game yet). Averages
 
 - E reverted: letting the emergency energy rule pick basic solar (150 metal) instead of only cheap wind
   didn't help (worse on every average).
+| AI-1 | D + strategist (lockstep, 10x) | 3 | 1 / 2 | 40.3k | 49 / 291 | 0.66 |
+
+- AI-1: the strategist made the army bleed (291 losses vs 185 rules-only). It changed posture 103 times,
+  40 of them to *conserve*, because the prompt read low metal storage as a stall; conserve cuts
+  constructor and unit caps. Prompt fixed (low storage is normal; conserve is rare) and posture changes
+  are refused within 90 s of the last one.

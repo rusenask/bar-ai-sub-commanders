@@ -220,11 +220,32 @@ func Handler(g *game.Server, guard Guard) http.Handler {
 		return act(ctx, in.SubID, "remove_structures", map[string]any{"unit_ids": ids}, "queued for removal"), nil, nil
 	})
 
+	// posture flip-flopping starves production: at most one change per 90 s of game time per sub-commander
+	var postureMu sync.Mutex
+	lastPosture := map[int]int{}
+	const postureEveryFrames = 30 * 90
+
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "set_posture",
-		Description: "How freely you spend the shared team resources. conserve: only from excess, cheap builds, low build priority. balanced: normal. spend: use everything, biggest affordable options, larger unit caps.",
+		Description: "How freely you spend the shared team resources. conserve: only from excess, cheap builds, fewer constructors and units, low build priority (rarely right). balanced: normal. spend: use everything, biggest affordable options, larger unit caps. At most one change per 90 s.",
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in postureArgs) (*mcp.CallToolResult, any, error) {
-		return act(ctx, in.SubID, "set_posture", map[string]any{"posture": in.Posture}, "posture set to "+in.Posture), nil, nil
+		frame := 0
+		if _, state, _ := g.Snapshot(); state != nil {
+			frame = state.Frame
+		}
+		postureMu.Lock()
+		last, changed := lastPosture[in.SubID]
+		postureMu.Unlock()
+		if changed && frame-last < postureEveryFrames {
+			return fail(fmt.Errorf("you changed posture %ds ago; keep it at least 90 s so production can settle", (frame-last)/30)), nil, nil
+		}
+		r := act(ctx, in.SubID, "set_posture", map[string]any{"posture": in.Posture}, "posture set to "+in.Posture)
+		if !r.IsError {
+			postureMu.Lock()
+			lastPosture[in.SubID] = frame
+			postureMu.Unlock()
+		}
+		return r, nil, nil
 	})
 
 	mcp.AddTool(s, &mcp.Tool{
@@ -277,7 +298,7 @@ func Handler(g *game.Server, guard Guard) http.Handler {
 
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "tell_player",
-		Description: "Send the player a short message (requests, warnings). Use sparingly; your final reply is already shown in your log.",
+		Description: "Send the player a short message (requests, warnings). At most once per 90 s; your one-sentence reply is already shown in your log, so put repeats there instead.",
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in tellArgs) (*mcp.CallToolResult, any, error) {
 		frame := 0
 		if _, state, _ := g.Snapshot(); state != nil {
