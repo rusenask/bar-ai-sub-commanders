@@ -6,6 +6,8 @@
 #   decider.sh start clef-flash   Cloudflare/clef-flash on :8010 (~19 GB VRAM, best on our cases)
 #   decider.sh start kev-4b       jaredpalmer/kev-4b on :8009 (~15 GB VRAM)
 #   decider.sh start kev-9b       jaredpalmer/kev-9b on :8009
+#   decider.sh start bar [ver]    our own BAR models (design/decision-models.md) from ~/bar-decider/runs/bar-<task>-<ver>:
+#                                 fight :8011, unit :8012, turret :8013 (~3 GB each)
 #   decider.sh stop               stop whichever runs
 #   decider.sh status
 #
@@ -32,13 +34,22 @@ start)
 	case "$2" in
 	clef | clef-flash) setsid "$UV" run --extra serve python "$DIR/clef/serve_clef.py" --model "Cloudflare/${2:-clef-flash}" --port 8010 >"$DIR/decider.log" 2>&1 </dev/null & ;;
 	kev-*) setsid "$UV" run --extra serve python -m kev.serve --run "jaredpalmer/$2" --host 0.0.0.0 --port 8009 --device cuda >"$DIR/decider.log" 2>&1 </dev/null & ;;
-	*) echo "start clef-flash | kev-4b | kev-9b" >&2; exit 2 ;;
+	bar)
+		port=8011
+		for task in fight unit turret; do
+			run="$DIR/runs/bar-$task-${3:-v1}"
+			[ -d "$run" ] && setsid "$UV" run --extra serve python -m kev.serve --run "$run" --host 0.0.0.0 --port $port --device cuda >"$DIR/decider-$task.log" 2>&1 </dev/null &
+			port=$((port + 1))
+		done
+		;;
+	*) echo "start clef-flash | kev-4b | kev-9b | bar [version]" >&2; exit 2 ;;
 	esac
 	echo "starting $2, log: $DIR/decider.log"
 	;;
 stop)
 	pkill -f "serve_cle[f].py" || true
 	pkill -f "m kev[.]serve" || true
+	sleep 2
 	;;
 status)
 	tail -n 3 "$DIR/decider.log" 2>/dev/null || true
