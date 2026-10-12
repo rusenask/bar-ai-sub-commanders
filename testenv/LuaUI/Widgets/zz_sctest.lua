@@ -4,6 +4,9 @@ function widget:GetInfo()
 end
 
 local scenario = (VFS.LoadFile("sctest_scenario.txt", VFS.RAW) or "eco"):gsub("%s+", "")
+-- "SPEED LOCKSTEP" from run.sh: game speed override, and pause while the AI strategist thinks
+local speedOverride, lockstep = (VFS.LoadFile("sctest_speed.txt", VFS.RAW) or ""):match("^(%d*)%s*(%d*)")
+speedOverride, lockstep = tonumber(speedOverride), lockstep == "1"
 local myTeam = Spring.GetMyTeamID()
 local SC
 local ids = {}
@@ -822,7 +825,37 @@ local function gameFrame(n)
 	end
 end
 
+-- lockstep: the game waits for the strategist (Update runs while paused, GameFrame doesn't)
+local lockPaused, lockChecked = false, 0
+function widget:Update()
+	if not lockstep or not WG.SubCommanders or Spring.GetGameFrame() < 30 then
+		return
+	end
+	local now = os.clock()
+	if now - lockChecked < 0.2 then
+		return
+	end
+	lockChecked = now
+	local thinking = false
+	for _, s in ipairs(WG.SubCommanders.list()) do
+		if s.ai and type(s.aiStatus) == "string" and s.aiStatus:find("^thinking") then
+			thinking = true
+		end
+	end
+	local _, _, paused = Spring.GetGameSpeed()
+	if thinking and not paused then
+		Spring.SendCommands("pause 1")
+		lockPaused = true
+	elseif not thinking and paused and lockPaused then
+		Spring.SendCommands("pause 0")
+		lockPaused = false
+	end
+end
+
 function widget:GameFrame(n)
+	if speedOverride and n == 25 then
+		Spring.SendCommands("setmaxspeed " .. (speedOverride + 5), "setspeed " .. speedOverride)
+	end
 	if deselectAt and n >= deselectAt then
 		deselectAt = nil
 		Spring.SelectUnitArray({})

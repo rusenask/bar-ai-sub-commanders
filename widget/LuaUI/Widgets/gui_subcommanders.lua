@@ -1012,7 +1012,7 @@ function Jobs.mex(sub, unitID, d, ux, uz)
 		local spot = spots[i]
 		local inZone = inSubZones(sub, spot.x, spot.z)
 		-- economy also expands to safe spots on our side of the map beyond its zones
-		if (spotCooldown[i] or 0) <= frame and (inZone or (sub.role == "economy" and Jobs.safeExpansion(sub, spot))) and not plannedConflict(defs[bestMex], spot.x, spot.z, EXTRACTOR_RADIUS) then
+		if (spotCooldown[i] or 0) <= frame and (inZone or (sub.role == "economy" and not d.commander and Jobs.safeExpansion(sub, spot))) and not plannedConflict(defs[bestMex], spot.x, spot.z, EXTRACTOR_RADIUS) then
 			local exID, exDef = extractorAt(spot)
 			local upgrade = exID and exDef.mex < bestYield and spGetUnitTeam(exID) == myTeam and not spGetUnitIsBeingBuilt(exID)
 			if not exID or upgrade then
@@ -1122,7 +1122,7 @@ end
 
 -- a factory the player gave a sub-commander was destroyed: rebuild it where it stood
 function Jobs.rebuildFactory(sub, unitID, d, ux, uz)
-	if econ.mFrac < 0.15 then
+	if d.commander or econ.mFrac < 0.15 then
 		return false
 	end
 	for _, other in ipairs(subs) do
@@ -1161,7 +1161,7 @@ end
 
 -- raiders in the economy's zone: one cheap turret next to the extractors they go for
 function Jobs.guardTurret(sub, unitID, d, ux, uz)
-	if #sub.threats == 0 or sub.guardTurretFrame and frame - sub.guardTurretFrame < 30 * 60 then
+	if d.commander or #sub.threats == 0 or sub.guardTurretFrame and frame - sub.guardTurretFrame < 30 * 60 then
 		return false
 	end
 	local options = buildableBy(d, function(od)
@@ -2792,6 +2792,65 @@ local function builderNeedsThink(unitID, st)
 	return st.softUntil ~= nil and frame >= st.softUntil
 end
 
+-- The commander: in BAR's default game mode its death loses the game. It falls back from
+-- armed enemies close by, or when hurt, toward our turrets and away from the threat.
+local Commander = {}
+
+function Commander.guard(sub, unitID, st)
+	if st.fleeing and frame - st.fleeing < 30 * 15 then
+		return true
+	end
+	st.fleeing = nil
+	local x, _, z = spGetUnitPosition(unitID)
+	if not x then
+		return false
+	end
+	local power, tx, tz, n = 0, 0, 0, 0
+	for _, u in ipairs(spGetUnitsInCylinder(x, z, 800)) do
+		if isEnemyUnit(u) then
+			local ud = unitDef(u) -- nil for radar blips: assume armed
+			if not ud or (ud.armed and not ud.aaOnly) then
+				local ex, _, ez = spGetUnitPosition(u)
+				power, tx, tz, n = power + (ud and ud.cost or 60), tx + ex, tz + ez, n + 1
+			end
+		end
+	end
+	local hp, maxHp = Spring.GetUnitHealth(unitID)
+	local hurt = hp and maxHp and hp < maxHp * 0.6
+	if n == 0 or (power < 100 and not hurt) then
+		return false
+	end
+	tx, tz = tx / n, tz / n
+	-- the nearest group of our turrets that is farther from the threat than we are, else straight away from it
+	local bx, bz, bestD
+	for _, u in ipairs(spGetUnitsInCylinder(x, z, 2500)) do
+		local ud = unitDef(u)
+		if ud and ud.staticDef and spGetUnitTeam(u) == myTeam then
+			local sx, _, sz = spGetUnitPosition(u)
+			if dist2(sx, sz, tx, tz) > dist2(x, z, tx, tz) + 200 * 200 then
+				local dd = dist2(x, z, sx, sz)
+				if not bestD or dd < bestD then
+					bx, bz, bestD = sx, sz, dd
+				end
+			end
+		end
+	end
+	if not bx then
+		local dx, dz = x - tx, z - tz
+		local len = max(sqrt(dx * dx + dz * dz), 1)
+		bx, bz = clampToMap(x + dx / len * 700, z + dz / len * 700)
+	end
+	order(unitID, CMD.MOVE, { bx, spGetGroundHeight(bx, bz), bz })
+	planned[unitID] = nil
+	st.fleeing = frame
+	setTask(unitID, "flee", "commander falling back from enemies", true)
+	if frame - (sub.comFleeNoted or -99999) > 30 * 30 then
+		sub.comFleeNoted = frame
+		log(sub, "commander pulled back from enemies (losing it loses the game)")
+	end
+	return true
+end
+
 local function thinkBuilder(sub, unitID, d, st)
 	local x, _, z = spGetUnitPosition(unitID)
 	if not x then
@@ -2831,7 +2890,9 @@ local function runSub(sub, budget, combatPass)
 			local st = getState(unitID)
 			if d and not spGetUnitIsBeingBuilt(unitID) and not manualHeld(unitID, st, d) then
 				if d.builder then
-					if budget > 0 and builderNeedsThink(unitID, st) then
+					if d.commander and ((combatPass and Commander.guard(sub, unitID, st)) or (st.fleeing and frame - st.fleeing < 30 * 15)) then
+						-- the commander is getting out of danger
+					elseif budget > 0 and builderNeedsThink(unitID, st) then
 						thinkBuilder(sub, unitID, d, st)
 						budget = budget - 1
 					end
@@ -4327,6 +4388,9 @@ function widget:UnitIdle(unitID)
 		return
 	end
 	local d = unitDef(unitID)
+	if d and d.commander and st.fleeing and frame - st.fleeing < 30 * 15 then
+		return
+	end
 	if d and d.builder and not sub.paused and not spGetUnitIsBeingBuilt(unitID) and not manualHeld(unitID, st, d) then
 		st.nextThink = 0
 		if builderNeedsThink(unitID, st) then

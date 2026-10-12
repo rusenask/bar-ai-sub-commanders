@@ -20,7 +20,11 @@ show direction, not precise strength.
 | 6 | same + decider (Clef-flash) | medium | strategist + decider | LOSS 19:25 | 25.0k | 20 / 102 | second lab again unfinished: sub-commanders starved the player's build of metal until it decayed |
 | 7 | + give way to the player's builds, retreat, 6 constructors | medium | strategist + decider | LOSS 18:50 | 10.7k (enemy 42.6k) | 31 / 99 | early raids (~3 min) kill constructors and the half-built lab; energy stalls at zero |
 | 8 | + economy guard, raid turret, quick energy | medium | strategist + decider | LOSS 14:11 | 18.7k (enemy 20.4k) | 33 / 135 | economy at parity (22 extractors, +39 metal/s at 7 min) but fights lost; Defense had no constructor most of the game |
+| 9 | + constructor hand-off, spot reservation, decider turrets | medium | strategist + decider | TIMEOUT (7 units left) | 20.4k | 47 / 292 | second lab built (first time); 299 units, 76k damage dealt (best); the Army's lab died at ~15 min and was never replaced, the army bled out |
 
 Fixes after #8: the economy's factory replaces lost constructors for Defense / Air Defense / Intelligence;
 the player's build spot is reserved the moment the order arrives; the decider also picks Defense turret
 types; Intelligence stops building scouts as raiders.
+
+Fixes after #9: the economy rebuilds a destroyed factory the player had assigned (and hands it back); the
+army gathers under our turrets when the enemy near the front outweighs it.

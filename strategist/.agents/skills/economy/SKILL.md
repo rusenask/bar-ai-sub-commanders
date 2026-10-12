@@ -33,6 +33,9 @@ Your job is to steer *where* (zones) and *how hard* (posture), and to ask the pl
 
 ## The first minutes (lessons from test games)
 
+- **The commander is the game**: in the default mode its death loses everything (in one test game a 64-unit
+  team died with it). The executor only uses it inside your zones and pulls it back from enemies; keep the
+  economy zone that holds it at home, and expand with other constructors.
 - Enemy raiders usually reach our extractors around 3 minutes. The executor keeps a small guard from the
   factory and puts a cheap turret by raided extractors; on `conserve` the guard is a single unit, so don't
   conserve early.

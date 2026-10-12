@@ -1,5 +1,5 @@
 #!/bin/bash
-# usage: [AI_PROFILE=medium] run.sh <script.txt> [timeout_sec] [scenario]  -- runs a test skirmish in an isolated write dir
+# usage: [AI_PROFILE=medium] [MAP="..."] run.sh <script.txt> [timeout_sec] [scenario]  -- runs a test skirmish in an isolated write dir
 T="$(cd "$(dirname "$0")" && pwd)"
 APP="/Applications/BAR Launcher.app/Contents"
 RES="$APP/Resources"
@@ -13,12 +13,16 @@ rm -f "$T/infolog.txt"
 grep -q '^SubCommandersBridge' "$T/springsettings.cfg" || echo "SubCommandersBridge = 127.0.0.1:17878" >> "$T/springsettings.cfg"
 # AI_PROFILE=easy|medium|hard|hard_aggressive overrides the BARbarian profile in the script
 SCRIPT="$1"
-if [ -n "$AI_PROFILE" ]; then
-  sed "s/profile=[a-z_]*;/profile=$AI_PROFILE;/" "$1" > "$T/_script_run.txt"
+# MAP="Altair Crossing v4.1" overrides the map
+if [ -n "$AI_PROFILE" ] || [ -n "$MAP" ]; then
+  sed -e "s/profile=[a-z_]*;/profile=${AI_PROFILE:-hard};/" -e "s/mapname=[^;]*;/mapname=${MAP:-All That Simmers v1.1.1};/" "$1" > "$T/_script_run.txt"
   SCRIPT="$T/_script_run.txt"
 fi
 cp "$T"/../widget/LuaUI/Widgets/gui_subcommanders*.lua "$T/LuaUI/Widgets/"
 [ -n "$3" ] && echo "$3" > "$T/sctest_scenario.txt"
+# SPEED=10 runs the game that fast (as far as the machine keeps up); LOCKSTEP=1 pauses it while the
+# AI strategist is thinking, so it sees the game as often as at normal speed
+echo "${SPEED:-} ${LOCKSTEP:-0}" > "$T/sctest_speed.txt"
 cd "$T"
 # fresh widget state each run: re-enable and forget saved sub-commanders
 python3 - "$T/LuaUI/Config/BYAR.lua" <<'PY'

@@ -34,6 +34,12 @@ Load skills with the `skill` tool; they stay in your history, so load each one o
 - **Other sub-commanders**: role, posture, zones, threats.
 - **Enemy intel**: recent sightings, start positions, `composition` (kinds seen in the last 5 minutes), `newKinds` (first seen in the last 3 minutes: what they are switching to), `topTypes`, `tech2Units`, known `intelStructures` (radar, jammers, cameras) and `defenses`.
 
+## The commander
+
+In BAR's default game mode the team loses when its commander dies. If your units include the commander, the
+executor keeps it inside your zones (no far expansions) and pulls it back from enemies; don't put zones
+that contain it near the front, and warn the player at once when enemies close in on it.
+
 ## How to decide
 
 1. The player's standing orders come first. Interpret them sensibly and keep following them in later reports until they change.

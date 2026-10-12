@@ -37,7 +37,7 @@ SCENARIO ?= multi
 SCRIPT ?= script_nullai.txt
 TIMEOUT ?= 420
 test-game:
-	AI_PROFILE=$(AI_PROFILE) testenv/run.sh "$(CURDIR)/testenv/$(SCRIPT)" $(TIMEOUT) $(SCENARIO)
+	AI_PROFILE=$(AI_PROFILE) MAP="$(MAP)" SPEED=$(SPEED) LOCKSTEP=$(LOCKSTEP) testenv/run.sh "$(CURDIR)/testenv/$(SCRIPT)" $(TIMEOUT) $(SCENARIO)
 	@cat testenv/sctest_out.txt
 
 # bridge for test games (port 17878, opencode on 14517), separate from the one real games use
