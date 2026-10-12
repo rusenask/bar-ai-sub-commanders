@@ -52,6 +52,7 @@ func run() error {
 		host        = flag.String("opencode-host", "127.0.0.1", "interface for the opencode server scbridge starts (0.0.0.0 in a container)")
 		deciderURL  = flag.String("decider-url", os.Getenv("SCBRIDGE_DECIDER_URL"), "optional System One decision model (Kev, Clef: /v1/systemone) for the widget's fast choices, e.g. http://100.108.100.25:8009")
 		deciderName = flag.String("decider-model", cmp.Or(os.Getenv("SCBRIDGE_DECIDER_MODEL"), "kev-latest"), "model name sent to the decision model")
+		deciderRts  = flag.String("decider-routes", os.Getenv("SCBRIDGE_DECIDER_ROUTES"), "per-task decision models (design/decision-models.md), e.g. fight=http://host:8011,unit=http://host:8012,turret=http://host:8013")
 	)
 	flag.Parse()
 
@@ -72,9 +73,16 @@ func run() error {
 	defer stop()
 
 	g := game.NewServer(*gameAddr, log)
+	router := &decider.Router{}
 	if *deciderURL != "" {
-		g.Decide = decider.New(*deciderURL, *deciderName).Decide
-		log.Info("decision model", "url", *deciderURL, "model", *deciderName)
+		router.Default = decider.New(*deciderURL, *deciderName)
+	}
+	if router.Tasks, err = decider.ParseRoutes(*deciderRts, *deciderName); err != nil {
+		return err
+	}
+	if router.Enabled() {
+		g.Decide = router.Decide
+		log.Info("decision models", "default", *deciderURL, "routes", *deciderRts)
 	}
 	var strat *strategist.Strategist
 	guard := func(sub int) error {

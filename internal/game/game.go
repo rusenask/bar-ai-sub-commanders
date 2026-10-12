@@ -119,8 +119,9 @@ type result struct {
 // ErrOffline is returned when no game is connected.
 var ErrOffline = errors.New("game is not connected")
 
-// DecideFunc answers a widget's "decide" request (state and typed questions) with the answers object.
-type DecideFunc func(ctx context.Context, state string, questions json.RawMessage) (json.RawMessage, error)
+// DecideFunc answers a widget's "decide" request (its args: {task, features} or {state, questions}) with
+// the answers object.
+type DecideFunc func(ctx context.Context, args map[string]any) (json.RawMessage, error)
 
 // Server accepts the widget connection (one at a time; a new one replaces the old).
 type Server struct {
@@ -282,16 +283,13 @@ func (s *Server) Do(ctx context.Context, sub int, op string, args map[string]any
 	}
 }
 
-// decide answers one "decide" request: args {state, questions}; the reply carries the answers or an error.
+// decide answers one "decide" request; the reply carries the answers or an error.
 func (s *Server) decide(msg message) {
-	state, _ := msg.Args["state"].(string)
-	questions, err := json.Marshal(msg.Args["questions"])
 	reply := message{Type: "decision", ID: msg.ID}
-	if err == nil {
-		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-		reply.Data, err = s.Decide(ctx, state, questions)
-		cancel()
-	}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	data, err := s.Decide(ctx, msg.Args)
+	cancel()
+	reply.Data = data
 	if err != nil {
 		reply.Error = err.Error()
 		s.log.Warn("decision failed", "err", err)

@@ -403,6 +403,17 @@ function widget:Initialize()
 			send({ type = "decide", id = -decider.nextID, sub = sub, args = { state = state, questions = questions } })
 			return true
 		end,
+		-- ask one of our own decision models (design/decision-models.md): the bridge renders the features
+		-- of task "fight", "unit" or "turret" into text and routes the request; fn(answers, err) runs later
+		decideTask = function(sub, task, features, fn)
+			if link ~= "online" or not decider.enabled then
+				return false
+			end
+			decider.nextID = decider.nextID + 1
+			decider.pending[-decider.nextID] = { fn = fn, frame = Spring.GetGameFrame() }
+			send({ type = "decide", id = -decider.nextID, sub = sub, args = { task = task, features = features } })
+			return true
+		end,
 	}
 end
 

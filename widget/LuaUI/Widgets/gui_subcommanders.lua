@@ -2067,6 +2067,137 @@ function Decider.state(sub)
 		ROLE_INFO[sub.role].label, Decider.countsText(mix.kinds), Decider.countsText(mix.recentKinds), Decider.countsText(ours), #sub.threats, air, econ.m, econ.mS, econ.mInc, econ.e, econ.eS, econ.eInc)
 end
 
+-- Features for our own decision models (design/decision-models.md). They mirror what the data logger
+-- records (testenv/LuaUI/Widgets/zz_datalog.lua): counts by kind, value, health, from what we can see.
+function Decider.traits(d)
+	return { name = d.name, human = d.human, kind = d.kind, cost = floor(d.cost + 0.5), range = floor(d.range), speed = floor(d.speed), health = floor(d.health), dps = floor(d.dps), air = d.air, aaOnly = d.aaOnly, tech = d.tech }
+end
+
+-- summary of { defID, hpFraction } entries
+function Decider.group(list)
+	local kinds, value, hp, air = {}, 0, 0, 0
+	for _, e in ipairs(list) do
+		local d = defs[e[1]]
+		kinds[d.kind] = (kinds[d.kind] or 0) + 1
+		value = value + d.cost
+		hp = hp + e[2]
+		if d.air then
+			air = air + 1
+		end
+	end
+	return { kinds = kinds, value = floor(value + 0.5), health = #list > 0 and floor(hp / #list * 100 + 0.5) or 0, count = #list, air = air }
+end
+
+local function hpFraction(u)
+	local hp, maxHp = Spring.GetUnitHealth(u)
+	return hp and maxHp and maxHp > 0 and hp / maxHp or 1
+end
+
+-- what our team fields and what we know the enemy fields (armed units and turrets)
+function Decider.situation()
+	local own, enemy = {}, {}
+	for _, u in ipairs(Spring.GetTeamUnits(myTeam) or {}) do
+		local defID = Spring.GetUnitDefID(u)
+		local d = defID and defs[defID]
+		if d and ((d.mobile and d.armed and not d.builder and not d.commander) or d.staticDef) and not spGetUnitIsBeingBuilt(u) then
+			own[#own + 1] = { defID, hpFraction(u) }
+		end
+	end
+	for u, e in pairs(Enemy.units) do
+		local d = defs[e.defID]
+		if ((d.mobile and d.armed and not d.builder and not d.commander) or d.staticDef) and frame - e.last < COMPOSITION_WINDOW then
+			enemy[#enemy + 1] = { e.defID, spGetUnitPosition(u) and hpFraction(u) or 1 }
+		end
+	end
+	return { own = Decider.group(own), enemy = Decider.group(enemy), metalIncome = floor(econ.mInc * 10 + 0.5) / 10 }
+end
+
+-- the candidate the model thinks most likely to pay for itself
+function Decider.bestCandidate(answers)
+	local best, bestP
+	for name, a in pairs(answers or {}) do
+		local p = type(a) == "table" and tonumber(a.noul)
+		if p and UnitDefNames[name] and (not bestP or p > bestP) then
+			best, bestP = UnitDefNames[name].id, p
+		end
+	end
+	return best, bestP
+end
+
+function Decider.ready()
+	local ai = WG.SubCommandersAI
+	return ai and ai.deciderReady and ai.deciderReady() and ai.decideTask and ai or nil
+end
+
+-- Combat: will our army come out ahead in a fight at (x, z)? Cached per sub and 400-elmo cell for 10 s;
+-- returns the probability, or nil while there's no answer (the rules decide meanwhile).
+function Decider.fightVerdict(sub, x, z)
+	local ai = Decider.ready()
+	if not ai then
+		return nil
+	end
+	sub.fightVerdicts = sub.fightVerdicts or {}
+	local key = floor(x / 400) .. ":" .. floor(z / 400)
+	local v = sub.fightVerdicts[key]
+	if v and frame - v.frame < 30 * 10 then
+		return v.p
+	end
+	if v and v.asking and frame - v.frame < 60 then
+		return nil
+	end
+	local own, ownTurrets, enemy, enemyTurrets = {}, {}, {}, {}
+	local oh, on, eh, en = 0, 0, 0, 0
+	for u in pairs(sub.units) do
+		local d = unitDef(u)
+		if d and d.combat and not spGetUnitIsBeingBuilt(u) then
+			own[#own + 1] = { Spring.GetUnitDefID(u), hpFraction(u) }
+			local _, y = spGetUnitPosition(u)
+			oh, on = oh + (y or 0), on + 1
+		end
+	end
+	if #own == 0 then
+		return nil
+	end
+	for _, u in ipairs(spGetUnitsInCylinder(x, z, 900, myTeam)) do
+		local d = unitDef(u)
+		if d and d.staticDef then
+			ownTurrets[#ownTurrets + 1] = { Spring.GetUnitDefID(u), hpFraction(u) }
+		end
+	end
+	for u, e in pairs(Enemy.units) do
+		local d = defs[e.defID]
+		if d.armed and dist2(x, z, e.x, e.z) < 1100 * 1100 and (d.staticDef or frame - e.last < 30 * 20) then
+			local entry = { e.defID, spGetUnitPosition(u) and hpFraction(u) or 1 }
+			if d.staticDef then
+				enemyTurrets[#enemyTurrets + 1] = entry
+			elseif d.mobile then
+				enemy[#enemy + 1] = entry
+			end
+			eh, en = eh + spGetGroundHeight(e.x, e.z), en + 1
+		end
+	end
+	local sx, _, sz = Spring.GetTeamStartPosition(myTeam)
+	local enemyStart
+	for _, st in ipairs(getEnemyStarts()) do
+		local dd = sqrt(dist2(x, z, st.x, st.z))
+		enemyStart = enemyStart and min(enemyStart, dd) or dd
+	end
+	local features = {
+		own = Decider.group(own), ownTurrets = Decider.group(ownTurrets),
+		enemy = Decider.group(enemy), enemyTurrets = Decider.group(enemyTurrets),
+		heightDiff = en > 0 and floor(oh / on - eh / en) or 0,
+		ownStart = sx and sx > 0 and floor(sqrt(dist2(x, z, sx, sz))) or -1,
+		enemyStart = enemyStart and floor(enemyStart) or -1,
+	}
+	sub.fightVerdicts[key] = { frame = frame, asking = true, p = v and v.p }
+	ai.decideTask(sub.id, "fight", features, function(answers)
+		local a = answers and answers.ahead
+		local p = type(a) == "table" and tonumber(a.noul)
+		sub.fightVerdicts[key] = { frame = frame, p = p }
+	end)
+	return v and v.p
+end
+
 -- returns a defID to build, nil while waiting for an answer, or false to let the rules decide
 function Decider.production(sub, facID, fd, st)
 	local ai = WG.SubCommandersAI
@@ -2097,16 +2228,15 @@ function Decider.production(sub, facID, fd, st)
 	tsort(options, function(a, b)
 		return defs[a].cost > defs[b].cost
 	end)
-	local criteria = {}
+	local candidates = {}
 	for i = 1, min(#options, 8) do
-		criteria[defs[options[i]].name] = Decider.describe(defs[options[i]])
+		candidates[i] = Decider.traits(defs[options[i]])
 	end
-	local questions = { unit = { type = "choice", instructions = "Which unit should the factory build next to best counter the enemy and complement our army?", criteria = criteria } }
-	local sent = ai.decide(sub.id, Decider.state(sub), questions, function(answers, err)
+	local sent = ai.decideTask and ai.decideTask(sub.id, "unit", { situation = Decider.situation(), candidates = candidates }, function(answers)
 		st.asking = nil
-		local choice = answers and answers.unit and answers.unit.choice
-		if choice and UnitDefNames[choice] then
-			st.pick, st.pickFrame = UnitDefNames[choice].id, frame
+		local best = Decider.bestCandidate(answers)
+		if best then
+			st.pick, st.pickFrame = best, frame
 		else
 			st.askFailed = frame
 		end
@@ -2163,18 +2293,42 @@ function Decider.refreshTurrets(sub)
 	if #options < 2 then
 		return
 	end
-	local criteria = {}
+	local candidates = {}
 	for i = 1, min(#options, 8) do
-		criteria[defs[options[i]].name] = Decider.describeTurret(defs[options[i]])
+		candidates[i] = Decider.traits(defs[options[i]])
 	end
-	local mix = Enemy.mix()
-	local state = sformat("Beyond All Reason RTS. Our Defense sub-commander's constructors are choosing a turret type for the defensive line. Enemy units seen in the last 5 minutes: %s. First seen in the last 3 minutes: %s. Enemies in our zone now: %d. Metal %d/%d (+%.1f/s).",
-		Decider.countsText(mix.kinds), Decider.countsText(mix.recentKinds), #sub.threats, econ.m, econ.mS, econ.mInc)
+	-- where it would stand: the front edge of the main zone
+	local zone = largestZone(sub)
+	local place
+	if zone then
+		local cx, cz = Zone.center(zone)
+		local ex, ez = enemyDirectionRef(cx, cz)
+		local fx, fz = Zone.edgeToward(zone, ex, ez, 160)
+		local near = 0
+		for _, u in ipairs(spGetUnitsInCylinder(fx, fz, 600, myTeam)) do
+			local d = unitDef(u)
+			near = near + ((d and d.staticDef) and 1 or 0)
+		end
+		local nearest
+		for _, e in pairs(Enemy.units) do
+			if frame - e.last < 30 * 60 then
+				local dd = sqrt(dist2(fx, fz, e.x, e.z))
+				nearest = nearest and min(nearest, dd) or dd
+			end
+		end
+		local sx, _, sz = Spring.GetTeamStartPosition(myTeam)
+		local es
+		for _, st in ipairs(getEnemyStarts()) do
+			local dd = sqrt(dist2(fx, fz, st.x, st.z))
+			es = es and min(es, dd) or dd
+		end
+		place = { turretsNear = near, ownStart = sx and sx > 0 and floor(sqrt(dist2(fx, fz, sx, sz))) or -1, enemyStart = es and floor(es) or -1, nearestEnemy = nearest and nearest < 3000 and floor(nearest) or -1 }
+	end
 	sub.turretAsked = frame
-	ai.decide(sub.id, state, { turret = { type = "choice", instructions = "Which turret type should be built to best counter the enemy?", criteria = criteria } }, function(answers)
-		local choice = answers and answers.turret and answers.turret.choice
-		if choice and UnitDefNames[choice] then
-			local defID = UnitDefNames[choice].id
+	ai.decideTask(sub.id, "turret", { situation = Decider.situation(), place = place, candidates = candidates }, function(answers)
+		local choice = Decider.bestCandidate(answers)
+		if choice then
+			local defID = choice
 			if not (sub.turretPick and sub.turretPick.defID == defID) then
 				log(sub, "turrets: " .. defs[defID].human .. " (decision model)")
 			end
@@ -2295,6 +2449,13 @@ function Tactics.updatePush(sub)
 			end
 		end
 	end
+	-- the combat model has the last word on a push, when it has answered
+	if best then
+		local p = Decider.fightVerdict(sub, best.x, best.z)
+		if p ~= nil and p < 0.6 then
+			best = nil
+		end
+	end
 	if best and not (t and t.id == best.id) then
 		log(sub, sformat("pushing: %s at %d,%d (we are clearly stronger)", best.name, best.x, best.z))
 	end
@@ -2382,8 +2543,16 @@ local function thinkCombat(sub, unitID, d, st, threats)
 				end
 			end
 		end
-		if target and sub.counts.power < 0.8 * Enemy.powerNear(target.x, target.z, 900) then
-			target = nil
+		if target then
+			-- the combat model's verdict when we have one, else the value rule
+			local p = Decider.fightVerdict(sub, target.x, target.z)
+			if p ~= nil then
+				if p < 0.5 then
+					target = nil
+				end
+			elseif sub.counts.power < 0.8 * Enemy.powerNear(target.x, target.z, 900) then
+				target = nil
+			end
 		end
 	end
 	local busy = (spGetUnitCommandCount(unitID) or 0) > 0
