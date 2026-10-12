@@ -49,7 +49,8 @@ Keep a mix: pure raiders die to riot units and turrets, pure heavies get outrang
 ## Posture
 
 - `spend` when metal piles up (storage > 70%) - units are how metal turns into map control.
-- `balanced` normally; `conserve` only when the economy is stalling and no attack is coming.
+- `balanced` normally. Not `conserve`: an army that stops producing loses to one that doesn't (low metal
+  storage is normal, not a reason to stop).
 
 ## Tell the player when
 

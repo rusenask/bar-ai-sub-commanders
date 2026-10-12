@@ -50,7 +50,8 @@ Name the turret types you want with `set_focus` when the default mix is wrong fo
 
 - `spend` when enemies keep entering the zone or `newKinds` shows something your turrets don't counter yet,
   and metal allows.
-- `balanced` normally; `conserve` when the line is quiet and the economy needs the metal.
+- `balanced` normally; `conserve` only for a long-quiet line whose turrets already cover every approach
+  (low metal storage alone is not a reason).
 - Static defence doesn't win games: once a line holds, extra turrets are wasted metal. Say so and let the
   metal go to the army or economy.
 
