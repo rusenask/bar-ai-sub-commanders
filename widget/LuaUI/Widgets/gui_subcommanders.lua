@@ -1983,15 +1983,23 @@ end
 -- without an answer within 2 s the rules decide.
 local Decider = {}
 
+-- what each kind is for: decision models match these against what the enemy fields
+Decider.hints = {
+	raider = "fast and cheap, good against artillery, skirmishers and lone extractors, weak against riot units and turrets",
+	assault = "all-round fighter, good against raiders",
+	heavy = "armored, good against assault units and raiders, weak against massed cheap units and artillery",
+	skirmisher = "long range, good against slow heavy units, weak against fast raiders",
+	artillery = "long arcing range, good against turrets and static defence, weak against fast raiders",
+	["mobile anti-air"] = "shoots aircraft only, good against bombers and gunships, useless against ground units and unarmed scout planes",
+	scout = "very fast scout, finds the enemy, weak in fights",
+	fighter = "aircraft that shoots aircraft only, good against bombers and gunships",
+	bomber = "aircraft, good against slow units and buildings, weak against anti-air",
+	gunship = "aircraft, good against ground units without anti-air",
+}
+
 function Decider.describe(d)
-	local traits = {}
-	if d.air then
-		traits[#traits + 1] = "aircraft"
-	end
-	if d.aaOnly then
-		traits[#traits + 1] = "shoots aircraft only"
-	end
-	return sformat("%s (%s): %s, range %d, speed %d, health %d, cost %d metal%s", d.human, d.name, d.kind, d.range, d.speed, d.health, d.metal, #traits > 0 and (", " .. tconcat(traits, ", ")) or "")
+	local hint = Decider.hints[(d.kind:gsub("^hover ", ""))]
+	return sformat("%s (%s): %s, range %d, speed %d, health %d, cost %d metal%s", d.human, d.name, d.kind, d.range, d.speed, d.health, d.metal, hint and ("; " .. hint) or "")
 end
 
 function Decider.countsText(map)
@@ -2151,16 +2159,32 @@ local function patrolZone(sub, unitID, ux, uz)
 	setTask(unitID, "patrol", "patrolling zone", true)
 end
 
+-- army rally point: inside the main zone, on its edge toward the enemy
+local function rallyPoint(sub)
+	local zone = largestZone(sub)
+	if not zone then
+		return nil
+	end
+	local cx, cz = Zone.center(zone)
+	local ex, ez = enemyDirectionRef(cx, cz)
+	return Zone.edgeToward(zone, ex, ez, 250)
+end
+
 local function thinkCombat(sub, unitID, d, st, threats)
 	local x, _, z = spGetUnitPosition(unitID)
 	if not x then
 		return
 	end
+	-- an army chooses from where the army is, so every unit goes for the same enemy
+	local fromX, fromZ = x, z
+	if sub.role == "army" and sub.armyX then
+		fromX, fromZ = sub.armyX, sub.armyZ
+	end
 	local target, targetD
 	for i = 1, #threats do
 		local t = threats[i]
 		if (d.aaOnly and t.air) or (not d.aaOnly and (not t.air or d.air)) then
-			local dd = dist2(x, z, t.x, t.z)
+			local dd = dist2(fromX, fromZ, t.x, t.z)
 			if not targetD or dd < targetD then
 				target, targetD = t, dd
 			end
@@ -2171,7 +2195,7 @@ local function thinkCombat(sub, unitID, d, st, threats)
 		for i = 1, #baseThreats do
 			local t = baseThreats[i]
 			if (not t.air or d.air or d.aaOnly) and not (d.aaOnly and not t.air) then
-				local dd = dist2(x, z, t.x, t.z)
+				local dd = dist2(fromX, fromZ, t.x, t.z)
 				if dd < 3500 * 3500 and (not targetD or dd < targetD) then
 					target, targetD = t, dd
 				end
@@ -2191,6 +2215,17 @@ local function thinkCombat(sub, unitID, d, st, threats)
 		return
 	end
 	st.engaged = nil
+	if sub.role == "army" then
+		-- gather: the army waits together at its rally point instead of spreading out on patrol
+		local rx, rz = rallyPoint(sub)
+		if rx and (not busy or (st.softUntil and frame > st.softUntil)) and dist2(x, z, rx, rz) > 260 * 260 then
+			local a = (unitID % 12) / 12 * 2 * pi
+			local gx, gz = clampToMap(rx + cos(a) * 120, rz + sin(a) * 120)
+			order(unitID, CMD.FIGHT, { gx, spGetGroundHeight(gx, gz), gz })
+			setTask(unitID, "rally", "gathering", true)
+		end
+		return
+	end
 	if not busy or (st.softUntil and frame > st.softUntil) or (#sub.zones > 0 and not inSubZones(sub, x, z, 900)) then
 		patrolZone(sub, unitID, x, z)
 	end
@@ -2389,6 +2424,7 @@ end
 local function updateCounts(sub)
 	local c = { builders = 0, factories = 0, combat = 0, nanos = 0, statics = 0, total = 0, scouts = 0, intelUnits = 0, power = 0 }
 	local spendM, spendE = 0, 0
+	local sx, sz, sn = 0, 0, 0
 	for u in pairs(sub.units) do
 		local d = unitDef(u)
 		if d then
@@ -2400,6 +2436,10 @@ local function updateCounts(sub)
 			end
 			if d.combat and not spGetUnitIsBeingBuilt(u) then
 				c.power = c.power + d.cost
+				local x, _, z = spGetUnitPosition(u)
+				if x then
+					sx, sz, sn = sx + x, sz + z, sn + 1
+				end
 			end
 			if d.builder then
 				c.builders = c.builders + 1
@@ -2420,6 +2460,12 @@ local function updateCounts(sub)
 	end
 	sub.counts = c
 	sub.spendM, sub.spendE = spendM, spendE
+	-- where the army is: it picks targets from here so all units fight the same enemy
+	if sn > 0 then
+		sub.armyX, sub.armyZ = sx / sn, sz / sn
+	else
+		sub.armyX, sub.armyZ = nil, nil
+	end
 end
 
 local function manualHeld(unitID, st, d)

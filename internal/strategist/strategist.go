@@ -41,6 +41,8 @@ type subState struct {
 	lastDirective string
 	lastThreats   int
 	busy          bool
+	failures      int // reviews failed in a row
+	retryFrame    int // no review before this frame (backoff after failures)
 }
 
 // Strategist runs reviews for AI-enabled sub-commanders.
@@ -144,7 +146,7 @@ func (s *Strategist) due(sub game.Sub, frame int) string {
 		ss = &subState{}
 		s.subs[sub.ID] = ss
 	}
-	if ss.busy {
+	if ss.busy || frame < ss.retryFrame {
 		return ""
 	}
 	var why []string
@@ -200,7 +202,7 @@ func (s *Strategist) review(ctx context.Context, info *game.Info, state *game.St
 	if first {
 		id, err := s.oc.CreateSession(ctx, fmt.Sprintf("BAR %s · %s (#%d)", info.Map, sub.Name, sub.ID))
 		if err != nil {
-			s.fail(sub, err)
+			s.fail(sub, ss, state.Frame, err)
 			return
 		}
 		s.mu.Lock()
@@ -219,12 +221,13 @@ func (s *Strategist) review(ctx context.Context, info *game.Info, state *game.St
 			err = cause
 			_ = s.oc.Abort(context.WithoutCancel(ctx), ss.sessionID)
 		}
-		s.fail(sub, err)
+		s.fail(sub, ss, state.Frame, err)
 		return
 	}
 
 	s.mu.Lock()
 	ss.reports++
+	ss.failures, ss.retryFrame = 0, 0
 	ss.lastDirective = sub.Directive
 	ss.lastThreats = sub.Threats
 	for _, e := range sub.Recent {
@@ -250,8 +253,13 @@ func (s *Strategist) review(ctx context.Context, info *game.Info, state *game.St
 	s.game.Tell(sub.ID, "note", map[string]any{"text": note})
 }
 
-func (s *Strategist) fail(sub game.Sub, err error) {
-	s.log.Warn("review failed", "sub", sub.Name, "err", err)
+// fail reports a failed review and backs off: 5 s of game time, doubling up to 2 minutes.
+func (s *Strategist) fail(sub game.Sub, ss *subState, frame int, err error) {
+	s.mu.Lock()
+	ss.failures++
+	ss.retryFrame = frame + seconds(min(5*time.Second<<min(ss.failures-1, 5), 2*time.Minute))
+	s.mu.Unlock()
+	s.log.Warn("review failed", "sub", sub.Name, "failures", ss.failures, "err", err)
 	msg := err.Error()
 	if len(msg) > 120 {
 		msg = msg[:120] + "…"
