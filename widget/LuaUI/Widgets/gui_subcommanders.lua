@@ -1120,6 +1120,45 @@ function Jobs.converter(sub, unitID, d, ux, uz)
 	end, "energy converter (surplus)")
 end
 
+-- a factory the player gave a sub-commander was destroyed: rebuild it where it stood
+function Jobs.rebuildFactory(sub, unitID, d, ux, uz)
+	if econ.mFrac < 0.15 then
+		return false
+	end
+	for _, other in ipairs(subs) do
+		local lost = other.lostFactories
+		if lost and #lost > 0 then
+			for i = #lost, 1, -1 do
+				local f = lost[i]
+				if frame - f.frame > 30 * 600 then
+					tremove(lost, i) -- ten minutes on: the player has moved on
+				elseif not enemiesNear(f.x, f.z, 700) then
+					local canBuild = false
+					for _, o in ipairs(d.options) do
+						canBuild = canBuild or o == f.defID
+					end
+					if canBuild then
+						local fd = defs[f.defID]
+						local x, z = f.x, f.z
+						local bx, by, bz = Spring.Pos2BuildPos(f.defID, x, spGetGroundHeight(x, z), z, f.facing)
+						if Spring.TestBuildOrder(f.defID, bx, by, bz, f.facing) == 0 then
+							x, z = findBuildSpot(other, f.defID, x, z, { gap = 32, rings = 6, facing = f.facing })
+						else
+							x, z = bx, bz
+						end
+						if x and issueBuild(sub, unitID, f.defID, x, z, f.facing, "rebuilding " .. other.name .. "'s " .. fd.human) then
+							getState(unitID).rebuildFor = other.id
+							tremove(lost, i)
+							return true
+						end
+					end
+				end
+			end
+		end
+	end
+	return false
+end
+
 -- raiders in the economy's zone: one cheap turret next to the extractors they go for
 function Jobs.guardTurret(sub, unitID, d, ux, uz)
 	if #sub.threats == 0 or sub.guardTurretFrame and frame - sub.guardTurretFrame < 30 * 60 then
@@ -1907,6 +1946,7 @@ local BUILDER_PLANS = {
 	economy = function(sub, u, d, x, z)
 		return Jobs.removeMarked(sub, u, d, x, z)
 			or Jobs.guardTurret(sub, u, d, x, z)
+			or Jobs.rebuildFactory(sub, u, d, x, z)
 			or Jobs.basicEconomy(sub, u, d, x, z)
 			or (energyWanted() and Jobs.energy(sub, u, d, x, z, false))
 			or Jobs.buildPower(sub, u, d, x, z)
@@ -4201,6 +4241,15 @@ function widget:UnitCreated(unitID, unitDefID, unitTeam, builderID)
 	-- factories stay with the player until assigned, otherwise everything they make would join too
 	local d = defs[unitDefID]
 	if d and d.factory then
+		local bst = ustate[builderID]
+		local target = bst and bst.rebuildFor and findSub(bst.rebuildFor)
+		if target then
+			bst.rebuildFor = nil
+			addUnit(target, unitID)
+			getState(unitID).graceUntil = math.huge
+			log(target, d.human .. " is being rebuilt for me")
+			return
+		end
 		log(sub, d.human .. " stays yours: assign it to me if I should produce with it")
 		return
 	end
@@ -4245,6 +4294,15 @@ function widget:UnitDestroyed(unitID, unitDefID, unitTeam)
 		local d = defs[unitDefID]
 		if d and (d.mobile or d.factory) and not spGetUnitIsBeingBuilt(unitID) then
 			log(sub, "lost " .. d.human)
+		end
+		-- a factory the player gave us: the economy rebuilds it (see Jobs.rebuildFactory)
+		if d and d.factory and not spGetUnitIsBeingBuilt(unitID) then
+			local x, _, z = spGetUnitPosition(unitID)
+			if x then
+				sub.lostFactories = sub.lostFactories or {}
+				tinsert(sub.lostFactories, { defID = unitDefID, x = x, z = z, facing = Spring.GetUnitBuildFacing(unitID) or 0, frame = frame })
+				log(sub, d.human .. " destroyed: the economy will rebuild it when the area is clear")
+			end
 		end
 		releaseUnit(unitID, true)
 	end
