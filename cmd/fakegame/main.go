@@ -8,8 +8,11 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math"
 	"net"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -101,6 +104,13 @@ func main() {
 				if a, ok := m["args"].(map[string]any); ok {
 					posture, _ = a["posture"].(string)
 				}
+			case "map_view":
+				a, _ := m["args"].(map[string]any)
+				view, _ := a["view"].(string)
+				result["data"] = mapView(view)
+			case "terrain":
+				a, _ := m["args"].(map[string]any)
+				result["data"] = terrain(a)
 			case "build_options":
 				result["data"] = []map[string]any{
 					{"name": "leglab", "human": "Bot Lab", "kind": "factory", "by": "constructors", "metal": 600, "energy": 1200, "tech": 1},
@@ -110,4 +120,71 @@ func main() {
 			send(result)
 		}
 	}
+}
+
+// mapView is a scripted answer to the map_view op: the base in the north,
+// a free metal field to the east, the enemy in the south.
+func mapView(view string) map[string]any {
+	bounds := map[string]any{"x1": 0, "z1": 0, "x2": 8192, "z2": 8192}
+	if view == "zones" {
+		bounds = map[string]any{"x1": 2800, "z1": 200, "x2": 6400, "z2": 3800}
+	}
+	var metal []map[string]any
+	for i := range 7 {
+		a := float64(i) / 7 * 2 * math.Pi
+		metal = append(metal, map[string]any{"x": 4600 + 700*math.Cos(a), "z": 2000 + 700*math.Sin(a), "taken": "own"})
+	}
+	for i := range 4 {
+		metal = append(metal, map[string]any{"x": 6600 + 250*float64(i%2), "z": 2200 + 300*float64(i/2), "taken": "free"})
+	}
+	units := []map[string]any{
+		{"x": 4600, "z": 2000, "hx": 16, "hz": 16, "side": "own", "sub": 1, "structure": false, "kind": "constructor"},
+		{"x": 4300, "z": 1500, "hx": 48, "hz": 40, "facing": 0, "side": "own", "sub": 0, "structure": true, "factory": true, "kind": "factory"},
+		{"x": 4300, "z": 1640, "hx": 16, "hz": 16, "side": "own", "sub": 1, "structure": true, "kind": "converter", "marked": true},
+	}
+	for i := range 6 {
+		units = append(units, map[string]any{"x": 4900 + 60*float64(i%3), "z": 2300 + 60*float64(i/3), "hx": 24, "hz": 24, "side": "own", "sub": 1, "structure": true, "kind": "energy"})
+	}
+	return map[string]any{
+		"bounds": bounds,
+		"subs":   []map[string]any{{"id": 1, "name": "Economy 1", "color": []float64{1, 0.76, 0.2}}, {"id": 2, "name": "Defense 2", "color": []float64{0.3, 0.8, 1}}},
+		"zones": []map[string]any{
+			{"sub": 1, "zone": map[string]any{"kind": "circle", "x": 4600, "z": 2000, "r": 1100}},
+			{"sub": 2, "zone": map[string]any{"kind": "rect", "x1": 3700, "z1": 500, "x2": 5500, "z2": 1400}},
+		},
+		"metal":   metal,
+		"units":   units,
+		"enemies": []map[string]any{{"x": 4500, "z": 6900, "known": true, "structure": true}, {"x": 4300, "z": 5600, "known": true}},
+		"intel":   map[string]any{"recentSightings": []map[string]any{{"x": 5200, "z": 4800, "sightings": 4, "newestSecondsAgo": 35}}, "startPositions": []map[string]any{{"x": 4600, "z": 7400}}},
+	}
+}
+
+// terrain answers the terrain op: hills, a river between the bases with one
+// ford, and a cliff edged plateau to the east of the base.
+func terrain(a map[string]any) map[string]any {
+	num := func(k string, def float64) float64 {
+		if v, ok := a[k].(float64); ok {
+			return v
+		}
+		return def
+	}
+	x1, z1, x2, z2, cells := num("x1", 0), num("z1", 0), num("x2", 8192), num("z2", 8192), num("cells", 256)
+	step := max(x2-x1, z2-z1) / cells
+	w, h := int(math.Ceil((x2-x1)/step)), int(math.Ceil((z2-z1)/step))
+	hs := make([]string, 0, w*h)
+	for j := range h {
+		z := z1 + (float64(j)+0.5)*step
+		for i := range w {
+			x := x1 + (float64(i)+0.5)*step
+			v := 90 + 35*math.Sin(x/700)*math.Cos(z/900)
+			if d := math.Abs(z - 4300 - 300*math.Sin(x/1200)); d < 350 && math.Abs(x-2000) > 250 {
+				v -= 150 * (1 - d/350)
+			}
+			if x > 6000 && z > 1200 && z < 3200 {
+				v += 140
+			}
+			hs = append(hs, strconv.Itoa(int(v)))
+		}
+	}
+	return map[string]any{"x1": x1, "z1": z1, "x2": x2, "z2": z2, "w": w, "h": h, "step": step, "heights": strings.Join(hs, ",")}
 }

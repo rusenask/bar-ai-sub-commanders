@@ -163,7 +163,7 @@ local function gameFrame(n)
 		Spring.SetCameraTarget(x, 0, z, 0)
 		out("scenario", scenario, "commander", com, x, z)
 		Spring.SendCommands("setmaxspeed 20", "setspeed 8")
-		if scenario == "ui" then
+		if scenario == "ui" or scenario == "factory" or scenario == "lanes" then
 			-- commander stays with the player
 		elseif scenario == "eco" or scenario == "dbg" then
 			ids.eco = SC.create("economy")
@@ -173,6 +173,97 @@ local function gameFrame(n)
 			ids.eco = SC.create("economy")
 			SC.assign(ids.eco, { com })
 		end
+	end
+	if scenario == "lanes" then
+		if n == 20 then
+			local com = Spring.GetTeamUnits(myTeam)[1]
+			cx, _, cz = Spring.GetUnitPosition(com)
+			Spring.SetCameraTarget(cx, 0, cz, 0)
+			Spring.SendCommands("setmaxspeed 20", "setspeed 8", "cheat 1")
+		elseif n == 45 then
+			give(1, "leglab", myTeam, cx - 300, cz + 250)
+			give(1, "leglab", myTeam, cx + 350, cz - 200)
+			give(3, "legck", myTeam, cx, cz + 120)
+		elseif n == 120 then
+			ids.eco = SC.create("economy")
+			SC.setPosture(ids.eco, "spend")
+			SC.addZone(ids.eco, { kind = "circle", x = cx, z = cz, r = 900 })
+			SC.assign(ids.eco, byName.legck or {})
+		elseif n == 30 * 180 then
+			-- every structure must stay out of each lab's exit lane (300 in front) and 64 ring
+			local bad, total = 0, 0
+			for _, lab in ipairs(byName.leglab or {}) do
+				local lx, _, lz = Spring.GetUnitPosition(lab)
+				local f = Spring.GetUnitBuildFacing(lab)
+				local ld = UnitDefs[Spring.GetUnitDefID(lab)]
+				local hx, hz = ld.xsize * 4, ld.zsize * 4
+				if f == 1 or f == 3 then
+					hx, hz = hz, hx
+				end
+				local rects = { { lx - hx - 64, lz - hz - 64, lx + hx + 64, lz + hz + 64 } }
+				if f == 0 then
+					rects[2] = { lx - hx, lz + hz, lx + hx, lz + hz + 300 }
+				elseif f == 1 then
+					rects[2] = { lx + hx, lz - hz, lx + hx + 300, lz + hz }
+				elseif f == 2 then
+					rects[2] = { lx - hx, lz - hz - 300, lx + hx, lz - hz }
+				else
+					rects[2] = { lx - hx - 300, lz - hz, lx - hx, lz + hz }
+				end
+				out(string.format("lab %d at %d,%d facing %d", lab, lx, lz, f))
+				for _, u in ipairs(Spring.GetTeamUnits(myTeam)) do
+					local ud = UnitDefs[Spring.GetUnitDefID(u)]
+					if (ud.speed or 0) == 0 and not ud.isFactory and SC.ownerOf(u) then
+						total = total + 1
+						local x, _, z = Spring.GetUnitPosition(u)
+						local uhx, uhz = ud.xsize * 4, ud.zsize * 4
+						for _, r in ipairs(rects) do
+							if x + uhx > r[1] and x - uhx < r[3] and z + uhz > r[2] and z - uhz < r[4] then
+								bad = bad + 1
+								out("  BLOCKING: " .. ud.name .. string.format(" at %d,%d", x, z))
+							end
+						end
+					end
+				end
+			end
+			out(string.format("structures checked=%d blocking=%d", total, bad))
+			report()
+			Spring.SendCommands("screenshot png")
+		elseif n == 30 * 181 then
+			out("DONE")
+			Spring.SendCommands("quitforce")
+		end
+		return
+	end
+	if scenario == "factory" then
+		if n == 20 then
+			local com = Spring.GetTeamUnits(myTeam)[1]
+			cx, _, cz = Spring.GetUnitPosition(com)
+			Spring.SetCameraTarget(cx, 0, cz, 0)
+			Spring.SendCommands("setmaxspeed 20", "setspeed 8", "cheat 1")
+		elseif n == 45 then
+			give(1, "legck", myTeam, cx + 200, cz)
+		elseif n == 120 then
+			ids.army = SC.create("army")
+			SC.setPosture(ids.army, "spend")
+			SC.assign(ids.army, byName.legck or {})
+		elseif n == 30 * 40 then
+			local labs = byName.leglab or {}
+			out("after 40s: factories built by the army sub-commander = " .. #labs)
+			-- the player takes the constructor and builds a lab with it
+			local ck = (byName.legck or {})[1]
+			local x, z = cx - 450, cz - 300
+			Spring.GiveOrderToUnit(ck, -UnitDefNames.leglab.id, { x, Spring.GetGroundHeight(x, z), z, 0 }, {})
+			out("player ordered the constructor to build a Bot Lab")
+		elseif n == 30 * 110 then
+			local labs = byName.leglab or {}
+			local ck = (byName.legck or {})[1]
+			out(string.format("labs=%d lab owner=%s constructor owner=%s", #labs, tostring(labs[1] and SC.ownerOf(labs[1])), tostring(ck and SC.ownerOf(ck))))
+			report()
+			out("DONE")
+			Spring.SendCommands("quitforce")
+		end
+		return
 	end
 	if scenario == "ai" then
 		if n == 12 then

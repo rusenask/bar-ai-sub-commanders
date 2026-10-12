@@ -119,6 +119,30 @@ local function findSub(id)
 	return sc and sc.get(id)
 end
 
+-- ground heights on a grid over x1..x2, z1..z2 (cell centres, row by row from z1),
+-- sent as one comma-separated string: much cheaper to encode than a JSON array
+local function terrain(args)
+	local x1, z1 = math.max(0, tonumber(args.x1) or 0), math.max(0, tonumber(args.z1) or 0)
+	local x2, z2 = math.min(Game.mapSizeX, tonumber(args.x2) or Game.mapSizeX), math.min(Game.mapSizeZ, tonumber(args.z2) or Game.mapSizeZ)
+	local cells = math.max(16, math.min(320, tonumber(args.cells) or 256))
+	if x2 - x1 < 64 or z2 - z1 < 64 then
+		return nil, "terrain area too small"
+	end
+	local step = math.max(x2 - x1, z2 - z1) / cells
+	local w, h = math.ceil((x2 - x1) / step), math.ceil((z2 - z1) / step)
+	local heights, n = {}, 0
+	local ground = Spring.GetGroundHeight
+	local floor = math.floor
+	for j = 0, h - 1 do
+		local z = math.min(z2, z1 + (j + 0.5) * step)
+		for i = 0, w - 1 do
+			n = n + 1
+			heights[n] = floor(ground(math.min(x2, x1 + (i + 0.5) * step), z) + 0.5)
+		end
+	end
+	return { x1 = x1, z1 = z1, x2 = x2, z2 = z2, w = w, h = h, step = step, heights = table.concat(heights, ",") }
+end
+
 -- returns data, error
 local function apply(msg)
 	local sc = SC()
@@ -187,6 +211,20 @@ local function apply(msg)
 		sc.setPaused(sub.id, args.paused and true or false)
 	elseif op == "build_options" then
 		return sc.buildOptions(sub.id)
+	elseif op == "structures" then
+		return sc.structures(sub.id, args.kind, args.blocking_only and true or false)
+	elseif op == "remove_structures" then
+		local ids = {}
+		for _, u in ipairs(args.unit_ids or {}) do
+			if tonumber(u) then
+				ids[#ids + 1] = tonumber(u)
+			end
+		end
+		return sc.removeStructures(sub.id, ids)
+	elseif op == "map_view" then
+		return sc.mapView(sub.id, args.view)
+	elseif op == "terrain" then
+		return terrain(args)
 	elseif op == "tell_player" then
 		sc.noteAI(sub.id, args.text)
 		Spring.Echo("[" .. sub.name .. "] " .. tostring(args.text))

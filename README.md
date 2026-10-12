@@ -8,7 +8,8 @@ reads the situation, follows your orders in plain words and adjusts each sub-com
 ![Two AI-steered sub-commanders holding a base](docs/ai-strategist.jpg)
 
 - **Roles**: economy, defense, air defense, army. Each one builds, produces and fights inside its own zones.
-- **Grows by itself**: anything its constructors build or its factories produce joins it.
+- **Grows by itself**: what its factories produce and the structures its constructors build join it.
+  Factories are the exception: they only join when you assign them, so your own production stays yours.
 - **Spending postures**: *Conserve*, *Balanced* or *Use all* of the shared team resources.
 - **You stay in charge**: order any of its units yourself and it backs off until that unit is idle.
 - **Visible**: zones and build plans on the map, a live log per sub-commander.
@@ -73,7 +74,7 @@ make install          # macOS Apple Silicon port; elsewhere: make install BAR_DI
 | Economy | metal extractors (+ upgrades), energy, storage when full, converters on surplus, help build, assist factory, reclaim | constructors, up to the posture cap | — |
 | Defense | repair, a radar, turrets on the zone edge facing the enemy | 1 constructor, then combat units | fight intruders, patrol zone |
 | Air Defense | repair, AA turrets next to the least-covered valuable buildings | 1 constructor, then mobile AA | engage air in zone |
-| Army | repair, a factory if it has none, assist | combat units | fight intruders, patrol zone |
+| Army | repair, help build, assist its factory | combat units | fight intruders, patrol zone |
 
 **Spend**: *Conserve* spends only from excess, picks cheap options and lowers build priority;
 *Use all* picks the strongest affordable options and raises unit caps. Metal extractors and energy are
@@ -89,6 +90,8 @@ Everything also works as text commands: `/luaui sc help`, `sc new defense`, `sc 
 `sc release`, `sc zone [id]`, `sc role army [id]`, `sc posture spend [id]`, `sc focus`,
 `sc tell [id] <orders>`, `sc ai on|off [id]`, `sc pause`, `sc resume`, `sc list`, `sc select [id]`,
 `sc delete [id]`. Sub-commanders survive `/luaui reload` within a game.
+
+Standing orders for the AI strategist can also be typed in chat: see [Orders from chat](#orders-from-chat).
 
 <br clear="right">
 
@@ -133,7 +136,8 @@ The game widget connects to `127.0.0.1:7878`. Run the bridge there, with Docker 
 
 4. **In game**: the panel header shows **AI online**. Select a sub-commander, click **AI: off** to switch
    it on, and **Orders…** to give it standing orders in plain words, e.g. *"hold the north ridge,
-   prioritise anti-air"* (Enter saves, Esc cancels). Purple lines in its log are the strategist's decisions.
+   prioritise anti-air"* (Enter saves, Esc cancels), or type them in chat (below). Purple lines in its log
+   are the strategist's decisions.
 
 5. **Watch it think** (optional): `opencode attach http://127.0.0.1:4517` opens the live sessions, one per
    sub-commander, with every tool call.
@@ -153,6 +157,27 @@ make run MODEL=myllm/my-model      # builds bin/scbridge and starts `opencode se
 
 Stop the container first if it runs (both use port 7878).
 
+### Orders from chat
+
+Press Enter, start the message with `@` and send it:
+
+| You type | Goes to |
+|---|---|
+| `@2 hold the north ridge` | sub-commander 2 |
+| `@eco expand east` | the first one whose name or role starts with "eco" |
+| `@ hold here` | the one selected in the panel |
+| `@all fall back` | every sub-commander |
+| `@2` with nothing after it | clears 2's orders |
+
+The console confirms each one, e.g. `[Economy 2] orders received`, and warns when that sub-commander's AI
+is off (only the AI strategist acts on orders). The orders replace the previous ones, so say everything it
+should keep doing in one message.
+
+It is still a real chat message: BAR doesn't let a widget catch text before it is sent, so the widget reads
+your own lines back from the chat log. Allies see your orders (BAR's chat defaults to allies-only); in
+all-chat (Ctrl+Enter) the enemy sees them too. `/luaui sc tell [id] <orders>` does the same without
+sending anything.
+
 ### Tuning
 
 - The strategist's instructions are in [`strategist/prompts/subcommander.md`](strategist/prompts/subcommander.md)
@@ -169,8 +194,11 @@ Stop the container first if it runs (both use port 7878).
 |---|---|
 | `get_overview` | team economy, every sub-commander, enemy intel |
 | `get_build_options` | what its constructors and factories can build |
+| `get_map_view` | a picture of the map (terrain, grid in elmos, zones, metal, units, enemies) or a close-up of its zones |
 | `set_posture`, `set_role`, `set_focus` | the same switches as the panel |
 | `add_zone`, `clear_zones` | move or extend where it works |
+| `get_structures` | its own structures with positions, flagging ones that block a factory exit |
+| `remove_structures` | its constructors reclaim those structures (never factories); red rings on the map |
 | `set_paused` | stop its automatic decisions |
 | `tell_player` | console message to you (at most one per 90 s) |
 
@@ -206,7 +234,8 @@ Each sub-commander only accepts tool calls while its own review is running, and 
 - `make ref` checks out BAR's Lua source at the installed version into `ref/` for API lookups.
 
 Other widgets can drive sub-commanders through `WG.SubCommanders`: `list()`, `get(id)`, `economy()`,
-`enemyIntel()`, `buildOptions(id)`, `create(role, name)`, `remove(id)`, `assign(id, unitIDs)`,
+`enemyIntel()`, `buildOptions(id)`, `structures(id, kind, blockingOnly)`,
+`removeStructures(id, unitIDs)`, `create(role, name)`, `remove(id)`, `assign(id, unitIDs)`,
 `release(unitIDs)`, `setRole`, `setPosture`, `setPaused`, `addZone(id, zone)`, `clearZones`,
 `setFocus(id, unitDefNames)`, `setAI(id, on)`, `setDirective(id, text)`, `note(id, text)`,
 `noteAI(id, text)`, `setAIStatus(id, text)`, `ownerOf(unitID)`. Zones are
@@ -216,11 +245,13 @@ Other widgets can drive sub-commanders through `WG.SubCommanders`: `list()`, `ge
 
 ## Limits
 
-- Building placement is a heuristic search with walking lanes, not a planned base layout.
-- Geothermal, nukes and long-range artillery are not built automatically; the Army role builds the
-  cheapest factory its constructor offers.
+- Building placement is a heuristic search, not a planned base layout. It leaves walking lanes between
+  structures, a clear lane in front of every factory exit (own and allied) and room around factories.
+- Geothermal, nukes, long-range artillery and factories are not built automatically. Give an Army
+  sub-commander a factory to produce with; until then it asks for one.
 - Metal extractor upgrades by T2 constructors are implemented but untested.
-- The strategist changes settings; it cannot order a specific building (it asks you instead).
+- The strategist changes settings and can remove its own structures; it cannot order a specific building
+  (it asks you instead).
 
 ## License
 

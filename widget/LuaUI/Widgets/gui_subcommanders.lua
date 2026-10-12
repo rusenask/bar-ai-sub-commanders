@@ -156,6 +156,7 @@ for defID, ud in pairs(UnitDefs) do
 	}
 	d.aaOnly = d.armed and (aaOnly or group == "aa")
 	d.builder = ud.isBuilder and mobile and #buildOptions > 0
+	d.reclaimer = d.builder and ud.canReclaim and (ud.reclaimSpeed or 0) > 0
 	d.nano = ud.isBuilder and not mobile and not ud.isFactory and (ud.buildSpeed or 0) > 0
 	d.combat = mobile and d.armed and not d.builder and (ud.transportCapacity or 0) == 0
 	d.staticDef = not mobile and not ud.isFactory and not ud.isBuilder and d.armed and not EXCLUDED_DEFENSE_GROUPS[group] and d.range > 0 and d.range <= 1200 and not cp.stockpilelimit
@@ -495,10 +496,79 @@ local function isBadSpot(x, z)
 	return false
 end
 
-local function plannedConflict(d, x, z, gap)
+-- half extents of a footprint for a build facing (0 south, 1 east, 2 north, 3 west)
+local function halfSize(d, facing)
+	if facing == 1 or facing == 3 then
+		return d.hz, d.hx
+	end
+	return d.hx, d.hz
+end
+
+local function plannedConflict(d, x, z, gap, facing)
+	local hx, hz = halfSize(d, facing or 0)
 	for _, p in pairs(planned) do
-		local pd = defs[p.defID]
-		if abs(p.x - x) < d.hx + pd.hx + gap and abs(p.z - z) < d.hz + pd.hz + gap then
+		local phx, phz = halfSize(defs[p.defID], p.facing or 0)
+		if abs(p.x - x) < hx + phx + gap and abs(p.z - z) < hz + phz + gap then
+			return true
+		end
+	end
+	return false
+end
+
+-- Factories need clear ground in front of their exit and room around them.
+local EXIT_LANE = 300
+local EXIT_LANE_AIR = 140
+local FACTORY_RING = 64
+
+local function makesAircraft(fd)
+	if fd.airPlant == nil then
+		fd.airPlant = false
+		for _, o in ipairs(fd.options) do
+			if defs[o] and defs[o].air then
+				fd.airPlant = true
+				break
+			end
+		end
+	end
+	return fd.airPlant
+end
+
+-- keep-out rectangles { x1, z1, x2, z2 } for own and allied factories (frames included), cached per frame
+local keepOut, keepOutFrame = {}, -1
+local function factoryKeepOut()
+	if keepOutFrame == frame then
+		return keepOut
+	end
+	keepOutFrame = frame
+	keepOut = {}
+	for _, teamID in ipairs(Spring.GetTeamList(myAlly) or {}) do
+		for _, u in ipairs(Spring.GetTeamUnits(teamID) or {}) do
+			local fd = unitDef(u)
+			if fd and fd.factory then
+				local x, _, z = spGetUnitPosition(u)
+				local facing = Spring.GetUnitBuildFacing(u) or 0
+				local hx, hz = halfSize(fd, facing)
+				local lane = makesAircraft(fd) and EXIT_LANE_AIR or EXIT_LANE
+				local w = 24 -- lane is a bit wider than the factory
+				keepOut[#keepOut + 1] = { x - hx - FACTORY_RING, z - hz - FACTORY_RING, x + hx + FACTORY_RING, z + hz + FACTORY_RING }
+				if facing == 0 then
+					keepOut[#keepOut + 1] = { x - hx - w, z + hz, x + hx + w, z + hz + lane }
+				elseif facing == 1 then
+					keepOut[#keepOut + 1] = { x + hx, z - hz - w, x + hx + lane, z + hz + w }
+				elseif facing == 2 then
+					keepOut[#keepOut + 1] = { x - hx - w, z - hz - lane, x + hx + w, z - hz }
+				else
+					keepOut[#keepOut + 1] = { x - hx - lane, z - hz - w, x - hx, z + hz + w }
+				end
+			end
+		end
+	end
+	return keepOut
+end
+
+local function blocksFactory(x, z, hx, hz)
+	for _, r in ipairs(factoryKeepOut()) do
+		if x + hx > r[1] and x - hx < r[3] and z + hz > r[2] and z - hz < r[4] then
 			return true
 		end
 	end
@@ -507,19 +577,21 @@ end
 
 -- footprints (plus gap) must not overlap any structure, so units keep walking lanes
 local MAX_HALF = 96
-local function areaClear(d, x, z, gap)
+local function areaClear(d, x, z, gap, facing)
+	local hx, hz = halfSize(d, facing or 0)
 	local reach = gap + MAX_HALF
-	local units = Spring.GetUnitsInRectangle(x - d.hx - reach, z - d.hz - reach, x + d.hx + reach, z + d.hz + reach)
+	local units = Spring.GetUnitsInRectangle(x - hx - reach, z - hz - reach, x + hx + reach, z + hz + reach)
 	for i = 1, #units do
 		local od = unitDef(units[i])
 		if od and not od.mobile then
 			local ox, _, oz = spGetUnitPosition(units[i])
-			if abs(ox - x) < d.hx + od.hx + gap and abs(oz - z) < d.hz + od.hz + gap then
+			local ohx, ohz = halfSize(od, Spring.GetUnitBuildFacing(units[i]) or 0)
+			if abs(ox - x) < hx + ohx + gap and abs(oz - z) < hz + ohz + gap then
 				return false
 			end
 		end
 	end
-	return not plannedConflict(d, x, z, gap)
+	return not blocksFactory(x, z, hx, hz) and not plannedConflict(d, x, z, gap, facing)
 end
 
 -- Search outward from (ax, az) for a buildable spot inside the sub's zones.
@@ -542,7 +614,7 @@ local function findBuildSpot(sub, defID, ax, az, opts)
 			local x, z = ax + cos(a) * ring * step, az + sin(a) * ring * step
 			if x > 64 and z > 64 and x < MAP_X - 64 and z < MAP_Z - 64 and inSubZones(sub, x, z) then
 				local bx, by, bz = Spring.Pos2BuildPos(defID, x, spGetGroundHeight(x, z), z, facing)
-				if Spring.TestBuildOrder(defID, bx, by, bz, facing) > 0 and not nearMetalSpot(bx, bz, d) and not isBadSpot(bx, bz) and areaClear(d, bx, bz, gap) then
+				if Spring.TestBuildOrder(defID, bx, by, bz, facing) > 0 and not nearMetalSpot(bx, bz, d) and not isBadSpot(bx, bz) and areaClear(d, bx, bz, gap, facing) then
 					local s = opts.score and opts.score(bx, bz) or 0
 					if not best or s > best then
 						best, bestX, bestZ = s, bx, bz
@@ -571,7 +643,7 @@ local function issueBuild(sub, unitID, defID, x, z, facing, why)
 	if not order(unitID, -defID, { x, spGetGroundHeight(x, z), z, facing or 0 }) then
 		return false
 	end
-	planned[unitID] = { sub = sub, defID = defID, x = x, z = z, frame = frame }
+	planned[unitID] = { sub = sub, defID = defID, x = x, z = z, facing = facing or 0, frame = frame }
 	setTask(unitID, "build", d.human, false, x, z)
 	getState(unitID).task.started = false
 	log(sub, sformat("%s (%s)", d.human, why))
@@ -686,7 +758,7 @@ function Jobs.mex(sub, unitID, d, ux, uz)
 				local pos, pd
 				for _, p in ipairs(positions) do
 					local dd = dist2(p.x, p.z, cand.spot.x, cand.spot.z)
-					if (not pd or dd < pd) and not isBadSpot(p.x, p.z) then
+					if (not pd or dd < pd) and not isBadSpot(p.x, p.z) and not blocksFactory(p.x, p.z, defs[bestMex].hx, defs[bestMex].hz) then
 						pos, pd = p, dd
 					end
 				end
@@ -904,6 +976,33 @@ function Jobs.reclaim(sub, unitID, d, ux, uz)
 	return true
 end
 
+-- reclaim own structures marked for removal (by the strategist), nearest first
+function Jobs.removeMarked(sub, unitID, d, ux, uz)
+	if not d.reclaimer or not next(sub.removals) then
+		return false
+	end
+	local best, bestD
+	for u in pairs(sub.removals) do
+		local x, _, z = spGetUnitPosition(u)
+		if not x or owner[u] ~= sub then
+			sub.removals[u] = nil
+		else
+			local dd = dist2(ux, uz, x, z)
+			if not bestD or dd < bestD then
+				best, bestD = u, dd
+			end
+		end
+	end
+	if not best then
+		return false
+	end
+	order(unitID, CMD.RECLAIM, { best })
+	planned[unitID] = nil
+	local bd = unitDef(best)
+	setTask(unitID, "remove", "reclaim " .. (bd and bd.human or "structure"), false)
+	return true
+end
+
 local function countStatics(sub, zone, filter)
 	local n = 0
 	local units = Zone.units(zone)
@@ -1060,32 +1159,13 @@ function Jobs.airDefense(sub, unitID, d, ux, uz)
 	return x and issueBuild(sub, unitID, o, x, z, 0, "air defense") or false
 end
 
-function Jobs.factory(sub, unitID, d, ux, uz)
-	if sub.posture == "conserve" or sub.counts.factories > 0 then
-		return false
+-- factories only join when the player assigns them, so an army without one asks for one
+function Jobs.needFactory(sub, unitID, d, ux, uz)
+	if sub.counts.factories == 0 and frame - (sub.factoryNoted or -99999) > 30 * 90 then
+		sub.factoryNoted = frame
+		log(sub, "no factory: select one and Assign sel. to let me produce")
 	end
-	local zone = zoneFor(sub, ux, uz)
-	if not zone then
-		return false
-	end
-	local options = buildableBy(d, function(od)
-		return od.factory and not od.air and od.cost <= costCap(sub, 2.5)
-	end)
-	if #options == 0 then
-		return false
-	end
-	tsort(options, function(a, b)
-		return defs[a].cost < defs[b].cost
-	end)
-	local o = options[1]
-	if not canSpend(sub, defs[o].cost * 0.4) then
-		return false
-	end
-	local cx, cz = Zone.center(zone)
-	local ex, ez = enemyDirectionRef(cx, cz)
-	local facing = facingToward(cx, cz, ex, ez)
-	local x, z = findBuildSpot(sub, o, cx, cz, { gap = 72, rings = 12, facing = facing })
-	return x and issueBuild(sub, unitID, o, x, z, facing, "factory for the army") or false
+	return false
 end
 
 function Jobs.goToZone(sub, unitID, d, ux, uz)
@@ -1140,7 +1220,8 @@ end
 
 local BUILDER_PLANS = {
 	economy = function(sub, u, d, x, z)
-		return Jobs.basicEconomy(sub, u, d, x, z)
+		return Jobs.removeMarked(sub, u, d, x, z)
+			or Jobs.basicEconomy(sub, u, d, x, z)
 			or (energyWanted() and Jobs.energy(sub, u, d, x, z, false))
 			or Jobs.storage(sub, u, d, x, z)
 			or Jobs.converter(sub, u, d, x, z)
@@ -1152,7 +1233,8 @@ local BUILDER_PLANS = {
 			or Jobs.overflowNote(sub, u, d, x, z)
 	end,
 	defense = function(sub, u, d, x, z)
-		return Jobs.repair(sub, u, d, x, z)
+		return Jobs.removeMarked(sub, u, d, x, z)
+			or Jobs.repair(sub, u, d, x, z)
 			or Jobs.radar(sub, u, d, x, z)
 			or Jobs.defense(sub, u, d, x, z)
 			or Jobs.helpBuild(sub, u, d, x, z)
@@ -1161,7 +1243,8 @@ local BUILDER_PLANS = {
 			or Jobs.goToZone(sub, u, d, x, z)
 	end,
 	airdefense = function(sub, u, d, x, z)
-		return Jobs.repair(sub, u, d, x, z)
+		return Jobs.removeMarked(sub, u, d, x, z)
+			or Jobs.repair(sub, u, d, x, z)
 			or Jobs.airDefense(sub, u, d, x, z)
 			or Jobs.helpBuild(sub, u, d, x, z)
 			or Jobs.assistFactory(sub, u, d, x, z)
@@ -1169,8 +1252,9 @@ local BUILDER_PLANS = {
 			or Jobs.goToZone(sub, u, d, x, z)
 	end,
 	army = function(sub, u, d, x, z)
-		return Jobs.repair(sub, u, d, x, z)
-			or Jobs.factory(sub, u, d, x, z)
+		return Jobs.removeMarked(sub, u, d, x, z)
+			or Jobs.repair(sub, u, d, x, z)
+			or Jobs.needFactory(sub, u, d, x, z)
 			or Jobs.helpBuild(sub, u, d, x, z)
 			or Jobs.assistFactory(sub, u, d, x, z)
 			or Jobs.reclaim(sub, u, d, x, z)
@@ -1364,6 +1448,7 @@ local function createSub(role, name)
 		spendE = 0,
 		threats = {},
 		ai = false,
+		removals = {}, -- own structures to reclaim: unitID -> true
 	}
 	sub.color = PALETTE[sub.colorIndex]
 	subs[#subs + 1] = sub
@@ -1852,6 +1937,153 @@ local function buildOptions(sub)
 	return out
 end
 
+local MAX_LISTED_STRUCTURES = 60
+
+-- the sub's own structures (factories excluded), ones in a factory's keep-out area first
+local function structureList(sub, kind, blockingOnly)
+	local out, total = {}, 0
+	for u in pairs(sub.units) do
+		local d = unitDef(u)
+		local x, _, z = spGetUnitPosition(u)
+		if d and x and not d.mobile and not d.factory then
+			local hx, hz = halfSize(d, Spring.GetUnitBuildFacing(u) or 0)
+			local blocking = blocksFactory(x, z, hx, hz)
+			local k = defKind(d)
+			if (not kind or kind == "" or kind == k) and (blocking or not blockingOnly) then
+				total = total + 1
+				out[#out + 1] = { id = u, name = d.name, human = d.human, kind = k, x = floor(x), z = floor(z), blocksFactory = blocking, unfinished = spGetUnitIsBeingBuilt(u) and true or false, marked = sub.removals[u] or false }
+			end
+		end
+	end
+	tsort(out, function(a, b)
+		if a.blocksFactory ~= b.blocksFactory then
+			return a.blocksFactory
+		end
+		if a.kind ~= b.kind then
+			return a.kind < b.kind
+		end
+		return a.id < b.id
+	end)
+	for i = #out, MAX_LISTED_STRUCTURES + 1, -1 do
+		out[i] = nil
+	end
+	return { total = total, listed = #out, structures = out }
+end
+
+-- mark own structures for reclaiming; an empty list cancels pending removals
+local function markRemovals(sub, unitIDs)
+	if #unitIDs == 0 then
+		sub.removals = {}
+		log(sub, "pending removals cancelled")
+		return { marked = 0, rejected = {} }
+	end
+	local canReclaim = false
+	for u in pairs(sub.units) do
+		local d = unitDef(u)
+		if d and d.reclaimer then
+			canReclaim = true
+			break
+		end
+	end
+	if not canReclaim then
+		return nil, "you have no constructor that can reclaim"
+	end
+	local names, rejected, marked = {}, {}, 0
+	for _, u in ipairs(unitIDs) do
+		local d = unitDef(u)
+		local x, _, z = spGetUnitPosition(u)
+		if not d or not x or owner[u] ~= sub then
+			rejected[#rejected + 1] = { id = u, reason = "not one of your structures" }
+		elseif d.mobile or d.factory then
+			rejected[#rejected + 1] = { id = u, reason = "only structures other than factories can be removed" }
+		elseif not sub.removals[u] then
+			sub.removals[u] = true
+			marked = marked + 1
+			names[d.human] = (names[d.human] or 0) + 1
+			-- don't put the same thing straight back
+			badSpots[#badSpots + 1] = { x = x, z = z, untilFrame = frame + 30 * 300 }
+		end
+	end
+	if marked > 0 then
+		local parts = {}
+		for n, c in pairs(names) do
+			parts[#parts + 1] = c > 1 and (c .. "x " .. n) or n
+		end
+		log(sub, "removing " .. tconcat(parts, ", "))
+		-- builders on soft tasks (assist, patrol, wreckage) switch over now; builds in progress finish first
+		for u in pairs(sub.units) do
+			local st = ustate[u]
+			if st and st.softUntil then
+				st.softUntil, st.nextThink = frame, frame
+			end
+		end
+	end
+	return { marked = marked, rejected = rejected }
+end
+
+-- area for a map picture: the whole map, or the sub's zones with some surroundings
+local function viewBounds(sub, view)
+	if view ~= "zones" or #sub.zones == 0 then
+		return 0, 0, MAP_X, MAP_Z
+	end
+	local x1, z1, x2, z2 = math.huge, math.huge, -math.huge, -math.huge
+	for _, zone in ipairs(sub.zones) do
+		local a, b, c, d = Zone.bounds(zone)
+		x1, z1, x2, z2 = min(x1, a), min(z1, b), max(x2, c), max(z2, d)
+	end
+	local size = max(2000, (x2 - x1) * 1.6, (z2 - z1) * 1.6)
+	local cx, cz = (x1 + x2) * 0.5, (z1 + z2) * 0.5
+	return floor(max(0, cx - size * 0.5)), floor(max(0, cz - size * 0.5)), floor(min(MAP_X, cx + size * 0.5)), floor(min(MAP_Z, cz + size * 0.5))
+end
+
+-- everything the strategist bridge needs to draw a picture of x1..x2, z1..z2 (terrain comes separately)
+local function mapView(sub, view)
+	local x1, z1, x2, z2 = viewBounds(sub, view)
+	local out = { bounds = { x1 = x1, z1 = z1, x2 = x2, z2 = z2 }, subs = {}, zones = {}, metal = {}, units = {}, enemies = {}, intel = enemyIntel() }
+	for _, s in ipairs(subs) do
+		out.subs[#out.subs + 1] = { id = s.id, name = s.name, color = s.color }
+		for _, zone in ipairs(s.zones) do
+			out.zones[#out.zones + 1] = { sub = s.id, zone = zone }
+		end
+	end
+	for _, spot in ipairs(metalSpots() or {}) do
+		if spot.x >= x1 and spot.x <= x2 and spot.z >= z1 and spot.z <= z2 then
+			local mex = extractorAt(spot)
+			local taken = "free"
+			if mex then
+				local team = spGetUnitTeam(mex)
+				taken = team == myTeam and "own" or (Spring.AreTeamsAllied(team, myTeam) and "ally" or "enemy")
+			end
+			out.metal[#out.metal + 1] = { x = floor(spot.x), z = floor(spot.z), taken = taken }
+		end
+	end
+	for _, u in ipairs(Spring.GetUnitsInRectangle(x1, z1, x2, z2) or {}) do
+		local x, _, z = spGetUnitPosition(u)
+		local team = spGetUnitTeam(u)
+		local d = unitDef(u)
+		if x and team then
+			if team == myTeam or Spring.AreTeamsAllied(team, myTeam) then
+				if d then
+					local facing = Spring.GetUnitBuildFacing(u) or 0
+					local hx, hz = halfSize(d, facing)
+					local s = owner[u]
+					out.units[#out.units + 1] = {
+						x = floor(x), z = floor(z), hx = hx, hz = hz, facing = facing,
+						side = team == myTeam and "own" or "ally",
+						sub = s and s.id or 0,
+						structure = not d.mobile, factory = d.factory, kind = defKind(d),
+						marked = s and s.removals[u] or false,
+					}
+				end
+			else
+				-- radar-only blips have no known type
+				out.enemies[#out.enemies + 1] = { x = floor(x), z = floor(z), known = d ~= nil, structure = d and not d.mobile or false, air = d and d.air or false }
+			end
+		end
+	end
+	return out
+end
+
 local function logAI(sub, text)
 	tinsert(sub.log, 1, { frame = frame, text = text, ai = true })
 	if #sub.log > 40 then
@@ -1904,7 +2136,7 @@ local function exportAPI()
 			return sub and summarize(sub)
 		end,
 		economy = function()
-			return { metal = econ.m, metalStorage = econ.mS, metalIncome = econ.mInc, energy = econ.e, energyStorage = econ.eS, energyIncome = econ.eInc }
+			return { metal = econ.m, metalStorage = econ.mS, metalIncome = econ.mInc, metalPull = econ.mPull or 0, energy = econ.e, energyStorage = econ.eS, energyIncome = econ.eInc, energyPull = econ.ePull or 0 }
 		end,
 		create = function(role, name)
 			return createSub(role, name).id
@@ -2005,6 +2237,21 @@ local function exportAPI()
 			local sub = findSub(id)
 			return sub and buildOptions(sub) or {}
 		end,
+		structures = function(id, kind, blockingOnly)
+			local sub = findSub(id)
+			return sub and structureList(sub, kind, blockingOnly)
+		end,
+		removeStructures = function(id, unitIDs)
+			local sub = findSub(id)
+			if not sub then
+				return nil, "no sub-commander with id " .. tostring(id)
+			end
+			return markRemovals(sub, unitIDs or {})
+		end,
+		mapView = function(id, view)
+			local sub = findSub(id)
+			return sub and mapView(sub, view)
+		end,
 		enemyIntel = enemyIntel,
 		frame = function()
 			return frame
@@ -2031,7 +2278,69 @@ local HELP = {
 	"  pause [id] / resume [id] / delete [id] / select [id] / list",
 	"  tell [id] <orders>   standing orders in plain words for its AI strategist (empty = clear)",
 	"  ai <on|off> [id]     let the AI strategist (scbridge + opencode) steer it",
+	"Orders in chat: @2 <orders> (by id), @eco <orders> (name or role), @ <orders> (selected one), @all <orders>",
 }
+
+--------------------------------------------------------------------------------
+-- Orders in chat: your own chat lines starting with @ (allies or all chat)
+--   @2 hold the ridge     sub-commander 2
+--   @eco expand east      first whose name or role starts with "eco"
+--   @ hold the ridge      the selected one
+--   @all fall back        every sub-commander
+-- Nothing after the tag clears the orders.
+--------------------------------------------------------------------------------
+
+local myName = Spring.GetPlayerInfo(myPlayer, false)
+
+local function subsForTag(tag)
+	if tag == "" then
+		return { activeSub }
+	elseif tag == "all" then
+		return subs
+	elseif tonumber(tag) then
+		return { findSub(tonumber(tag)) }
+	end
+	for _, sub in ipairs(subs) do
+		if sub.name:lower():find(tag, 1, true) == 1 or sub.role:find(tag, 1, true) == 1 or ROLE_INFO[sub.role].label:lower():find(tag, 1, true) == 1 then
+			return { sub }
+		end
+	end
+	return {}
+end
+
+local function chatOrders(tag, text)
+	local targets = subsForTag(tag:lower())
+	if #targets == 0 then
+		spEcho("Sub-Commanders: no sub-commander matches @" .. tag .. " (use @<id>, @<name or role>, @ for the selected one, or @all)")
+		return
+	end
+	for _, sub in ipairs(targets) do
+		setDirective(sub, text)
+		local note = sub.directive and "orders received" or "orders cleared"
+		if not sub.ai then
+			note = note .. " (AI is off: only the AI strategist acts on orders)"
+		end
+		spEcho("[" .. sub.name .. "] " .. note)
+	end
+end
+
+function widget:AddConsoleLine(lines)
+	if not myName then
+		return
+	end
+	local prefix = "<" .. myName .. "> "
+	lines = lines:match("^%[f=%-?%d+%] (.*)$") or lines
+	for line in lines:gmatch("[^\n]+") do
+		if line:sub(1, #prefix) == prefix then
+			local text = line:sub(#prefix + 1)
+			text = text:match("^Allies: (.*)$") or text
+			local tag, rest = text:match("^@(%S*)%s*(.-)%s*$")
+			if tag then
+				chatOrders(tag, rest)
+			end
+		end
+	end
+end
 
 local function startZoneTool(sub)
 	zoneTool = { sub = sub }
@@ -2499,6 +2808,21 @@ local function drawUnitMarkers(sub)
 	end
 end
 
+-- structures waiting to be reclaimed: red rings
+local function drawRemovals()
+	glLineWidth(2)
+	glColor(1, 0.25, 0.2, 0.9)
+	for _, sub in ipairs(subs) do
+		for u in pairs(sub.removals) do
+			local d = unitDef(u)
+			local x, y, z = spGetUnitPosition(u)
+			if d and x then
+				glDrawGroundCircle(x, y, z, max(d.hx, d.hz) + 12, 20)
+			end
+		end
+	end
+end
+
 function widget:DrawWorldPreUnit()
 	if #subs == 0 and not zoneDrag then
 		return
@@ -2514,6 +2838,7 @@ function widget:DrawWorldPreUnit()
 	if activeSub then
 		drawUnitMarkers(activeSub)
 	end
+	drawRemovals()
 	if zoneDrag and zoneTool then
 		local c = zoneTool.sub.color
 		local z = zoneDrag
@@ -2715,13 +3040,16 @@ function widget:UnitCreated(unitID, unitDefID, unitTeam, builderID)
 	if st and st.task and st.task.kind == "build" then
 		st.task.started = true
 	end
+	-- factories stay with the player until assigned, otherwise everything they make would join too
+	local d = defs[unitDefID]
+	if d and d.factory then
+		log(sub, d.human .. " stays yours: assign it to me if I should produce with it")
+		return
+	end
 	addUnit(sub, unitID)
 	getState(unitID).graceUntil = math.huge
-	if CMD_PRIORITY then
-		local d = defs[unitDefID]
-		if d and (d.factory or d.builder or d.nano) then
-			getState(unitID).needsPriority = true
-		end
+	if CMD_PRIORITY and d and (d.builder or d.nano) then
+		getState(unitID).needsPriority = true
 	end
 end
 

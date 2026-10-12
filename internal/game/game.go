@@ -67,9 +67,11 @@ type Economy struct {
 	Metal         float64 `json:"metal"`
 	MetalStorage  float64 `json:"metalStorage"`
 	MetalIncome   float64 `json:"metalIncome"`
+	MetalPull     float64 `json:"metalPull"` // what everything is trying to spend per second
 	Energy        float64 `json:"energy"`
 	EnergyStorage float64 `json:"energyStorage"`
 	EnergyIncome  float64 `json:"energyIncome"`
+	EnergyPull    float64 `json:"energyPull"`
 }
 
 // State is the periodic snapshot the widget sends (every 3 game seconds).

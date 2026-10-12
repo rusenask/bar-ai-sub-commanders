@@ -298,7 +298,8 @@ func report(info *game.Info, state *game.State, sub game.Sub, ss *subState, reas
 	if first {
 		fmt.Fprintf(&b, "You command sub-commander #%d %q for player %s (faction %s) on map %q, %.0f x %.0f elmos (x grows east, z grows south).\n",
 			sub.ID, sub.Name, info.Player, info.Faction, info.Map, info.MapX, info.MapZ)
-		fmt.Fprintf(&b, "Always pass sub_id=%d to tools. You will get a report like this whenever something happens or every so often.\n\n", sub.ID)
+		fmt.Fprintf(&b, "Always pass sub_id=%d to tools. You will get a report like this whenever something happens or every so often.\n", sub.ID)
+		b.WriteString("This is your first report: look at the map once with get_map_view before deciding.\n\n")
 	}
 	fmt.Fprintf(&b, "## Report at %s (why now: %s)\n", clock(state.Frame), reason)
 	if sub.Directive != "" {

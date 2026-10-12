@@ -12,6 +12,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/rusenask/bar-ai-sub-commanders/internal/game"
+	"github.com/rusenask/bar-ai-sub-commanders/internal/mapview"
 )
 
 // Guard decides whether the agent may act for a sub-commander right now.
@@ -51,6 +52,22 @@ type zoneArgs struct {
 type pausedArgs struct {
 	SubID  int  `json:"sub_id" jsonschema:"your sub-commander id"`
 	Paused bool `json:"paused" jsonschema:"true stops all of your automatic decisions"`
+}
+
+type structuresArgs struct {
+	SubID        int    `json:"sub_id" jsonschema:"your sub-commander id"`
+	Kind         string `json:"kind,omitempty" jsonschema:"only this kind, e.g. converter, energy, storage, metal extractor, defense turret, anti-air turret, radar, construction turret; empty = all"`
+	BlockingOnly bool   `json:"blocking_only,omitempty" jsonschema:"only structures standing in a factory's exit lane or too close to a factory"`
+}
+
+type removeArgs struct {
+	SubID   int   `json:"sub_id" jsonschema:"your sub-commander id"`
+	UnitIDs []int `json:"unit_ids" jsonschema:"structure ids from get_structures (at most 30); empty list cancels pending removals"`
+}
+
+type mapArgs struct {
+	SubID int    `json:"sub_id" jsonschema:"your sub-commander id"`
+	View  string `json:"view,omitempty" jsonschema:"map = the whole map (default); zones = close-up of your zones and their surroundings"`
 }
 
 type tellArgs struct {
@@ -113,11 +130,94 @@ func Handler(g *game.Server, guard Guard) http.Handler {
 		return asJSON(map[string]any{"game": info, "state": state}), nil, nil
 	})
 
+	// terrain doesn't change during a game: keep the height grids already fetched
+	var terrainMu sync.Mutex
+	terrainCache := map[string]*mapview.Terrain{}
+	terrainFor := func(ctx context.Context, sub int, mapName string, scene *mapview.Scene, cells int) (*mapview.Terrain, error) {
+		b := scene.Bounds
+		key := fmt.Sprintf("%s|%.0f|%.0f|%.0f|%.0f|%d", mapName, b.X1, b.Z1, b.X2, b.Z2, cells)
+		terrainMu.Lock()
+		t := terrainCache[key]
+		terrainMu.Unlock()
+		if t != nil {
+			return t, nil
+		}
+		data, err := g.Do(ctx, sub, "terrain", map[string]any{"x1": b.X1, "z1": b.Z1, "x2": b.X2, "z2": b.Z2, "cells": cells})
+		if err != nil {
+			return nil, err
+		}
+		if t, err = mapview.ParseTerrain(data); err != nil {
+			return nil, err
+		}
+		terrainMu.Lock()
+		if len(terrainCache) >= 32 {
+			clear(terrainCache)
+		}
+		terrainCache[key] = t
+		terrainMu.Unlock()
+		return t, nil
+	}
+
+	mcp.AddTool(s, &mcp.Tool{
+		Name:        "get_map_view",
+		Description: "A top-down picture of the battlefield: terrain (water, steep slopes, cliffs), a coordinate grid in elmos, every sub-commander's zones, metal spots (free or taken), our and allied units and structures, enemies in sight and recent sightings. view=map shows the whole map, view=zones a close-up around your zones.",
+	}, func(ctx context.Context, _ *mcp.CallToolRequest, in mapArgs) (*mcp.CallToolResult, any, error) {
+		if err := guard(in.SubID); err != nil {
+			return fail(err), nil, nil
+		}
+		info, _, ok := g.Snapshot()
+		if !ok || info == nil {
+			return fail(game.ErrOffline), nil, nil
+		}
+		view, cells := "map", 256
+		if in.View == "zones" {
+			view, cells = "zones", 192
+		}
+		data, err := g.Do(ctx, in.SubID, "map_view", map[string]any{"view": view})
+		if err != nil {
+			return fail(err), nil, nil
+		}
+		var scene mapview.Scene
+		if err := json.Unmarshal(data, &scene); err != nil {
+			return fail(fmt.Errorf("map view: %w", err)), nil, nil
+		}
+		terrain, err := terrainFor(ctx, in.SubID, info.Map, &scene, cells)
+		if err != nil {
+			return fail(err), nil, nil
+		}
+		pic, desc, err := mapview.Render(terrain, &scene, mapview.Options{Title: info.Map, Focus: in.SubID})
+		if err != nil {
+			return fail(err), nil, nil
+		}
+		return &mcp.CallToolResult{Content: []mcp.Content{&mcp.TextContent{Text: desc}, &mcp.ImageContent{Data: pic, MIMEType: mapview.MIMEType}}}, nil, nil
+	})
+
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "get_build_options",
 		Description: "What your constructors and factories can build: unit name, display name, kind, metal/energy cost, tech level. Needed before set_focus.",
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in subArg) (*mcp.CallToolResult, any, error) {
 		return act(ctx, in.SubID, "build_options", nil, "[]"), nil, nil
+	})
+
+	mcp.AddTool(s, &mcp.Tool{
+		Name:        "get_structures",
+		Description: "Your own structures (factories excluded): id, name, kind, position, blocksFactory (stands in a factory's exit lane or too close to it), unfinished, marked (already queued for removal). Blocking ones first, at most 60 listed.",
+	}, func(ctx context.Context, _ *mcp.CallToolRequest, in structuresArgs) (*mcp.CallToolResult, any, error) {
+		return act(ctx, in.SubID, "structures", map[string]any{"kind": in.Kind, "blocking_only": in.BlockingOnly}, "{}"), nil, nil
+	})
+
+	mcp.AddTool(s, &mcp.Tool{
+		Name:        "remove_structures",
+		Description: "Have your constructors reclaim these structures of yours (ids from get_structures), refunding their metal. They are not rebuilt on the same spot for 5 minutes. Factories and anything not yours are refused. Empty list cancels pending removals.",
+	}, func(ctx context.Context, _ *mcp.CallToolRequest, in removeArgs) (*mcp.CallToolResult, any, error) {
+		if len(in.UnitIDs) > 30 {
+			return fail(fmt.Errorf("at most 30 structures per call")), nil, nil
+		}
+		ids := in.UnitIDs
+		if ids == nil {
+			ids = []int{}
+		}
+		return act(ctx, in.SubID, "remove_structures", map[string]any{"unit_ids": ids}, "queued for removal"), nil, nil
 	})
 
 	mcp.AddTool(s, &mcp.Tool{
