@@ -64,7 +64,7 @@ local deselectAt
 local function playerOrder(unitID, cmdID, params, opts)
 	Spring.SelectUnitArray({ unitID })
 	Spring.GiveOrderToUnit(unitID, cmdID, params, opts or {})
-	deselectAt = Spring.GetGameFrame() + 5
+	deselectAt = Spring.GetGameFrame() + 30
 end
 
 local function give(n, name, team, x, z)
@@ -538,6 +538,139 @@ local function gameFrame(n)
 	end
 	if scenario == "duel" or scenario == "duelrules" then
 		duel(n)
+	end
+	if scenario == "labtest" then
+		-- the player orders one of Economy's constructors to build a lab: it must be left alone until done
+		if n == 20 then
+			Spring.SendCommands("setmaxspeed 20", "setspeed 3", "cheat 1")
+		elseif n == 40 then
+			give(3, "legck", myTeam, cx + 200, cz)
+		elseif n == 120 then
+			ids.eco = SC.create("economy")
+			SC.assign(ids.eco, byName.legck or {})
+			SC.setPosture(ids.eco, "spend")
+		elseif n == 30 * 20 then
+			ids.ck = (byName.legck or {})[2]
+			playerBuild(ids.ck, "leglab", cx + 300, cz + 400, 0, 1)
+		elseif n > 30 * 20 and n % 30 == 0 and n <= 30 * 100 then
+			local st
+			for _, u in ipairs(SC.get(ids.eco).units) do
+				if u.id == ids.ck then
+					st = (u.task or "-") .. (u.manual and " (manual)" or "")
+				end
+			end
+			out(string.format("ck %s selected=%s owner=%s task=%s labs=%d", queueOf(ids.ck), tostring(Spring.IsUnitSelected(ids.ck)), tostring(SC.ownerOf(ids.ck)), tostring(st), #(byName.leglab or {})))
+			if n % 300 == 0 then
+				local q = Spring.GetUnitCommands(ids.ck, 1)
+				local c = q and q[1]
+				if c and c.id < 0 then
+					local near = {}
+					for _, u in ipairs(Spring.GetUnitsInCylinder(c.params[1], c.params[3], 200)) do
+						local x, _, z = Spring.GetUnitPosition(u)
+						near[#near + 1] = string.format("%s@%d,%d%s", UnitDefs[Spring.GetUnitDefID(u)].name, x, z, Spring.GetUnitIsBeingBuilt(u) and "(frame)" or "")
+					end
+					local defID = -c.id
+					out("  at site: " .. table.concat(near, " ") .. " | test=" .. tostring(Spring.TestBuildOrder(defID, c.params[1], c.params[2], c.params[3], c.params[4] or 0)))
+				end
+			end
+		elseif n == 30 * 101 then
+			out("DONE")
+			Spring.SendCommands("quitforce")
+		end
+		return
+	end
+	if scenario == "coop" then
+		-- the player builds in the Economy zone with the commander while the sub-commander works there too
+		if n == 20 then
+			Spring.SendCommands("setmaxspeed 20", "setspeed 4", "cheat 1")
+		elseif n == 40 then
+			give(3, "legck", myTeam, cx + 200, cz)
+		elseif n == 120 then
+			ids.eco = SC.create("economy")
+			SC.addZone(ids.eco, { kind = "circle", x = cx, z = cz, r = 1000 })
+			SC.assign(ids.eco, byName.legck or {})
+			SC.setPosture(ids.eco, "spend")
+			-- the player's own plan: a block of wind turbines and two light turrets, queued with shift
+			ids.com = Spring.GetTeamUnits(myTeam)[1]
+			for _, u in ipairs(Spring.GetTeamUnits(myTeam)) do
+				if UnitDefs[Spring.GetUnitDefID(u)].name == "legcom" then
+					ids.com = u
+				end
+			end
+			duelState.playerPlan = {}
+			local function plan(name, x, z)
+				local defID = UnitDefNames[name].id
+				local bx, by, bz = Spring.Pos2BuildPos(defID, x, Spring.GetGroundHeight(x, z), z, 0)
+				if Spring.TestBuildOrder(defID, bx, by, bz, 0) > 0 then
+					duelState.playerPlan[#duelState.playerPlan + 1] = { name = name, x = bx, z = bz }
+				end
+			end
+			for i = 0, 2 do
+				for j = 0, 2 do
+					plan("legwin", cx - 420 + i * 40, cz + 260 + j * 40)
+				end
+			end
+			plan("leglht", cx + 380, cz - 380)
+			plan("leglht", cx - 380, cz - 380)
+			Spring.SelectUnitArray({ ids.com })
+			for k, p in ipairs(duelState.playerPlan) do
+				Spring.GiveOrderToUnit(ids.com, -UnitDefNames[p.name].id, { p.x, Spring.GetGroundHeight(p.x, p.z), p.z, 0 }, k > 1 and { "shift" } or {})
+			end
+			deselectAt = n + 30
+			out("player queued " .. #duelState.playerPlan .. " buildings with the commander")
+		elseif n == 30 * 20 then
+			local s = SC.get(ids.eco)
+			out("playerActivity: " .. (s.playerActivity and Json.encode(s.playerActivity) or "none"))
+		elseif n > 120 and n < 30 * 120 and n % 30 == 0 then
+			-- how often the sub-commander's constructors help finish something (sampled every second)
+			for _, u in ipairs(SC.get(ids.eco).units) do
+				if u.task and u.task:find("help build") then
+					duelState.helpTicks = (duelState.helpTicks or 0) + 1
+				end
+			end
+		elseif n == 30 * 120 then
+			-- 1. nothing of the sub-commander's sits on a spot the player queued
+			local conflicts, built = 0, 0
+			for _, p in ipairs(duelState.playerPlan) do
+				local pd = UnitDefNames[p.name]
+				local units = Spring.GetUnitsInRectangle(p.x - pd.xsize * 4, p.z - pd.zsize * 4, p.x + pd.xsize * 4, p.z + pd.zsize * 4)
+				for _, u in ipairs(units) do
+					local ud = UnitDefs[Spring.GetUnitDefID(u)]
+					if (ud.speed or 0) == 0 then
+						local ux, _, uz = Spring.GetUnitPosition(u)
+						if ud.name == p.name and math.abs(ux - p.x) < 8 and math.abs(uz - p.z) < 8 then
+							built = built + 1
+						elseif SC.ownerOf(u) then
+							conflicts = conflicts + 1
+							out(string.format("  CONFLICT: %s at %d,%d on the player's %s spot", ud.name, ux, uz, p.name))
+						end
+					end
+				end
+			end
+			-- 2. structures of the sub-commander on lanes (extractors, factories and big ones are exempt)
+			local onLane, checked = 0, 0
+			for _, u in ipairs(Spring.GetTeamUnits(myTeam)) do
+				local ud = UnitDefs[Spring.GetUnitDefID(u)]
+				if (ud.speed or 0) == 0 and not ud.isFactory and (ud.extractsMetal or 0) == 0 and SC.ownerOf(u) then
+					checked = checked + 1
+					local x, _, z = Spring.GetUnitPosition(u)
+					local hx, hz = ud.xsize * 4, ud.zsize * 4
+					local lx, lz = math.floor(x / 320 + 0.5) * 320, math.floor(z / 320 + 0.5) * 320
+					if math.abs(x - lx) < hx + 28 or math.abs(z - lz) < hz + 28 then
+						onLane = onLane + 1
+						out(string.format("  ON LANE: %s at %d,%d", ud.name, x, z))
+					end
+				end
+			end
+			local helped = duelState.helpTicks or 0
+			out(string.format("coop: player plan %d, built %d, conflicts %d; sub structures %d, on lanes %d; help-build log lines %d", #duelState.playerPlan, built, conflicts, checked, onLane, helped))
+			report()
+			Spring.SendCommands("screenshot png")
+		elseif n == 30 * 121 then
+			out("DONE")
+			Spring.SendCommands("quitforce")
+		end
+		return
 	end
 	if scenario == "multi" then
 		if n == 40 then

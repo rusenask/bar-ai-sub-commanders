@@ -87,7 +87,7 @@ local ROLE_INFO = {
 local POSTURES = { "conserve", "balanced", "spend" }
 local POSTURE_INFO = {
 	conserve = { label = "Conserve", minM = 0.5, minE = 0.4, capBase = 90, capInc = 8, builders = 2, army = 6, density = 1, priority = 0 },
-	balanced = { label = "Balanced", minM = 0.12, minE = 0.2, capBase = 220, capInc = 18, builders = 4, army = 16, density = 2, priority = 1 },
+	balanced = { label = "Balanced", minM = 0.12, minE = 0.2, capBase = 220, capInc = 18, builders = 6, army = 16, density = 2, priority = 1 },
 	spend = { label = "Use all", minM = 0.0, minE = 0.08, capBase = 450, capInc = 40, builders = 8, army = 40, density = 4, priority = 1 },
 }
 
@@ -695,6 +695,15 @@ function Player.refresh()
 		end
 	end
 	Player.plans, Player.builders = plans, builders
+	-- the player is building while metal is short: sub-commanders step back
+	local building = false
+	for _, u in ipairs(builders) do
+		if Spring.GetUnitIsBuilding(u) then
+			building = true
+			break
+		end
+	end
+	Player.yield = building and econ.mFrac < 0.3
 end
 
 local function plannedConflict(d, x, z, gap, facing)
@@ -903,7 +912,7 @@ local function canSpend(sub, what, kind)
 	if kind == "essential" then
 		return true
 	end
-	if metal > 20 and econ.mFrac < p.minM then
+	if metal > 20 and econ.mFrac < (Player.yield and max(p.minM, 0.25) or p.minM) then
 		return false
 	end
 	if kind ~= "energy" and energy > 50 and econ.eFrac < p.minE then
@@ -2196,6 +2205,29 @@ local function thinkCombat(sub, unitID, d, st, threats)
 	if not x then
 		return
 	end
+	-- badly damaged units worth saving fall back to the zone centre, where constructors repair them
+	local hp, maxHp = Spring.GetUnitHealth(unitID)
+	if hp and maxHp and maxHp > 0 then
+		local f = hp / maxHp
+		if st.retreating then
+			if f > 0.8 or frame - st.retreating > 30 * 40 then
+				st.retreating = nil
+			else
+				return
+			end
+		elseif f < 0.3 and d.cost >= 100 and not d.air then
+			local zone = largestZone(sub)
+			if zone then
+				local zx, zz = Zone.center(zone)
+				if dist2(x, z, zx, zz) > 300 * 300 then
+					order(unitID, CMD.MOVE, { zx, spGetGroundHeight(zx, zz), zz })
+					st.retreating, st.engaged = frame, nil
+					setTask(unitID, "retreat", "falling back to repair", true)
+					return
+				end
+			end
+		end
+	end
 	-- an army chooses from where the army is, so every unit goes for the same enemy
 	local fromX, fromZ = x, z
 	if sub.role == "army" and sub.armyX then
@@ -2295,10 +2327,35 @@ local function createSub(role, name)
 	return sub
 end
 
+-- build priority: the posture's, but low while the player builds and metal is short
+local function subPriority(sub)
+	return Player.yield and 0 or POSTURE_INFO[sub.posture].priority
+end
+
 local function applyPriority(sub, unitID)
 	local d = unitDef(unitID)
 	if CMD_PRIORITY and d and (d.builder or d.factory or d.nano) and not d.commander then
-		order(unitID, CMD_PRIORITY, { POSTURE_INFO[sub.posture].priority })
+		-- a unit the player took over works for the player: normal priority
+		local st = ustate[unitID]
+		order(unitID, CMD_PRIORITY, { (st and st.manual) and 1 or subPriority(sub) })
+	end
+end
+
+Player.restorePriority = applyPriority
+
+-- re-apply when the priority a sub-commander should have changes (player started/stopped building)
+local function refreshPriorities()
+	for _, sub in ipairs(subs) do
+		local want = subPriority(sub)
+		if sub.appliedPriority ~= want then
+			sub.appliedPriority = want
+			for u in pairs(sub.units) do
+				applyPriority(sub, u)
+			end
+			if want == 0 and Player.yield then
+				log(sub, "you're building and metal is short: giving your builds priority")
+			end
+		end
 	end
 end
 
@@ -2504,6 +2561,9 @@ local function manualHeld(unitID, st, d)
 	end
 	st.manual = false
 	st.task = nil
+	if owner[unitID] then
+		Player.restorePriority(owner[unitID], unitID)
+	end
 	return false
 end
 
@@ -4073,8 +4133,9 @@ function widget:UnitCommand(unitID, unitDefID, unitTeam, cmdID, cmdParams, cmdOp
 		return
 	end
 	-- the player orders what they have selected; helper widgets order unselected units
-	-- (e.g. "Idle Constructor Guard After Build" makes builders guard a factory forever)
-	if not Spring.IsUnitSelected(unitID) then
+	-- (e.g. "Idle Constructor Guard After Build" makes builders guard a factory forever).
+	-- A build order we didn't give is always the player's: helpers don't place buildings.
+	if cmdID >= 0 and not Spring.IsUnitSelected(unitID) then
 		return
 	end
 	if cmdID < 0 or MANUAL_CMDS[cmdID] then
@@ -4083,9 +4144,13 @@ function widget:UnitCommand(unitID, unitDefID, unitTeam, cmdID, cmdParams, cmdOp
 			local what = cmdID < 0 and ("build " .. (defs[-cmdID] and defs[-cmdID].human or "?")) or MANUAL_CMDS[cmdID]
 			log(owner[unitID], sformat("you took over %s (%s), resuming when it's idle", d and d.human or "a unit", what))
 		end
+		local was = st.manual
 		st.manual = true
 		st.manualUntil = frame + MANUAL_HOLD_FRAMES
 		planned[unitID] = nil
+		if not was then
+			Player.restorePriority(owner[unitID], unitID)
+		end
 	end
 end
 
@@ -4141,6 +4206,9 @@ function widget:GameFrame(n)
 	local combatPass = n % COMBAT_EVERY == 0
 	econUpdate()
 	Player.refresh()
+	if n % 60 == 0 then
+		refreshPriorities()
+	end
 	if n % 300 == 0 then
 		Enemy.prune()
 	end
