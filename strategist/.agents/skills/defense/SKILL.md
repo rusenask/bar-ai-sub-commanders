@@ -27,6 +27,15 @@ last 3 minutes - what they are switching to) and `topTypes`. Answer that, not la
 Name the turret types you want with `set_focus` when the default mix is wrong for the enemy
 (e.g. enemy masses raiders: focus the cheap fast-firing turret). Clear it when the enemy changes.
 
+## Lessons from test games
+
+- Early raiders kill lone constructors and unfinished turrets: keep the zone tight around what you
+  protect until a few turrets stand, then extend it.
+- A line of one turret type gets countered: mix cheap fast-firing turrets with a few high-damage ones once
+  heavier units appear (`newKinds`).
+- The line holds far better when the Army fights next to it: if the army keeps fighting in the open in
+  front of your turrets, tell the player.
+
 ## Placement
 
 - The line belongs where the enemy comes from: between the enemy and what you protect, at chokepoints

@@ -2337,7 +2337,23 @@ local function rallyPoint(sub)
 	end
 	local cx, cz = Zone.center(zone)
 	local ex, ez = enemyDirectionRef(cx, cz)
-	return Zone.edgeToward(zone, ex, ez, 250)
+	local fx, fz = Zone.edgeToward(zone, ex, ez, 250)
+	-- outweighed near the front: gather under our turrets (or the zone centre) instead
+	if Enemy.powerNear(fx, fz, 1400) > sub.counts.power then
+		local sx, sz, n = 0, 0, 0
+		for _, u in ipairs(spGetUnitsInCylinder(cx, cz, 2200)) do
+			local ud = unitDef(u)
+			if ud and ud.staticDef and not ud.aaOnly and spGetUnitTeam(u) == myTeam then
+				local x, _, z = spGetUnitPosition(u)
+				sx, sz, n = sx + x, sz + z, n + 1
+			end
+		end
+		if n > 0 then
+			return sx / n, sz / n
+		end
+		return cx, cz
+	end
+	return fx, fz
 end
 
 local function thinkCombat(sub, unitID, d, st, threats)

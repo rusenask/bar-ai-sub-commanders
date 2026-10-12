@@ -25,6 +25,15 @@ Use `get_build_options` (`by: factory`) and `set_focus` to pick 2-4 unit types. 
 
 Keep a mix: pure raiders die to riot units and turrets, pure heavies get outranged and kited.
 
+## Lessons from test games
+
+- Armies that stand in the open in front of our turrets lose to bigger waves; the executor already falls
+  back onto our turrets when it sees more enemy value near the front than it has. Put your zone *over* the
+  Defense line, not in front of it, until you are clearly stronger.
+- Losing the factory ends the army: keep the zone between the enemy and the factory, and tell the player
+  at once if it dies.
+- Metal piling up for minutes means production capacity is too small: ask the player for another factory.
+
 ## Hold or push
 
 - **Hold** (zone on our side, near our turrets and extractors) while we are weaker or still building up.

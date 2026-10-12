@@ -31,6 +31,15 @@ Your job is to steer *where* (zones) and *how hard* (posture), and to ask the pl
 - **Pull** is what everything is trying to spend per second. Pull well above income drains storage: when
   metal or energy storage is falling and pull > income, the team is overspending (conserve, or more income).
 
+## The first minutes (lessons from test games)
+
+- Enemy raiders usually reach our extractors around 3 minutes. The executor keeps a small guard from the
+  factory and puts a cheap turret by raided extractors; on `conserve` the guard is a single unit, so don't
+  conserve early.
+- An energy stall (energy at zero) slows *everything*, including the player's builds: when energy hits zero,
+  the executor builds cheap generators first. If it keeps happening, ask for more constructors.
+- Your factory also replaces lost constructors for Defense, Air Defense and Intelligence sub-commanders.
+
 ## Expansion
 
 - Extend or add zones over clusters of free metal spots on our half of the map (look at the map picture:
