@@ -28,8 +28,10 @@ import (
 )
 
 type sample struct {
-	Type string `json:"type"`
-	Game string `json:"game"`
+	Type    string `json:"type"`
+	Game    string `json:"game"`
+	Frame   int    `json:"frame"`
+	Version int    `json:"version"`
 	decider.FightFeatures
 	OwnLost   int `json:"ownLost"`
 	EnemyLost int `json:"enemyLost"`
@@ -71,21 +73,28 @@ func groupFeatures(prefix string, g decider.Group, f map[string]float64) {
 	f[prefix+".count"] = float64(g.Count)
 	f[prefix+".health"] = float64(g.Health)
 	f[prefix+".air"] = float64(g.Air)
+	f[prefix+".dps"] = float64(g.DPS)
+	f[prefix+".hp"] = float64(g.HP)
+	f[prefix+".range"] = float64(g.Range)
 	for k, n := range g.Kinds {
 		f[prefix+".kind."+k] = float64(n)
 	}
 }
 
+// minFightLoss: fights where less value than this was lost in total are skirmishes, not fights
+var minFightLoss = flag.Int("min-fight-loss", 150, "skip fights where both sides together lost less metal value than this")
+
 func fightExample(s sample) (example, bool) {
 	ahead, level, ok := decider.FightOutcome(s.OwnLost, s.EnemyLost)
-	if !ok || s.Own.Count == 0 {
+	if !ok || s.Own.Count == 0 || s.OwnLost+s.EnemyLost < *minFightLoss {
 		return example{}, false
 	}
 	qs := decider.FightQuestions()
 	a, o := qs["ahead"], qs["outcome"]
 	a.Label, o.Label = ahead, level
 	qs["ahead"], qs["outcome"] = a, o
-	f := map[string]float64{"heightDiff": float64(s.HeightDiff), "ownStart": float64(s.OwnStart), "enemyStart": float64(s.EnemyStart)}
+	s.Minute = s.Frame / 1800
+	f := map[string]float64{"heightDiff": float64(s.HeightDiff), "ownStart": float64(s.OwnStart), "enemyStart": float64(s.EnemyStart), "minute": float64(s.Minute)}
 	groupFeatures("own", s.Own, f)
 	groupFeatures("ownTurrets", s.OwnTurrets, f)
 	groupFeatures("enemy", s.Enemy, f)
@@ -100,7 +109,7 @@ func valueExample(task string, s sample) (example, bool) {
 		return example{}, false
 	}
 	paid := s.Dealt >= s.Unit.Cost
-	vf := decider.ValueFeatures{Situation: s.Situation, Place: s.Place, Candidates: []decider.UnitTraits{s.Unit}}
+	vf := decider.ValueFeatures{Minute: s.Frame / 1800, Situation: s.Situation, Place: s.Place, Candidates: []decider.UnitTraits{s.Unit}}
 	qs := decider.ValueQuestions(task, vf)
 	q := qs[s.Unit.Name]
 	q.Label = paid
@@ -108,7 +117,7 @@ func valueExample(task string, s sample) (example, bool) {
 	f := map[string]float64{
 		"metalIncome": s.Situation.MetalIncome, "unit.cost": float64(s.Unit.Cost), "unit.range": float64(s.Unit.Range),
 		"unit.speed": float64(s.Unit.Speed), "unit.health": float64(s.Unit.Health), "unit.dps": float64(s.Unit.DPS),
-		"unit.tech": float64(s.Unit.Tech), "unit.kind." + s.Unit.Kind: 1,
+		"unit.tech": float64(s.Unit.Tech), "unit.kind." + s.Unit.Kind: 1, "minute": float64(s.Frame / 1800),
 	}
 	if s.Unit.Air {
 		f["unit.air"] = 1
@@ -128,6 +137,7 @@ func main() {
 	in := flag.String("in", "testenv/data/raw", "directory of logged games (*.jsonl)")
 	out := flag.String("out", "testenv/data/sets", "output directory")
 	maxRatio := flag.Float64("balance", 2, "most yes:no (or no:yes) in training sets; 0 keeps everything")
+	minVersion := flag.Int("min-version", 2, "skip games logged by an older data logger (version in the start record)")
 	flag.Parse()
 
 	files, err := filepath.Glob(filepath.Join(*in, "*.jsonl"))
@@ -143,10 +153,17 @@ func main() {
 		}
 		sc := bufio.NewScanner(f)
 		sc.Buffer(make([]byte, 0, 1<<20), 1<<24)
+		version := -1
 		for sc.Scan() {
 			var s sample
 			if err := json.Unmarshal(sc.Bytes(), &s); err != nil {
 				log.Printf("%s: skipping a line: %v", file, err)
+				continue
+			}
+			if s.Type == "start" {
+				version = s.Version
+			}
+			if version < *minVersion {
 				continue
 			}
 			var ex example

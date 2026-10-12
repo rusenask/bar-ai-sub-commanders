@@ -2075,7 +2075,7 @@ end
 
 -- summary of { defID, hpFraction } entries
 function Decider.group(list)
-	local kinds, value, hp, air = {}, 0, 0, 0
+	local kinds, value, hp, air, dps, hpSum, rangeW = {}, 0, 0, 0, 0, 0, 0
 	for _, e in ipairs(list) do
 		local d = defs[e[1]]
 		kinds[d.kind] = (kinds[d.kind] or 0) + 1
@@ -2084,8 +2084,14 @@ function Decider.group(list)
 		if d.air then
 			air = air + 1
 		end
+		dps = dps + d.dps
+		hpSum = hpSum + e[2] * d.health
+		rangeW = rangeW + d.range * d.cost
 	end
-	return { kinds = kinds, value = floor(value + 0.5), health = #list > 0 and floor(hp / #list * 100 + 0.5) or 0, count = #list, air = air }
+	return {
+		kinds = kinds, value = floor(value + 0.5), health = #list > 0 and floor(hp / #list * 100 + 0.5) or 0, count = #list, air = air,
+		dps = floor(dps + 0.5), hp = floor(hpSum + 0.5), range = value > 0 and floor(rangeW / value + 0.5) or 0,
+	}
 end
 
 local function hpFraction(u)
@@ -2183,6 +2189,7 @@ function Decider.fightVerdict(sub, x, z)
 		enemyStart = enemyStart and min(enemyStart, dd) or dd
 	end
 	local features = {
+		minute = floor(frame / 1800),
 		own = Decider.group(own), ownTurrets = Decider.group(ownTurrets),
 		enemy = Decider.group(enemy), enemyTurrets = Decider.group(enemyTurrets),
 		heightDiff = en > 0 and floor(oh / on - eh / en) or 0,
@@ -2232,7 +2239,7 @@ function Decider.production(sub, facID, fd, st)
 	for i = 1, min(#options, 8) do
 		candidates[i] = Decider.traits(defs[options[i]])
 	end
-	local sent = ai.decideTask and ai.decideTask(sub.id, "unit", { situation = Decider.situation(), candidates = candidates }, function(answers)
+	local sent = ai.decideTask and ai.decideTask(sub.id, "unit", { minute = floor(frame / 1800), situation = Decider.situation(), candidates = candidates }, function(answers)
 		st.asking = nil
 		local best = Decider.bestCandidate(answers)
 		if best then
@@ -2325,7 +2332,7 @@ function Decider.refreshTurrets(sub)
 		place = { turretsNear = near, ownStart = sx and sx > 0 and floor(sqrt(dist2(fx, fz, sx, sz))) or -1, enemyStart = es and floor(es) or -1, nearestEnemy = nearest and nearest < 3000 and floor(nearest) or -1 }
 	end
 	sub.turretAsked = frame
-	ai.decideTask(sub.id, "turret", { situation = Decider.situation(), place = place, candidates = candidates }, function(answers)
+	ai.decideTask(sub.id, "turret", { minute = floor(frame / 1800), situation = Decider.situation(), place = place, candidates = candidates }, function(answers)
 		local choice = Decider.bestCandidate(answers)
 		if choice then
 			local defID = choice

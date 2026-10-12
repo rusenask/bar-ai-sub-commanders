@@ -19,10 +19,10 @@ func TestFightState(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := `Beyond All Reason RTS, a fight from our side.
-Our group: 17 units worth 4330 metal (8 heavy, 5 assault, 2 artillery, 2 skirmisher), health 100%.
-Our turrets nearby: 1 units worth 102 metal (1 turret), health 100%.
-Enemy units: 6 units worth 1155 metal (6 assault), health 100%.
+	want := `Beyond All Reason RTS, a fight from our side, 0 minutes into the game.
+Our group: 17 units worth 4330 metal (8 heavy, 5 assault, 2 artillery, 2 skirmisher), health 100%, firepower 0 damage per second, 0 hit points, typical range 0.
+Our turrets nearby: 1 units worth 102 metal (1 turret), health 100%, firepower 0 damage per second, 0 hit points, typical range 0.
+Enemy units: 6 units worth 1155 metal (6 assault), health 100%, firepower 0 damage per second, 0 hit points, typical range 0.
 Enemy turrets: none.
 Ground is level.
 Distance from our start: 2680 elmos; from the enemy start: 3930 elmos.`

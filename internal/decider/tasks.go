@@ -27,6 +27,9 @@ type Group struct {
 	Health int            `json:"health"`
 	Count  int            `json:"count"`
 	Air    int            `json:"air"`
+	DPS    int            `json:"dps"`   // total damage per second
+	HP     int            `json:"hp"`    // total hit points left
+	Range  int            `json:"range"` // weapon range, averaged by value
 }
 
 // UnmarshalJSON accepts the Lua encoder's [] for an empty kinds table.
@@ -37,11 +40,15 @@ func (g *Group) UnmarshalJSON(b []byte) error {
 		Health float64         `json:"health"`
 		Count  int             `json:"count"`
 		Air    int             `json:"air"`
+		DPS    float64         `json:"dps"`
+		HP     float64         `json:"hp"`
+		Range  float64         `json:"range"`
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return err
 	}
 	g.Value, g.Health, g.Count, g.Air = int(raw.Value), int(raw.Health), raw.Count, raw.Air
+	g.DPS, g.HP, g.Range = int(raw.DPS), int(raw.HP), int(raw.Range)
 	g.Kinds = map[string]int{}
 	if len(raw.Kinds) > 0 && raw.Kinds[0] == '{' {
 		return json.Unmarshal(raw.Kinds, &g.Kinds)
@@ -55,6 +62,7 @@ type FightFeatures struct {
 	OwnTurrets   Group `json:"ownTurrets"`
 	Enemy        Group `json:"enemy"`
 	EnemyTurrets Group `json:"enemyTurrets"`
+	Minute       int   `json:"minute"`     // game time
 	HeightDiff   int   `json:"heightDiff"` // our average height minus theirs, elmos
 	OwnStart     int   `json:"ownStart"`   // distance from our start, elmos (-1 unknown)
 	EnemyStart   int   `json:"enemyStart"` // distance from the nearest enemy start
@@ -93,6 +101,7 @@ type Place struct {
 // ValueFeatures are the input of the unit and turret tasks: the situation, where (turrets only), and the
 // candidate types to judge.
 type ValueFeatures struct {
+	Minute     int          `json:"minute"`
 	Situation  Situation    `json:"situation"`
 	Place      *Place       `json:"place,omitempty"`
 	Candidates []UnitTraits `json:"candidates"`
@@ -142,7 +151,8 @@ func groupText(g Group) string {
 	if g.Count == 0 {
 		return "none"
 	}
-	return fmt.Sprintf("%d units worth %d metal (%s), health %d%%", g.Count, g.Value, kindsText(g.Kinds), g.Health)
+	return fmt.Sprintf("%d units worth %d metal (%s), health %d%%, firepower %d damage per second, %d hit points, typical range %d",
+		g.Count, g.Value, kindsText(g.Kinds), g.Health, g.DPS, g.HP, g.Range)
 }
 
 func distText(d int) string {
@@ -155,7 +165,7 @@ func distText(d int) string {
 // FightState renders a fight's state text.
 func FightState(f FightFeatures) string {
 	var b strings.Builder
-	b.WriteString("Beyond All Reason RTS, a fight from our side.\n")
+	fmt.Fprintf(&b, "Beyond All Reason RTS, a fight from our side, %d minutes into the game.\n", f.Minute)
 	fmt.Fprintf(&b, "Our group: %s.\n", groupText(f.Own))
 	fmt.Fprintf(&b, "Our turrets nearby: %s.\n", groupText(f.OwnTurrets))
 	fmt.Fprintf(&b, "Enemy units: %s.\n", groupText(f.Enemy))
@@ -224,9 +234,9 @@ func unitText(u UnitTraits) string {
 func ValueState(task string, f ValueFeatures) string {
 	var b strings.Builder
 	if task == TaskTurret {
-		b.WriteString("Beyond All Reason RTS, our constructor is choosing a turret to build.\n")
+		fmt.Fprintf(&b, "Beyond All Reason RTS, %d minutes into the game, our constructor is choosing a turret to build.\n", f.Minute)
 	} else {
-		b.WriteString("Beyond All Reason RTS, our factory is choosing a unit to build.\n")
+		fmt.Fprintf(&b, "Beyond All Reason RTS, %d minutes into the game, our factory is choosing a unit to build.\n", f.Minute)
 	}
 	fmt.Fprintf(&b, "Our army and turrets: %s.\n", groupText(f.Situation.Own))
 	fmt.Fprintf(&b, "The enemy's army and turrets: %s.\n", groupText(f.Situation.Enemy))

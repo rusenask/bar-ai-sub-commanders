@@ -11,6 +11,7 @@ Accuracy, Brier score and ROC AUC; writes <sets>/baselines.json.
 
 import json
 import math
+import os
 import sys
 from pathlib import Path
 
@@ -54,7 +55,7 @@ def main():
     report = {}
     for task in tasks:
         train_f, y_train = load(root / task / "train.feat.jsonl")
-        test_f, y_test = load(root / task / "test.feat.jsonl")
+        test_f, y_test = load(root / task / f"{os.environ.get('EVAL_SPLIT', 'test')}.feat.jsonl")
         if len(y_test) == 0 or len(set(y_train)) < 2:
             print(task, "not enough data")
             continue

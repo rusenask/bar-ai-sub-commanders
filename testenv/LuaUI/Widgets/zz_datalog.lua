@@ -57,6 +57,7 @@ end
 -- counts and value by kind of a list of { defID, hp, maxHp }
 local function summarize(list)
 	local kinds, value, hp, n, air = {}, 0, 0, 0, 0
+	local dps, hpSum, rangeW = 0, 0, 0
 	for _, u in ipairs(list) do
 		local d = defs[u.defID]
 		kinds[d.kind] = (kinds[d.kind] or 0) + 1
@@ -66,8 +67,15 @@ local function summarize(list)
 		if d.air then
 			air = air + 1
 		end
+		-- what decides fights: firepower, hit points, reach (range weighted by value)
+		dps = dps + d.dps
+		hpSum = hpSum + u.hp
+		rangeW = rangeW + d.range * d.cost
 	end
-	return { kinds = kinds, value = floor(value + 0.5), health = n > 0 and floor(hp / n * 100 + 0.5) or 0, count = n, air = air }
+	return {
+		kinds = kinds, value = floor(value + 0.5), health = n > 0 and floor(hp / n * 100 + 0.5) or 0, count = n, air = air,
+		dps = floor(dps + 0.5), hp = floor(hpSum + 0.5), range = value > 0 and floor(rangeW / value + 0.5) or 0,
+	}
 end
 
 local function unitInfo(u)
@@ -393,5 +401,5 @@ function widget:Initialize()
 	math.randomseed(os.time())
 	gameKey = os.date("%Y%m%d-%H%M%S") .. "-" .. math.random(1000, 9999)
 	out = io.open("datalog.jsonl", "w")
-	write({ type = "start", game = gameKey, map = Game.mapName, mapX = Game.mapSizeX, mapZ = Game.mapSizeZ })
+	write({ type = "start", game = gameKey, map = Game.mapName, mapX = Game.mapSizeX, mapZ = Game.mapSizeZ, version = 2 })
 end
