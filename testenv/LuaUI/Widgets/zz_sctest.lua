@@ -240,6 +240,27 @@ local function duel(n)
 	elseif duelState.stage == 2 then
 		local labs = byName.leglab or {}
 		local lab2 = labs[2]
+		-- like a player who notices the lab never started: order it again, a bit elsewhere
+		duelState.lab2Since = duelState.lab2Since or n
+		if not lab2 and n - duelState.lab2Since > 30 * 90 then
+			local frames = 0
+			for _, u in ipairs(Spring.GetTeamUnits(myTeam)) do
+				if UnitDefs[Spring.GetUnitDefID(u)].name == "leglab" and Spring.GetUnitIsBeingBuilt(u) then
+					frames = frames + 1
+				end
+			end
+			if frames == 0 then
+				local cons = ownedBy(ids.eco, "legck")
+				local _, dx, dz = towardEnemy(0.1, 0)
+				if cons[1] then
+					duelState.lab2Tries = (duelState.lab2Tries or 0) + 1
+					local a = duelState.lab2Tries * 2.1
+					playerBuild(cons[1], "leglab", cx + dx * 300 + math.cos(a) * 450, cz + dz * 300 + math.sin(a) * 450, dx, dz)
+					out("player: second lab never started, ordered again")
+				end
+			end
+			duelState.lab2Since = n
+		end
 		if lab2 and not Spring.GetUnitIsBeingBuilt(lab2) then
 			duelState.stage = 3
 			ids.army = SC.create("army")
@@ -538,6 +559,57 @@ local function gameFrame(n)
 	end
 	if scenario == "duel" or scenario == "duelrules" then
 		duel(n)
+	end
+	if scenario == "intel" then
+		-- Intelligence sub-commander with two constructors and a vehicle plant (scouts), no enemy
+		if n == 20 then
+			Spring.SendCommands("setmaxspeed 20", "setspeed 4", "cheat 1")
+		elseif n == 40 then
+			give(2, "legck", myTeam, cx + 200, cz)
+			give(1, "legvp", myTeam, cx - 450, cz + 300)
+			give(4, "legwin", myTeam, cx + 400, cz + 400)
+		elseif n == 150 then
+			ids.intel = SC.create("intelligence")
+			SC.addZone(ids.intel, { kind = "circle", x = cx, z = cz + 1200, r = 1300 })
+			local units = {}
+			for _, name in ipairs({ "legck", "legvp" }) do
+				for _, u in ipairs(byName[name] or {}) do
+					units[#units + 1] = u
+				end
+			end
+			SC.assign(ids.intel, units)
+			SC.setPosture(ids.intel, "spend")
+		elseif n == 30 * 180 then
+			local s = SC.get(ids.intel)
+			local built = {}
+			for _, u in ipairs(Spring.GetTeamUnits(myTeam)) do
+				if SC.ownerOf(u) == ids.intel then
+					local n2 = UnitDefs[Spring.GetUnitDefID(u)].name
+					built[n2] = (built[n2] or 0) + 1
+				end
+			end
+			local parts = {}
+			for k, v in pairs(built) do
+				parts[#parts + 1] = k .. "=" .. v
+			end
+			table.sort(parts)
+			out("intel owns: " .. table.concat(parts, " "))
+			local tasks = {}
+			for _, u in ipairs(s.units) do
+				if u.task then
+					tasks[#tasks + 1] = u.name .. ":" .. u.task
+				end
+			end
+			out("intel tasks: " .. table.concat(tasks, ", "))
+			for i = math.min(#s.recent, 10), 1, -1 do
+				out("  log: " .. s.recent[i].text)
+			end
+			Spring.SendCommands("screenshot png")
+		elseif n == 30 * 181 then
+			out("DONE")
+			Spring.SendCommands("quitforce")
+		end
+		return
 	end
 	if scenario == "labtest" then
 		-- the player orders one of Economy's constructors to build a lab: it must be left alone until done

@@ -1077,7 +1077,8 @@ end
 
 function Jobs.energy(sub, unitID, d, ux, uz, urgent)
 	local ax, az = anchorFor(sub, ux, uz)
-	local cap = costCap(sub, urgent and 1.5 or 1)
+	-- out of energy: cheap generators that are up in seconds beat efficient ones that take minutes
+	local cap = urgent and econ.eFrac < 0.2 and max(60, costCap(sub) * 0.3) or costCap(sub, urgent and 1.5 or 1)
 	return buildCheapestUseful(sub, unitID, d, ax, az, function(od)
 		return od.energy > 0 and od.cost <= cap
 	end, function(od)
@@ -1117,6 +1118,48 @@ function Jobs.converter(sub, unitID, d, ux, uz)
 	end, function(od)
 		return od.conv / max(od.cost, 1)
 	end, "energy converter (surplus)")
+end
+
+-- raiders in the economy's zone: one cheap turret next to the extractors they go for
+function Jobs.guardTurret(sub, unitID, d, ux, uz)
+	if #sub.threats == 0 or sub.guardTurretFrame and frame - sub.guardTurretFrame < 30 * 60 then
+		return false
+	end
+	local options = buildableBy(d, function(od)
+		return od.staticDef and not od.aaOnly
+	end)
+	if #options == 0 then
+		return false
+	end
+	tsort(options, function(a, b)
+		return defs[a].cost < defs[b].cost
+	end)
+	local o = options[1]
+	if not canSpend(sub, defs[o], "essential") then
+		return false
+	end
+	-- the extractor of ours nearest to the intruders
+	local t = sub.threats[1]
+	local best, bestD
+	for u in pairs(sub.units) do
+		local ud = unitDef(u)
+		if ud and ud.mex > 0 then
+			local x, _, z = spGetUnitPosition(u)
+			local dd = x and dist2(x, z, t.x, t.z)
+			if dd and (not bestD or dd < bestD) then
+				best, bestD = { x, z }, dd
+			end
+		end
+	end
+	if not best then
+		return false
+	end
+	local x, z = findBuildSpot(sub, o, best[1], best[2], { gap = 16, rings = 5 })
+	if x and issueBuild(sub, unitID, o, x, z, facingToward(x, z, t.x, t.z), "turret: raiders at the extractors") then
+		sub.guardTurretFrame = frame
+		return true
+	end
+	return false
 end
 
 -- metal piling up: construction turrets next to a busy factory turn it into units faster
@@ -1372,6 +1415,15 @@ local function pickDefense(sub, d, aa)
 	end)
 	if #options == 0 then
 		return nil
+	end
+	-- the decision model's current pick for this sub-commander's line (refreshed in the background)
+	local tp = sub.turretPick
+	if not aa and tp and frame - tp.frame < 30 * 90 and random() < 0.75 then
+		for _, o in ipairs(options) do
+			if o == tp.defID then
+				return o
+			end
+		end
 	end
 	-- weigh by what the enemy fields: range against skirmishers/artillery, cheap fast-firing
 	-- turrets against raiders, damage against heavies; otherwise the strongest affordable
@@ -1854,6 +1906,7 @@ end
 local BUILDER_PLANS = {
 	economy = function(sub, u, d, x, z)
 		return Jobs.removeMarked(sub, u, d, x, z)
+			or Jobs.guardTurret(sub, u, d, x, z)
 			or Jobs.basicEconomy(sub, u, d, x, z)
 			or (energyWanted() and Jobs.energy(sub, u, d, x, z, false))
 			or Jobs.buildPower(sub, u, d, x, z)
@@ -1930,9 +1983,31 @@ local function pickProduction(sub, facID, fd)
 	end
 	local wantBuilder
 	if sub.role == "economy" then
+		-- a sub-commander that lost all its constructors gets a new one from us first
+		for _, other in ipairs(subs) do
+			if other ~= sub and other.counts.builders == 0 and #other.zones > 0 and not other.paused
+				and (other.role == "defense" or other.role == "airdefense" or other.role == "intelligence")
+				and frame - (other.builderSent or -99999) > 30 * 60 then
+				local options = buildableBy(fd, function(od)
+					return od.builder and not od.commander
+				end)
+				tsort(options, function(a, b)
+					return defs[a].cost < defs[b].cost
+				end)
+				if options[1] then
+					getState(facID).handOff = other.id
+					other.builderSent = frame
+					return options[1], "constructor for " .. other.name
+				end
+			end
+		end
 		wantBuilder = counts.builders < p.builders
+		-- a small guard against early raids once the first constructors are out
+		local guard = sub.posture == "conserve" and 1 or (sub.posture == "spend" and 4 or 2)
+		if counts.builders >= 3 and counts.combat < guard and (#sub.threats > 0 or Enemy.share("raiders") > 0 or frame > 30 * 150) then
+			wantBuilder = false
 		-- enough constructors: only make fighters (to guard the economy) when metal piles up
-		if not wantBuilder and econ.mFrac < 0.75 then
+		elseif not wantBuilder and econ.mFrac < 0.75 then
 			return nil, "enough constructors"
 		end
 	elseif sub.role ~= "army" and counts.builders < 1 then
@@ -1978,7 +2053,7 @@ local function pickProduction(sub, facID, fd)
 			return nil, "enough raiders"
 		end
 		local options = buildableBy(fd, function(od)
-			return od.combat and not od.aaOnly and not od.air and od.cost <= cap
+			return od.combat and not od.aaOnly and not od.air and not od.scout and od.cost <= cap
 		end)
 		tsort(options, function(a, b)
 			return defs[a].speed > defs[b].speed
@@ -2115,6 +2190,71 @@ function Decider.production(sub, facID, fd, st)
 	end
 	st.asking = frame
 	return nil
+end
+
+function Decider.describeTurret(d)
+	local hints = {}
+	if d.aaOnly then
+		hints[#hints + 1] = "shoots aircraft only, good against bombers and gunships"
+	else
+		if d.cost < 150 then
+			hints[#hints + 1] = "cheap and quick to build, good against raiders and light units"
+		end
+		if d.dps / max(d.cost, 1) > 0.5 and d.cost >= 200 then
+			hints[#hints + 1] = "high damage, good against armored and heavy units"
+		end
+		if d.range >= 650 then
+			hints[#hints + 1] = "long range, good against skirmishers and artillery"
+		end
+	end
+	return sformat("%s (%s): range %d, damage per second %d, health %d, cost %d metal%s", d.human, d.name, d.range, d.dps, d.health, d.metal, #hints > 0 and ("; " .. tconcat(hints, "; ")) or "")
+end
+
+-- Defense: ask which turret type fits the enemy, every 45 s; pickDefense uses sub.turretPick
+function Decider.refreshTurrets(sub)
+	local ai = WG.SubCommandersAI
+	if sub.role ~= "defense" or sub.focus or not (ai and ai.deciderReady and ai.deciderReady()) then
+		return
+	end
+	if sub.turretAsked and frame - sub.turretAsked < 30 * 45 then
+		return
+	end
+	local builder
+	for u in pairs(sub.units) do
+		local d = unitDef(u)
+		if d and d.builder then
+			builder = d
+			break
+		end
+	end
+	if not builder then
+		return
+	end
+	local cap = costCap(sub, 1.5)
+	local options = buildableBy(builder, function(od)
+		return od.staticDef and not od.aaOnly and od.cost <= cap
+	end)
+	if #options < 2 then
+		return
+	end
+	local criteria = {}
+	for i = 1, min(#options, 8) do
+		criteria[defs[options[i]].name] = Decider.describeTurret(defs[options[i]])
+	end
+	local mix = Enemy.mix()
+	local state = sformat("Beyond All Reason RTS. Our Defense sub-commander's constructors are choosing a turret type for the defensive line. Enemy units seen in the last 5 minutes: %s. First seen in the last 3 minutes: %s. Enemies in our zone now: %d. Metal %d/%d (+%.1f/s).",
+		Decider.countsText(mix.kinds), Decider.countsText(mix.recentKinds), #sub.threats, econ.m, econ.mS, econ.mInc)
+	sub.turretAsked = frame
+	ai.decide(sub.id, state, { turret = { type = "choice", instructions = "Which turret type should be built to best counter the enemy?", criteria = criteria } }, function(answers)
+		local choice = answers and answers.turret and answers.turret.choice
+		if choice and UnitDefNames[choice] then
+			local defID = UnitDefNames[choice].id
+			if not (sub.turretPick and sub.turretPick.defID == defID) then
+				log(sub, "turrets: " .. defs[defID].human .. " (decision model)")
+			end
+			sub.turretPick = { defID = defID, frame = frame }
+		end
+	end)
 end
 
 local function thinkFactory(sub, facID, fd, st)
@@ -4048,6 +4188,16 @@ function widget:UnitCreated(unitID, unitDefID, unitTeam, builderID)
 		log(sub, d.human .. " stays yours: assign it to me if I should produce with it")
 		return
 	end
+	-- built for another sub-commander that had no constructor left
+	local fst = ustate[builderID]
+	if fst and fst.handOff and d and d.builder then
+		local target = findSub(fst.handOff)
+		fst.handOff = nil
+		if target then
+			sub = target
+			log(target, "received a constructor from " .. owner[builderID].name)
+		end
+	end
 	addUnit(sub, unitID)
 	getState(unitID).graceUntil = math.huge
 	if CMD_PRIORITY and d and (d.builder or d.nano) then
@@ -4148,6 +4298,10 @@ function widget:UnitCommand(unitID, unitDefID, unitTeam, cmdID, cmdParams, cmdOp
 		st.manual = true
 		st.manualUntil = frame + MANUAL_HOLD_FRAMES
 		planned[unitID] = nil
+		-- reserve the player's spot right away, before any of our builders can take it
+		if cmdID < 0 and defs[-cmdID] and type(cmdParams) == "table" and cmdParams[3] then
+			Player.plans[#Player.plans + 1] = { defID = -cmdID, x = cmdParams[1], z = cmdParams[3], facing = cmdParams[4] or 0, builder = unitID }
+		end
 		if not was then
 			Player.restorePriority(owner[unitID], unitID)
 		end
@@ -4224,6 +4378,7 @@ function widget:GameFrame(n)
 		for _, sub in ipairs(subs) do
 			updateCounts(sub)
 			sub.threats = scanThreats(sub)
+			Decider.refreshTurrets(sub)
 			for _, t in ipairs(sub.threats) do
 				baseThreats[#baseThreats + 1] = t
 			end

@@ -1,0 +1,23 @@
+# Test games against BARbarian
+
+1v1 on All That Simmers, Legion (us) vs Armada (BARbarian), no cheats, game speed 3x, 25 minute limit.
+The harness (`testenv/LuaUI/Widgets/zz_sctest.lua`, scenarios `duel` / `duelrules`) plays a light-touch
+human who delegates: it builds the first lab with the commander, hands the commander and that lab to an
+Economy sub-commander, then creates Defense (two constructors), Army (a second lab), Air Defense and
+Intelligence as constructors become available, gives each a standing order, and adds a lab for the Army
+when metal keeps piling up. `duel` runs the AI strategist (deepseek-v4.1-flash), `duelrules` only the rules.
+
+Results vary a lot between games with the same code (BARbarian is not deterministic), so single games
+show direction, not precise strength.
+
+| # | Code | Opponent | Mode | Result | Metal produced | Killed / lost | What we learned |
+|---|---|---|---|---|---|---|---|
+| 1 | initial | medium | rules | LOSS 10:56 | 6.8k | 1 / 65 | constructors and commander "taken over" by BAR's idle-guard widget forever: 2 extractors at 10 min |
+| 2 | guard fix, expansion, converter-aware energy, army helps other zones | medium | rules | TIMEOUT (alive) | 48.0k | 27 / 181 | economy works (+50 metal/s), metal overflows, units die piecemeal |
+| 3 | same | medium | strategist (sessions failing) | LOSS 13:37 | - | - | opencode couldn't create sessions (read-only `.opencode`); same code as #2 lost: high variance |
+| 4 | same, strategist working | medium | strategist | TIMEOUT (alive) | 32.3k | 23 / 145 | strategist reasons well (counters, retreats, warnings) but the army lab sat forward and died; no replacement |
+| 5 | + lanes, overflow spending, rally, counters | medium | rules | TIMEOUT (alive) | 34.8k | 30 / 140 | the player's second lab never finished: harness order not seen as the player's |
+| 6 | same + decider (Clef-flash) | medium | strategist + decider | LOSS 19:25 | 25.0k | 20 / 102 | second lab again unfinished: sub-commanders starved the player's build of metal until it decayed |
+
+Fixes after #6: sub-commanders give way to the player's builds (low build priority while the player builds
+and metal is short), foreign build orders always count as the player's.
