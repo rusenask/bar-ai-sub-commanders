@@ -68,19 +68,6 @@ func splitOf(game string) string {
 	return "train"
 }
 
-func groupFeatures(prefix string, g decider.Group, f map[string]float64) {
-	f[prefix+".value"] = float64(g.Value)
-	f[prefix+".count"] = float64(g.Count)
-	f[prefix+".health"] = float64(g.Health)
-	f[prefix+".air"] = float64(g.Air)
-	f[prefix+".dps"] = float64(g.DPS)
-	f[prefix+".hp"] = float64(g.HP)
-	f[prefix+".range"] = float64(g.Range)
-	for k, n := range g.Kinds {
-		f[prefix+".kind."+k] = float64(n)
-	}
-}
-
 // minFightLoss: fights where less value than this was lost in total are skirmishes, not fights
 var minFightLoss = flag.Int("min-fight-loss", 150, "skip fights where both sides together lost less metal value than this")
 
@@ -94,12 +81,7 @@ func fightExample(s sample) (example, bool) {
 	a.Label, o.Label = ahead, level
 	qs["ahead"], qs["outcome"] = a, o
 	s.Minute = s.Frame / 1800
-	f := map[string]float64{"heightDiff": float64(s.HeightDiff), "ownStart": float64(s.OwnStart), "enemyStart": float64(s.EnemyStart), "minute": float64(s.Minute)}
-	groupFeatures("own", s.Own, f)
-	groupFeatures("ownTurrets", s.OwnTurrets, f)
-	groupFeatures("enemy", s.Enemy, f)
-	groupFeatures("enemyTurrets", s.EnemyTurrets, f)
-	f["logRatio"] = math.Log((float64(s.Own.Value+s.OwnTurrets.Value) + 1) / (float64(s.Enemy.Value+s.EnemyTurrets.Value) + 1))
+	f := decider.FlatFight(s.FightFeatures)
 	return example{label: ahead, rec: record{State: decider.FightState(s.FightFeatures), Questions: qs}, feat: f}, true
 }
 
@@ -114,22 +96,7 @@ func valueExample(task string, s sample) (example, bool) {
 	q := qs[s.Unit.Name]
 	q.Label = paid
 	qs[s.Unit.Name] = q
-	f := map[string]float64{
-		"metalIncome": s.Situation.MetalIncome, "unit.cost": float64(s.Unit.Cost), "unit.range": float64(s.Unit.Range),
-		"unit.speed": float64(s.Unit.Speed), "unit.health": float64(s.Unit.Health), "unit.dps": float64(s.Unit.DPS),
-		"unit.tech": float64(s.Unit.Tech), "unit.kind." + s.Unit.Kind: 1, "minute": float64(s.Frame / 1800),
-	}
-	if s.Unit.Air {
-		f["unit.air"] = 1
-	}
-	if s.Unit.AAOnly {
-		f["unit.aaOnly"] = 1
-	}
-	groupFeatures("own", s.Situation.Own, f)
-	groupFeatures("enemy", s.Situation.Enemy, f)
-	if p := s.Place; p != nil {
-		f["place.turretsNear"], f["place.ownStart"], f["place.enemyStart"], f["place.nearestEnemy"] = float64(p.TurretsNear), float64(p.OwnStart), float64(p.EnemyStart), float64(p.NearestEnemy)
-	}
+	f := decider.FlatValue(vf, s.Unit)
 	return example{label: paid, rec: record{State: decider.ValueState(task, vf), Questions: qs}, feat: f}, true
 }
 

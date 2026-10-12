@@ -12,6 +12,7 @@ Accuracy, Brier score and ROC AUC; writes <sets>/baselines.json.
 import json
 import math
 import os
+import pickle
 import sys
 from pathlib import Path
 
@@ -72,6 +73,11 @@ def main():
         gbt.fit(x_train, y_train)
         r["gradient boosting"] = scores(y_test, gbt.predict_proba(x_test)[:, 1])
         report[task] = r
+        # SAVE_DIR=dir keeps the fitted models for serve_gbt.py
+        if os.environ.get("SAVE_DIR"):
+            Path(os.environ["SAVE_DIR"]).mkdir(parents=True, exist_ok=True)
+            with open(Path(os.environ["SAVE_DIR"]) / f"{task}.pkl", "wb") as f:
+                pickle.dump({"vectorizer": vec, "gbt": gbt, "logistic": logit}, f)
         print(task)
         for name, s in r.items():
             print(f"  {name:22s} {s}")

@@ -30,7 +30,14 @@ func New(url, model string) *Client {
 // Decide sends the state and questions (as the widget built them) and returns the answers object
 // ({"<question>": {"type": ..., "choice"/"noul"/"score": ..., "probabilities": ...}}).
 func (c *Client) Decide(ctx context.Context, state string, questions json.RawMessage) (json.RawMessage, error) {
-	body, err := json.Marshal(map[string]any{"model": c.Model, "state": state, "questions": questions})
+	return c.decide(ctx, map[string]any{"state": state, "questions": questions})
+}
+
+// decide posts a request body (model is added); System One servers ignore fields they don't know, so task
+// requests also carry the task name and flat features for models that take numbers.
+func (c *Client) decide(ctx context.Context, fields map[string]any) (json.RawMessage, error) {
+	fields["model"] = c.Model
+	body, err := json.Marshal(fields)
 	if err != nil {
 		return nil, err
 	}
@@ -117,11 +124,11 @@ func (r *Router) Decide(ctx context.Context, args map[string]any) (json.RawMessa
 		if c == nil {
 			return nil, fmt.Errorf("no decision model for task %q", task)
 		}
-		q, err := json.Marshal(questions)
+		flat, err := Flat(task, features)
 		if err != nil {
 			return nil, err
 		}
-		return c.Decide(ctx, state, q)
+		return c.decide(ctx, map[string]any{"state": state, "questions": questions, "task": task, "flat": flat})
 	}
 	if r.Default == nil {
 		return nil, fmt.Errorf("no default decision model")

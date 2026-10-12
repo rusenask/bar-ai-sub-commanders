@@ -9,6 +9,7 @@ import (
 	"cmp"
 	"encoding/json"
 	"fmt"
+	"math"
 	"slices"
 	"strings"
 )
@@ -281,4 +282,76 @@ func Render(task string, features json.RawMessage) (string, map[string]Question,
 		return ValueState(task, f), ValueQuestions(task, f), nil
 	}
 	return "", nil, fmt.Errorf("unknown task %q", task)
+}
+
+// Flat numeric features, for models that take numbers instead of text (logistic regression, gradient
+// boosting: cmd/decidedata writes them for training, the router sends them with every task request).
+
+func flatGroup(prefix string, g Group, f map[string]float64) {
+	f[prefix+".value"] = float64(g.Value)
+	f[prefix+".count"] = float64(g.Count)
+	f[prefix+".health"] = float64(g.Health)
+	f[prefix+".air"] = float64(g.Air)
+	f[prefix+".dps"] = float64(g.DPS)
+	f[prefix+".hp"] = float64(g.HP)
+	f[prefix+".range"] = float64(g.Range)
+	for k, n := range g.Kinds {
+		f[prefix+".kind."+k] = float64(n)
+	}
+}
+
+// FlatFight flattens a fight.
+func FlatFight(s FightFeatures) map[string]float64 {
+	f := map[string]float64{"heightDiff": float64(s.HeightDiff), "ownStart": float64(s.OwnStart), "enemyStart": float64(s.EnemyStart), "minute": float64(s.Minute)}
+	flatGroup("own", s.Own, f)
+	flatGroup("ownTurrets", s.OwnTurrets, f)
+	flatGroup("enemy", s.Enemy, f)
+	flatGroup("enemyTurrets", s.EnemyTurrets, f)
+	f["logRatio"] = math.Log((float64(s.Own.Value+s.OwnTurrets.Value) + 1) / (float64(s.Enemy.Value+s.EnemyTurrets.Value) + 1))
+	return f
+}
+
+// FlatValue flattens the unit/turret situation for one candidate.
+func FlatValue(v ValueFeatures, u UnitTraits) map[string]float64 {
+	f := map[string]float64{
+		"metalIncome": v.Situation.MetalIncome, "unit.cost": float64(u.Cost), "unit.range": float64(u.Range),
+		"unit.speed": float64(u.Speed), "unit.health": float64(u.Health), "unit.dps": float64(u.DPS),
+		"unit.tech": float64(u.Tech), "unit.kind." + u.Kind: 1, "minute": float64(v.Minute),
+	}
+	if u.Air {
+		f["unit.air"] = 1
+	}
+	if u.AAOnly {
+		f["unit.aaOnly"] = 1
+	}
+	flatGroup("own", v.Situation.Own, f)
+	flatGroup("enemy", v.Situation.Enemy, f)
+	if p := v.Place; p != nil {
+		f["place.turretsNear"], f["place.ownStart"], f["place.enemyStart"], f["place.nearestEnemy"] = float64(p.TurretsNear), float64(p.OwnStart), float64(p.EnemyStart), float64(p.NearestEnemy)
+	}
+	return f
+}
+
+// Flat returns the flat features of a task request, one set per question key.
+func Flat(task string, features json.RawMessage) (map[string]map[string]float64, error) {
+	switch task {
+	case TaskFight:
+		var f FightFeatures
+		if err := json.Unmarshal(features, &f); err != nil {
+			return nil, err
+		}
+		flat := FlatFight(f)
+		return map[string]map[string]float64{"ahead": flat, "outcome": flat}, nil
+	case TaskUnit, TaskTurret:
+		var v ValueFeatures
+		if err := json.Unmarshal(features, &v); err != nil {
+			return nil, err
+		}
+		out := map[string]map[string]float64{}
+		for _, c := range v.Candidates {
+			out[c.Name] = FlatValue(v, c)
+		}
+		return out, nil
+	}
+	return nil, fmt.Errorf("unknown task %q", task)
 }

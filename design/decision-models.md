@@ -112,4 +112,30 @@ Text drift between training and serving silently ruins such models, so the text 
 
 ## Results
 
-(to be filled in)
+### Phase 1-2: data and labels
+
+- Collection: BARbarian vs BARbarian at 15x, about 2 minutes per game; a hard-vs-hard game on a big map
+  yields ~300-900 fights, ~150-250 unit lives and ~10-100 turret lives.
+- Widgets don't get the attacker in `UnitDamaged` (BAR's handler drops it), so damage dealt comes from the
+  engine's **experience**: each hit adds 0.1 x experienceMult (0.3 in BAR) x victim power / own power x
+  damage / victim health, and a kill adds the whole victim. Value dealt = experience / 0.03 x own cost,
+  minus the value of its kills (credited from `UnitDestroyed`'s attacker).
+- Half of all contacts end with nothing lost in 25 s (skirmishes); fights where less than 150 metal was
+  lost in total are left out.
+- Smoke run on an L4 studio: Kev-0.8B fine-tune at 0.2 s per record; the pipeline (train, temperature on
+  dev, test scores vs the untouched model) works end to end.
+
+### Baselines (38 games, test split by game)
+
+With value and counts by kind only (logger v1), fight outcomes were barely predictable (AUC ~0.65, the value
+rule ~0.62). Adding each group's total damage per second, hit points and value-weighted range, and the game
+minute (logger v2) changed that:
+
+| Task | Rule today | Logistic regression | Gradient boosting |
+|---|---|---|---|
+| fight (227 test fights) | acc 0.62, AUC 0.62 | acc 0.78, AUC 0.83, Brier 0.167 | acc 0.78, AUC 0.85, Brier 0.162 |
+| unit (500 test units, 26% paid) | - | AUC 0.56 | AUC 0.60 |
+| turret (121 test turrets, 14% paid) | - | AUC 0.73 | AUC 0.66 |
+
+Fights are learnable; whether a single unit pays for itself mostly depends on what happens to it later, so
+the unit task is weak from the situation alone.
