@@ -1812,7 +1812,8 @@ end
 -- energy drain from other sub-commanders can't starve metal expansion
 function Jobs.basicEconomy(sub, unitID, d, ux, uz)
 	local st = getState(unitID)
-	local eShort = energyShort()
+	-- energy also falls behind when income is under ~10 per metal: T1 building needs more than that
+	local eShort = energyShort() or (econ.eInc < econ.mInc * 10 and econ.eFrac < 0.9)
 	local mexFirst = not eShort or (econ.mFrac < 0.25 and st.lastEco == "energy")
 	local acted
 	if mexFirst then
@@ -3666,6 +3667,32 @@ local function drawRectOutline(x1, z1, x2, z2)
 	end)
 end
 
+-- the lanes kept free of structures, faintly, inside a zone
+function Lanes.draw(zone)
+	local x1, z1, x2, z2 = Zone.bounds(zone)
+	local S, step = Lanes.spacing, 48
+	glLineWidth(1)
+	glColor(1, 1, 1, 0.12)
+	for lx = math.ceil(x1 / S) * S, x2, S do
+		gl.BeginEnd(GL.LINE_STRIP, function()
+			for z = z1, z2, step do
+				if Zone.contains(zone, lx, z) then
+					glVertex(lx, groundY(lx, z), z)
+				end
+			end
+		end)
+	end
+	for lz = math.ceil(z1 / S) * S, z2, S do
+		gl.BeginEnd(GL.LINE_STRIP, function()
+			for x = x1, x2, step do
+				if Zone.contains(zone, x, lz) then
+					glVertex(x, groundY(x, lz), lz)
+				end
+			end
+		end)
+	end
+end
+
 local function drawZone(zone, color, alpha, width)
 	glColor(color[1], color[2], color[3], alpha)
 	glLineWidth(width)
@@ -3749,6 +3776,9 @@ function widget:DrawWorldPreUnit()
 	drawPlans()
 	if activeSub then
 		drawUnitMarkers(activeSub)
+		for _, zone in ipairs(activeSub.zones) do
+			Lanes.draw(zone)
+		end
 	end
 	drawRemovals()
 	if zoneDrag and zoneTool then

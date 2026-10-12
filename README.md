@@ -7,15 +7,24 @@ reads the situation, follows your orders in plain words and adjusts each sub-com
 
 ![Two AI-steered sub-commanders holding a base](docs/ai-strategist.jpg)
 
-- **Roles**: economy, defense, air defense, army. Each one builds, produces and fights inside its own zones.
+- **Roles**: economy, defense, air defense, army, intelligence. Each one builds, produces and fights inside
+  its own zones.
+- **Knows the enemy**: tracks what the enemy fields (raiders, heavies, artillery, bombers, ...) and what is
+  new; turret choice and the strategist answer it.
+- **Builds well**: a grid of lanes stays free of structures so units always get through, buildings pack into
+  the blocks between them, factory exits stay clear, and it never builds where your constructors are about
+  to.
 - **Grows by itself**: what its factories produce and the structures its constructors build join it.
   Factories are the exception: they only join when you assign them, so your own production stays yours.
 - **Spending postures**: *Conserve*, *Balanced* or *Use all* of the shared team resources.
 - **You stay in charge**: order any of its units yourself and it backs off until that unit is idle.
 - **Visible**: zones and build plans on the map, a live log per sub-commander.
-- **AI strategist** (optional): one [opencode](https://opencode.ai) agent session per sub-commander. It changes
-  posture, role, factory focus and zones through tools, and can message you
-  ("anti-air is losing to bombers, send fighters"). Any OpenAI-compatible model with tool calling works.
+- **AI strategist** (optional): one [opencode](https://opencode.ai) agent session per sub-commander, with
+  role playbooks as skills and a picture of the map. It changes posture, role, focus and zones through tools,
+  and can message you ("enemy switched to bombers, coming from the north-east"). Any OpenAI-compatible
+  model with tool calling works.
+- **Decision model** (optional): a fast "System One" model such as Cloudflare's Clef-flash on a GPU host
+  makes the frequent small choices (what a factory builds next) in tens of milliseconds.
 
 ## How it works
 
@@ -74,14 +83,21 @@ make install          # macOS Apple Silicon port; elsewhere: make install BAR_DI
 | Economy | metal extractors (+ upgrades), energy, storage when full, converters on surplus, help build, assist factory, reclaim | constructors, up to the posture cap | — |
 | Defense | repair, a radar, turrets on the zone edge facing the enemy | 1 constructor, then combat units | fight intruders, patrol zone |
 | Air Defense | repair, AA turrets next to the least-covered valuable buildings | 1 constructor, then mobile AA | engage air in zone |
-| Army | repair, help build, assist its factory | combat units | fight intruders, patrol zone |
+| Army | repair, help build, assist its factory | combat units | gather at the zone's front, fight intruders together, answer raids on other zones when not outnumbered |
+| Intelligence | radar net on high ground, cameras at the front, a jammer over the base, sonar on water | scouts, a mobile radar/jammer, then raiders | scouts sweep the map; raiders hunt known enemy radar and jammers |
+
+Economy also takes safe free metal spots just outside its zones, puts construction turrets next to busy
+factories when metal piles up, and its factory makes fighters once constructors are at the cap and metal
+overflows. Defense picks turrets against what the enemy fields and adds anti-air once enemy aircraft show up.
 
 **Spend**: *Conserve* spends only from excess, picks cheap options and lowers build priority;
 *Use all* picks the strongest affordable options and raises unit caps. Metal extractors and energy are
 always allowed when the team is short.
 
 **Focus**: select a unit of the type you want and click **Focus**; its factories then only build those
-types (nothing selected = automatic).
+types, and for turrets its constructors only build those defences (nothing selected = automatic).
+
+The selected sub-commander's zones show the lane grid faintly: structures stay off those lines.
 
 **Overrides**: order any assigned unit and the sub-commander leaves it alone until it is idle again
 (white ring on the map). **Pause** stops its decisions; **Release sel.** takes units back for good.
@@ -204,6 +220,37 @@ sending anything.
 
 Each sub-commander only accepts tool calls while its own review is running, and only while the AI is on.
 
+The strategist also loads **skills** from [`strategist/.agents/skills`](strategist/.agents/skills): a playbook
+per role (economy, defense, airdefense, army, intelligence), reading the enemy intel, and working alongside
+the player. Each report carries the enemy's composition (kinds seen in the last 5 minutes and what's new),
+known enemy radar/jammers and defences, and what the player is building in its zones.
+
+## 4. Decision model (optional)
+
+A decision model answers small multiple-choice questions ("which unit next, given what the enemy fields?")
+with calibrated probabilities in tens of milliseconds, without generating text. The widget asks it through
+the bridge and falls back to its rules when it is slow or absent. Today it picks the next combat unit for
+Army and Air Defense factories (unless a focus is set).
+
+Any server speaking TypeSafe's `/v1/systemone` contract works. On BAR decisions
+(`make decider-eval DECIDER_URL=...`, 16 cases: counters, attack or hold, builder priorities, turret choice)
+on an RTX 4090:
+
+| Model | Correct | Median latency | VRAM |
+|---|---|---|---|
+| [Cloudflare Clef-flash](https://huggingface.co/Cloudflare/clef-flash) (9B, Apache-2.0) | 12/16 | 66 ms | 19 GB |
+| [Kev-9B](https://github.com/jaredpalmer/kev) | 11/16 | 101 ms | 22 GB |
+| Kev-4B | 9/16 | 73 ms | 15 GB |
+
+Deploy on a Linux GPU host you can ssh to, then point the bridge at it:
+
+```sh
+make decider-deploy DECIDER_HOST=my-gpu-host DECIDER=clef-flash   # or kev-4b / kev-9b; serves on :8010 (Kev :8009)
+echo "DECIDER_URL=http://my-gpu-host:8010" >> .env && make up
+```
+
+The panel's log shows `factory: <unit> (decision model)` when it decides.
+
 ### Troubleshooting
 
 | Symptom | Fix |
@@ -220,7 +267,9 @@ Each sub-commander only accepts tool calls while its own review is running, and 
 | `widget/LuaUI/Widgets/gui_subcommanders.lua` | sub-commanders: panel, zones, roles, executor, `WG.SubCommanders` API |
 | `widget/LuaUI/Widgets/gui_subcommanders_ai.lua` | LuaSocket link to the bridge (JSON lines) |
 | `cmd/scbridge`, `internal/` | bridge: game link, MCP tool server, strategist scheduler, opencode client |
-| `strategist/` | opencode project: `subcommander` agent and prompt |
+| `strategist/` | opencode project: `subcommander` agent, prompt, skills (`.agents/skills`) |
+| `internal/mapview`, `internal/decider` | map pictures for the strategist; decision model client |
+| `deploy/decider/`, `cmd/decidereval` | decision model server scripts (Clef / Kev) and its BAR benchmark |
 | `Dockerfile`, `compose.yaml`, `docker/opencode.json` | container image (official opencode image + scbridge) |
 | `cmd/fakegame` | scripted stand-in for the game, to work on the bridge without BAR |
 | `testenv/` | scripted test games |
@@ -228,14 +277,20 @@ Each sub-commander only accepts tool calls while its own review is running, and 
 - `make lint`, `make build`.
 - `make test-game SCENARIO=multi` (macOS) launches an isolated windowed skirmish: separate write dir
   `testenv/`, your BAR content read-only. `testenv/LuaUI/Widgets/zz_sctest.lua` drives the scenario
-  (`eco`, `multi`, `ui`, `ai` with the bridge running, `vsai` with `SCRIPT=script_vsai.txt` against
-  BARbarian AI) and writes `testenv/sctest_out.txt` and screenshots; the full engine log is `testenv/run.log`.
+  (`eco`, `multi`, `ui`, `lanes`, `factory`, `ai`, `vsai`) and writes `testenv/sctest_out.txt` and
+  screenshots; the full engine log is `testenv/run.log`. Test games talk to a separate bridge on port 17878:
+  `make test-bridge` (add `DECIDER_URL=...` to test a decision model).
+- 1v1 against BARbarian, no cheats, the harness playing a light-touch human who delegates (first lab,
+  constructors and factories to sub-commanders, standing orders, another lab when metal piles up):
+  `make test-game SCENARIO=duel SCRIPT=script_vsai.txt AI_PROFILE=medium TIMEOUT=1100` (`duelrules` = rules
+  only, no strategist; profiles easy, medium, hard, hard_aggressive). It ends with
+  `RESULT WIN|LOSS|TIMEOUT` and team stats.
 - `bin/fakegame` exercises the bridge and the model without starting BAR.
 - `make ref` checks out BAR's Lua source at the installed version into `ref/` for API lookups.
 
 Other widgets can drive sub-commanders through `WG.SubCommanders`: `list()`, `get(id)`, `economy()`,
 `enemyIntel()`, `buildOptions(id)`, `structures(id, kind, blockingOnly)`,
-`removeStructures(id, unitIDs)`, `create(role, name)`, `remove(id)`, `assign(id, unitIDs)`,
+`removeStructures(id, unitIDs)`, `mapView(id, view)`, `create(role, name)`, `remove(id)`, `assign(id, unitIDs)`,
 `release(unitIDs)`, `setRole`, `setPosture`, `setPaused`, `addZone(id, zone)`, `clearZones`,
 `setFocus(id, unitDefNames)`, `setAI(id, on)`, `setDirective(id, text)`, `note(id, text)`,
 `noteAI(id, text)`, `setAIStatus(id, text)`, `ownerOf(unitID)`. Zones are
@@ -245,8 +300,12 @@ Other widgets can drive sub-commanders through `WG.SubCommanders`: `list()`, `ge
 
 ## Limits
 
-- Building placement is a heuristic search, not a planned base layout. It leaves walking lanes between
-  structures, a clear lane in front of every factory exit (own and allied) and room around factories.
+- Building placement is a heuristic search on a lane grid, not a planned base layout: lanes every 320 elmos,
+  a clear lane in front of every factory exit (own and allied) and room around factories. It doesn't yet
+  reason about cliffs and ramps beyond the zones the strategist picks.
+- Armies hold, gather and defend; attacking is done by the strategist moving the army's zone forward.
+- In 1v1 tests against BARbarian (medium) a delegating player holds for 25 minutes but still trades units
+  badly; hard is harder.
 - Geothermal, nukes, long-range artillery and factories are not built automatically. Give an Army
   sub-commander a factory to produce with; until then it asks for one.
 - Metal extractor upgrades by T2 constructors are implemented but untested.
