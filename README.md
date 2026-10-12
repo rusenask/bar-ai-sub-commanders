@@ -1,0 +1,227 @@
+# BAR AI sub-commanders
+
+Delegate parts of your army and base in [Beyond All Reason](https://www.beyondallreason.info/) to
+autonomous **sub-commanders**: give one a constructor, a factory or a squad, draw the zone it owns, pick a
+role and a spending posture, and it works on its own. Optionally put an **LLM strategist** on top that
+reads the situation, follows your orders in plain words and adjusts each sub-commander as the game goes.
+
+![Two AI-steered sub-commanders holding a base](docs/ai-strategist.jpg)
+
+- **Roles**: economy, defense, air defense, army. Each one builds, produces and fights inside its own zones.
+- **Grows by itself**: anything its constructors build or its factories produce joins it.
+- **Spending postures**: *Conserve*, *Balanced* or *Use all* of the shared team resources.
+- **You stay in charge**: order any of its units yourself and it backs off until that unit is idle.
+- **Visible**: zones and build plans on the map, a live log per sub-commander.
+- **AI strategist** (optional): one [opencode](https://opencode.ai) agent session per sub-commander. It changes
+  posture, role, factory focus and zones through tools, and can message you
+  ("anti-air is losing to bombers, send fighters"). Any OpenAI-compatible model with tool calling works.
+
+## How it works
+
+```
+ BAR (Recoil engine)                         scbridge (Docker or local)
+┌──────────────────────────────┐           ┌──────────────────────────────────────┐
+│ gui_subcommanders.lua        │           │ game link  (tcp 127.0.0.1:7878)      │
+│  rules engine: builds,       │           │ MCP tools  (bar_set_posture, ...)    │
+│  produces, fights in zones   │           │ strategist: when to review whom      │
+│  panel, zones, log           │           │      │ http                          │
+│ gui_subcommanders_ai.lua ────┼──────────▶│ opencode serve (agent "subcommander")│──▶ LLM API
+│  state every 3 s, actions in │           │  sessions, prompt caching, tools     │
+└──────────────────────────────┘           └──────────────────────────────────────┘
+```
+
+The rules engine in the widget does all unit-level work, every half second, with no AI involved. The
+strategist only changes high-level settings, every 30 s of game time per sub-commander (sooner when
+you give new orders, enemies enter its zone or it loses units), so model latency never stalls the game.
+Prompts are built so each session's prefix stays stable, and turns mostly hit the prompt cache.
+
+## Requirements
+
+- Beyond All Reason. Developed and tested on macOS with the
+  [RecoilEngine Apple Silicon port](https://github.com/benbreen/RecoilEngine-AppleSilicon) (engine 2026.07.04);
+  the widgets are plain BAR user widgets, so other platforms should work too.
+- User widgets that give unit orders must be allowed in the game. That is the default; a lobby host can
+  switch "unit control widgets" off, in which case the panel says so.
+- For the AI strategist: Docker, or Go 1.26 + opencode. Plus an API key for an OpenAI-compatible endpoint
+  whose model supports tool calling (the default config uses [code.lightning.ai](https://code.lightning.ai)).
+
+## 1. Install the widgets
+
+```sh
+git clone https://github.com/rusenask/bar-ai-sub-commanders
+cd bar-ai-sub-commanders
+make install          # macOS Apple Silicon port; elsewhere: make install BAR_DIR="/path/to/BAR/data"
+```
+
+`make install` copies the two files from `widget/LuaUI/Widgets/` into `<BAR data folder>/LuaUI/Widgets/`
+(the data folder is the one with `infolog.txt` in it). Start a game; both widgets are on by default
+(F11 lists them). Delete the two files to uninstall.
+
+## 2. Use sub-commanders
+
+<img src="docs/panel.png" align="right" width="320" alt="Sub-Commanders panel">
+
+1. Click **+ New** in the *Sub-Commanders* panel (top right). Right-click makes a Defense one.
+2. Select units (constructors, a factory, combat units) and click **Assign sel.**
+   No zone yet? It claims a circle around those units.
+3. **+ Zone** and drag on the map to draw its area (click = circle, shift = draw several, right-click/Esc
+   to stop). **Clear zones** resets.
+4. Pick the **Role** (click to cycle, right-click backwards) and **Spend** posture.
+
+| Role | Constructors | Factories | Combat units |
+|---|---|---|---|
+| Economy | metal extractors (+ upgrades), energy, storage when full, converters on surplus, help build, assist factory, reclaim | constructors, up to the posture cap | — |
+| Defense | repair, a radar, turrets on the zone edge facing the enemy | 1 constructor, then combat units | fight intruders, patrol zone |
+| Air Defense | repair, AA turrets next to the least-covered valuable buildings | 1 constructor, then mobile AA | engage air in zone |
+| Army | repair, a factory if it has none, assist | combat units | fight intruders, patrol zone |
+
+**Spend**: *Conserve* spends only from excess, picks cheap options and lowers build priority;
+*Use all* picks the strongest affordable options and raises unit caps. Metal extractors and energy are
+always allowed when the team is short.
+
+**Focus**: select a unit of the type you want and click **Focus**; its factories then only build those
+types (nothing selected = automatic).
+
+**Overrides**: order any assigned unit and the sub-commander leaves it alone until it is idle again
+(white ring on the map). **Pause** stops its decisions; **Release sel.** takes units back for good.
+
+Everything also works as text commands: `/luaui sc help`, `sc new defense`, `sc assign [id]`,
+`sc release`, `sc zone [id]`, `sc role army [id]`, `sc posture spend [id]`, `sc focus`,
+`sc tell [id] <orders>`, `sc ai on|off [id]`, `sc pause`, `sc resume`, `sc list`, `sc select [id]`,
+`sc delete [id]`. Sub-commanders survive `/luaui reload` within a game.
+
+<br clear="right">
+
+## 3. Set up the AI strategist locally
+
+The game widget connects to `127.0.0.1:7878`. Run the bridge there, with Docker (recommended) or directly.
+
+### Option A: Docker
+
+1. **API key**: put the key for your LLM endpoint in a file and point `.env` at it:
+
+   ```sh
+   mkdir -p secrets && printf '%s' 'YOUR_API_KEY' > secrets/llm_api_key
+   cp .env.example .env        # LLM_API_KEY_FILE=./secrets/llm_api_key, MODEL=lightning/deepseek-v4.1-flash
+   ```
+
+   The key is mounted read-only into the container as a Docker secret; it is never baked into the image.
+
+2. **Provider** (skip if you use code.lightning.ai): the container has its own opencode config,
+   [`docker/opencode.json`](docker/opencode.json). Replace the `lightning` provider with yours, e.g.
+
+   ```json
+   "enabled_providers": ["myllm"],
+   "provider": {
+     "myllm": {
+       "npm": "@ai-sdk/openai-compatible",
+       "options": { "baseURL": "https://api.example.com/v1", "apiKey": "{file:/run/secrets/llm_api_key}" },
+       "models": { "my-model": { "tool_call": true, "limit": { "context": 128000, "output": 8192 } } }
+     }
+   }
+   ```
+
+   and set `MODEL=myllm/my-model` in `.env`. Fast models work best (reviews are frequent and short).
+
+3. **Start it**:
+
+   ```sh
+   make up      # build and start; it restarts with Docker until you stop it
+   make logs    # one line per review: why, tools used, tokens, cache hits
+   make down    # stop
+   ```
+
+4. **In game**: the panel header shows **AI online**. Select a sub-commander, click **AI: off** to switch
+   it on, and **Orders…** to give it standing orders in plain words, e.g. *"hold the north ridge,
+   prioritise anti-air"* (Enter saves, Esc cancels). Purple lines in its log are the strategist's decisions.
+
+5. **Watch it think** (optional): `opencode attach http://127.0.0.1:4517` opens the live sessions, one per
+   sub-commander, with every tool call.
+
+Ports are published on 127.0.0.1 only: 7878 for the game, 4517 for `opencode attach`. Sessions persist in
+the `opencode-data` volume.
+
+### Option B: without Docker
+
+Needs Go 1.26 and [opencode](https://opencode.ai/docs/) with your provider configured in your own opencode
+config (`~/.config/opencode/opencode.json`), e.g. the same provider block as above with your real key
+reference.
+
+```sh
+make run MODEL=myllm/my-model      # builds bin/scbridge and starts `opencode serve` in strategist/
+```
+
+Stop the container first if it runs (both use port 7878).
+
+### Tuning
+
+- The strategist's instructions are in [`strategist/prompts/subcommander.md`](strategist/prompts/subcommander.md)
+  and the agent in [`strategist/opencode.json`](strategist/opencode.json) (it may only use the `bar_*` tools).
+  After edits: `make restart` (Docker) or restart `make run`.
+- `scbridge` flags: `-model`, `-variant` (reasoning effort), `-interval` (routine review, default 30s game time),
+  `-urgent` (minimum gap when something happens, default 8s), `-turn-timeout`, `-opencode-url` (use an already
+  running opencode server), `-game-addr`, `-mcp-addr` (must match `strategist/opencode.json`).
+- The game side address can be changed with `SubCommandersBridge = host:port` in `springsettings.cfg`.
+
+### Strategist tools
+
+| Tool | Effect |
+|---|---|
+| `get_overview` | team economy, every sub-commander, enemy intel |
+| `get_build_options` | what its constructors and factories can build |
+| `set_posture`, `set_role`, `set_focus` | the same switches as the panel |
+| `add_zone`, `clear_zones` | move or extend where it works |
+| `set_paused` | stop its automatic decisions |
+| `tell_player` | console message to you (at most one per 90 s) |
+
+Each sub-commander only accepts tool calls while its own review is running, and only while the AI is on.
+
+### Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| Header says **AI offline** | the bridge isn't running: `make up` (or `make run`); check `make logs` |
+| A sub-commander shows `strategist error: ...` | usually provider config or key; `make logs` has the details |
+| "Unit-control widgets are disabled in this game" | the lobby disallows them; sub-commanders can't give orders there |
+| "LuaSocket is disabled" in the console | set `LuaSocketEnabled = 1` in `springsettings.cfg` |
+
+## Development
+
+| Path | What |
+|---|---|
+| `widget/LuaUI/Widgets/gui_subcommanders.lua` | sub-commanders: panel, zones, roles, executor, `WG.SubCommanders` API |
+| `widget/LuaUI/Widgets/gui_subcommanders_ai.lua` | LuaSocket link to the bridge (JSON lines) |
+| `cmd/scbridge`, `internal/` | bridge: game link, MCP tool server, strategist scheduler, opencode client |
+| `strategist/` | opencode project: `subcommander` agent and prompt |
+| `Dockerfile`, `compose.yaml`, `docker/opencode.json` | container image (official opencode image + scbridge) |
+| `cmd/fakegame` | scripted stand-in for the game, to work on the bridge without BAR |
+| `testenv/` | scripted test games |
+
+- `make lint`, `make build`.
+- `make test-game SCENARIO=multi` (macOS) launches an isolated windowed skirmish: separate write dir
+  `testenv/`, your BAR content read-only. `testenv/LuaUI/Widgets/zz_sctest.lua` drives the scenario
+  (`eco`, `multi`, `ui`, `ai` with the bridge running, `vsai` with `SCRIPT=script_vsai.txt` against
+  BARbarian AI) and writes `testenv/sctest_out.txt` and screenshots; the full engine log is `testenv/run.log`.
+- `bin/fakegame` exercises the bridge and the model without starting BAR.
+- `make ref` checks out BAR's Lua source at the installed version into `ref/` for API lookups.
+
+Other widgets can drive sub-commanders through `WG.SubCommanders`: `list()`, `get(id)`, `economy()`,
+`enemyIntel()`, `buildOptions(id)`, `create(role, name)`, `remove(id)`, `assign(id, unitIDs)`,
+`release(unitIDs)`, `setRole`, `setPosture`, `setPaused`, `addZone(id, zone)`, `clearZones`,
+`setFocus(id, unitDefNames)`, `setAI(id, on)`, `setDirective(id, text)`, `note(id, text)`,
+`noteAI(id, text)`, `setAIStatus(id, text)`, `ownerOf(unitID)`. Zones are
+`{ kind = "rect", x1, z1, x2, z2 }` or `{ kind = "circle", x, z, r }` in world coordinates.
+
+![Four sub-commanders against BARbarian AI](docs/vs-barbarian.jpg)
+
+## Limits
+
+- Building placement is a heuristic search with walking lanes, not a planned base layout.
+- Geothermal, nukes and long-range artillery are not built automatically; the Army role builds the
+  cheapest factory its constructor offers.
+- Metal extractor upgrades by T2 constructors are implemented but untested.
+- The strategist changes settings; it cannot order a specific building (it asks you instead).
+
+## License
+
+GPL-2.0, like the BAR widgets it builds on. See [LICENSE](LICENSE).

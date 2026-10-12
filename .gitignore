@@ -1,0 +1,17 @@
+# test game write-dir output
+testenv/*
+!testenv/run.sh
+!testenv/script_*.txt
+!testenv/springsettings.template.cfg
+!testenv/LuaUI/
+testenv/LuaUI/*
+!testenv/LuaUI/Widgets/
+testenv/LuaUI/Widgets/*
+!testenv/LuaUI/Widgets/zz_sctest.lua
+# BAR source checkout used as API reference (make ref)
+ref/
+/bin/
+# local secrets / settings
+.env
+secrets/
+testenv/springsettings.cfg

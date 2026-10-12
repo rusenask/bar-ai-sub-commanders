@@ -1,0 +1,106 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "autoupdate": false,
+  "share": "disabled",
+  "enabled_providers": [
+    "lightning"
+  ],
+  "model": "lightning/deepseek-v4.1-flash",
+  "small_model": "lightning/deepseek-v4.1-flash",
+  "provider": {
+    "lightning": {
+      "name": "code.lightning.ai",
+      "npm": "@ai-sdk/openai-compatible",
+      "options": {
+        "baseURL": "https://code.lightning.ai/v1",
+        "apiKey": "{file:/run/secrets/llm_api_key}",
+        "timeout": 600000
+      },
+      "models": {
+        "deepseek-v4.1-flash": {
+          "id": "lightning-ai/deepseek-v4.1-flash",
+          "name": "DeepSeek-V4.1-Flash (deployment)",
+          "variants": {
+            "low": {
+              "reasoningEffort": "low"
+            },
+            "high": {
+              "reasoningEffort": "high"
+            },
+            "max": {
+              "reasoningEffort": "max"
+            }
+          },
+          "reasoning": true,
+          "tool_call": true,
+          "attachment": true,
+          "interleaved": "reasoning_content",
+          "modalities": {
+            "input": [
+              "text",
+              "image"
+            ],
+            "output": [
+              "text"
+            ]
+          },
+          "limit": {
+            "context": 253952,
+            "output": 32768
+          }
+        },
+        "glm-5.3-flash": {
+          "id": "lightning-ai/glm-5.3-flash",
+          "name": "GLM-5.3-Flash (deployment)",
+          "reasoning": true,
+          "tool_call": true,
+          "attachment": true,
+          "interleaved": "reasoning_content",
+          "modalities": {
+            "input": [
+              "text",
+              "image"
+            ],
+            "output": [
+              "text"
+            ]
+          },
+          "limit": {
+            "context": 253952,
+            "output": 32768
+          }
+        },
+        "glm-5.3": {
+          "id": "lightning-ai/glm-5.3",
+          "name": "GLM-5.3 W4AFP8 (TP8, 1M context)",
+          "variants": {
+            "low": {
+              "reasoningEffort": "low"
+            },
+            "high": {
+              "reasoningEffort": "high"
+            },
+            "max": {
+              "reasoningEffort": "max"
+            }
+          },
+          "reasoning": true,
+          "tool_call": true,
+          "interleaved": "reasoning_content",
+          "modalities": {
+            "input": [
+              "text"
+            ],
+            "output": [
+              "text"
+            ]
+          },
+          "limit": {
+            "context": 1040000,
+            "output": 32768
+          }
+        }
+      }
+    }
+  }
+}

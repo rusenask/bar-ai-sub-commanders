@@ -1,0 +1,29 @@
+# LLM strategist bridge for the BAR Sub-Commanders widget.
+#   make up / make down / make logs
+services:
+  scbridge:
+    build: .
+    image: bar-scbridge
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:7878:7878" # game widget (Sub-Commanders AI link)
+      - "127.0.0.1:4517:4517" # opencode server: `opencode attach http://127.0.0.1:4517`
+    environment:
+      SCBRIDGE_MODEL: ${MODEL:-lightning/deepseek-v4.1-flash}
+    secrets:
+      - llm_api_key
+    volumes:
+      # edit the agent/prompt without rebuilding: make restart
+      - ./strategist:/app/strategist:ro
+      # opencode sessions and provider package cache survive restarts
+      - opencode-data:/root/.local/share/opencode
+      - opencode-cache:/root/.cache/opencode
+
+secrets:
+  # file holding the API key for the provider in docker/opencode.json (set the path in .env)
+  llm_api_key:
+    file: ${LLM_API_KEY_FILE:-./secrets/llm_api_key}
+
+volumes:
+  opencode-data:
+  opencode-cache:

@@ -1,0 +1,24 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "bar": {
+      "type": "remote",
+      "url": "http://127.0.0.1:7879/mcp",
+      "enabled": true,
+      "oauth": false,
+      "timeout": 15000
+    }
+  },
+  "agent": {
+    "subcommander": {
+      "description": "Beyond All Reason sub-commander strategist (driven by scbridge)",
+      "mode": "primary",
+      "prompt": "{file:./prompts/subcommander.md}",
+      "steps": 6,
+      "permission": {
+        "*": "deny",
+        "bar_*": "allow"
+      }
+    }
+  }
+}
