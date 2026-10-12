@@ -10,8 +10,9 @@ build:
 
 # copy the widgets into your BAR install (picked up next game, or /luaui reload)
 install:
-	mkdir -p "$(BAR_DIR)/LuaUI/Widgets"
+	mkdir -p "$(BAR_DIR)/LuaUI/Widgets" "$(BAR_DIR)/LuaUI/Include"
 	cp widget/LuaUI/Widgets/gui_subcommanders*.lua "$(BAR_DIR)/LuaUI/Widgets/"
+	cp widget/LuaUI/Include/sc_*.lua "$(BAR_DIR)/LuaUI/Include/"
 
 # run the bridge in this terminal instead of Docker (uses your own opencode config)
 run: build

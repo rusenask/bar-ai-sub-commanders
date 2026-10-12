@@ -20,6 +20,8 @@ if [ -n "$AI_PROFILE" ] || [ -n "$MAP" ]; then
 fi
 # WIDGET_SRC=/path/to/Widgets runs another version of the widgets (A/B tests)
 cp "${WIDGET_SRC:-$T/../widget/LuaUI/Widgets}"/gui_subcommanders*.lua "$T/LuaUI/Widgets/"
+mkdir -p "$T/LuaUI/Include"
+cp "${WIDGET_SRC:-$T/../widget/LuaUI/Widgets}"/../Include/sc_*.lua "$T/LuaUI/Include/" 2>/dev/null || cp "$T"/../widget/LuaUI/Include/sc_*.lua "$T/LuaUI/Include/"
 [ -n "$3" ] && echo "$3" > "$T/sctest_scenario.txt"
 # SPEED=10 runs the game that fast (as far as the machine keeps up); LOCKSTEP=1 pauses it while the
 # AI strategist is thinking, so it sees the game as often as at normal speed

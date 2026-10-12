@@ -361,6 +361,12 @@ local function duel(n)
 end
 
 function widget:GameOver(winners)
+	if scenario == "spectate" then
+		out("RESULT GAMEOVER winners=" .. table.concat(winners or {}, ","))
+		out("DONE")
+		Spring.SendCommands("quitforce")
+		return
+	end
 	local won = false
 	for _, a in ipairs(winners or {}) do
 		if a == Spring.GetMyAllyTeamID() then
@@ -371,6 +377,23 @@ function widget:GameOver(winners)
 end
 
 local function gameFrame(n)
+	if scenario == "spectate" then
+		-- BARbarian vs BARbarian for the data logger: full view, fast, 25 minutes at most
+		if n == 12 then
+			Spring.SendCommands("specfullview 1")
+			if not speedOverride then
+				Spring.SendCommands("setmaxspeed 20", "setspeed 15")
+			end
+			out("scenario spectate")
+		elseif n % (30 * 60) == 0 then
+			out(string.format("t=%dmin", n / 1800))
+		elseif n >= 30 * 60 * 25 then
+			out("RESULT TIMEOUT")
+			out("DONE")
+			Spring.SendCommands("quitforce")
+		end
+		return
+	end
 	SC = WG.SubCommanders or SC
 	if not SC then
 		if n == 30 then
