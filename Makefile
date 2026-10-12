@@ -2,7 +2,7 @@ BAR_DIR ?= $(HOME)/Library/Application Support/Beyond-All-Reason-mac
 MODEL ?= lightning/deepseek-v4.1-flash
 BAR_REF ?= 8247b61
 
-.PHONY: build install run up down restart logs test-game test-bridge ref lint
+.PHONY: build install run up down restart logs test-game test-bridge decider-deploy decider-eval ref lint
 
 build:
 	go build -o bin/scbridge ./cmd/scbridge
@@ -57,3 +57,16 @@ lint:
 ref:
 	git clone --filter=blob:none --no-checkout https://github.com/beyond-all-reason/Beyond-All-Reason.git ref/bar
 	cd ref/bar && git sparse-checkout set --no-cone '/luaui/' '/common/' '/modules/' '/gamedata/' '/units/' '/luarules/configs/BARb/' '/init.lua' '/luarules/gadgets/*.lua' && git checkout $(BAR_REF)
+
+# optional decision model on a GPU host: make decider-deploy DECIDER_HOST=100.108.100.25 DECIDER=clef-flash
+DECIDER_HOST ?= 100.108.100.25
+DECIDER ?= clef-flash
+decider-deploy:
+	ssh $(DECIDER_HOST) mkdir -p bar-decider/deploy
+	scp -q deploy/decider/decider.sh deploy/decider/serve_clef.py $(DECIDER_HOST):bar-decider/deploy/
+	ssh $(DECIDER_HOST) sh bar-decider/deploy/decider.sh setup
+	ssh $(DECIDER_HOST) sh bar-decider/deploy/decider.sh start $(DECIDER)
+
+# score a running decision model on BAR decisions: make decider-eval DECIDER_URL=http://100.108.100.25:8010
+decider-eval:
+	go run ./cmd/decidereval -url $(DECIDER_URL)

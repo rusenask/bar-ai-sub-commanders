@@ -180,11 +180,14 @@ for defID, ud in pairs(UnitDefs) do
 	d.intelStructure = not mobile and (d.radarRange >= 1000 or d.jammer > 0 or d.sonar > 0 or d.seismic > 0 or d.camera)
 	-- what a weapon loadout says about a unit
 	local bomb, arty = false, false
+	d.dps = 0
 	for i = 1, #weapons do
 		local wd = WeaponDefs[weapons[i].weaponDef]
 		if wd then
 			bomb = bomb or wd.type == "AircraftBomb"
 			arty = arty or (wd.highTrajectory == 1 and (wd.range or 0) >= 600)
+			local dmg = wd.damages and wd.damages[0] or 0
+			d.dps = d.dps + dmg * (wd.salvoSize or 1) * (wd.projectiles or 1) / max(wd.reload or 1, 0.1)
 		end
 	end
 	local move = ud.moveDef and ud.moveDef.name or ""
@@ -1361,14 +1364,27 @@ local function pickDefense(sub, d, aa)
 	if #options == 0 then
 		return nil
 	end
+	-- weigh by what the enemy fields: range against skirmishers/artillery, cheap fast-firing
+	-- turrets against raiders, damage against heavies; otherwise the strongest affordable
+	local ranged, raiders, heavy = Enemy.share("ranged"), Enemy.share("raiders"), Enemy.share("heavy")
+	local function value(od)
+		local v = od.cost
+		v = v * (max(od.range, 100) / 450) ^ (2 * ranged)
+		v = v * (150 / max(od.cost, 30)) ^ raiders
+		v = v * (max(od.dps, 1) / max(od.cost, 1) * 4) ^ heavy
+		return v
+	end
 	tsort(options, function(a, b)
-		return defs[a].cost > defs[b].cost
+		return value(defs[a]) > value(defs[b])
 	end)
 	if sub.posture == "conserve" then
-		return options[#options]
+		tsort(options, function(a, b)
+			return defs[a].cost < defs[b].cost
+		end)
+		return options[1]
 	end
-	-- mostly the best we can afford, sometimes the next one down for variety
-	if #options > 1 and random() < 0.3 then
+	-- mostly the best fit, sometimes the next one for variety
+	if #options > 1 and random() < 0.25 then
 		return options[2]
 	end
 	return options[1]
@@ -1812,7 +1828,8 @@ function Jobs.basicEconomy(sub, unitID, d, ux, uz)
 end
 
 local function energyWanted()
-	return econ.eFrac < 0.8 and econ.eInc < econ.mInc * 12
+	-- metal piling up while energy runs low: energy is what holds spending back
+	return (econ.eFrac < 0.8 and econ.eInc < econ.mInc * 15) or (econ.mFrac > 0.8 and econ.eFrac < 0.6)
 end
 
 -- nothing left to do while resources overflow: tell the player once in a while
@@ -1843,6 +1860,8 @@ local BUILDER_PLANS = {
 		return Jobs.removeMarked(sub, u, d, x, z)
 			or Jobs.repair(sub, u, d, x, z)
 			or Jobs.radar(sub, u, d, x, z)
+			-- enemy aircraft are a real part of what they field: anti-air on our line too
+			or (Enemy.share("air") > 0.2 and Jobs.airDefense(sub, u, d, x, z))
 			or Jobs.defense(sub, u, d, x, z)
 			or Jobs.helpBuild(sub, u, d, x, z)
 			or Jobs.assistFactory(sub, u, d, x, z)
@@ -1902,7 +1921,8 @@ local function pickProduction(sub, facID, fd)
 	local wantBuilder
 	if sub.role == "economy" then
 		wantBuilder = counts.builders < p.builders
-		if not wantBuilder then
+		-- enough constructors: only make fighters (to guard the economy) when metal piles up
+		if not wantBuilder and econ.mFrac < 0.75 then
 			return nil, "enough constructors"
 		end
 	elseif sub.role ~= "army" and counts.builders < 1 then

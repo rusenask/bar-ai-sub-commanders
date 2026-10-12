@@ -233,7 +233,7 @@ local function duel(n)
 			SC.setAI(ids.def, ai)
 			SC.setDirective(ids.def, "hold the side of the base facing the enemy")
 			-- second lab toward the front for the army
-			playerBuild(cons[2], "leglab", cx + dx * 700, cz + dz * 700, dx, dz)
+			playerBuild(cons[2], "leglab", cx + dx * 380 - dz * 350, cz + dz * 380 + dx * 350, dx, dz)
 			duelState.lab2Builder = cons[2]
 			out("player: Defense created, second lab ordered")
 		end
@@ -278,6 +278,33 @@ local function duel(n)
 			SC.setAI(ids.intel, ai)
 			SC.setDirective(ids.intel, "watch the approaches to our base and take out enemy radar")
 			out("player: Intelligence created")
+		end
+	end
+	-- like a real player answering "need a factory": another lab for the Army when metal keeps piling up
+	if duelState.stage >= 3 and n % 30 == 0 then
+		local m, mS = Spring.GetTeamResources(myTeam, "metal")
+		duelState.overflow = (m > mS * 0.8) and (duelState.overflow or 0) + 1 or 0
+		local labs = #(byName.leglab or {})
+		if duelState.overflow >= 60 and labs < 5 and not duelState.labOrdered then
+			local cons = ownedBy(ids.eco, "legck")
+			if #cons >= 2 then
+				local _, dx, dz = towardEnemy(0.1, 0)
+				local a = labs * 1.3
+				playerBuild(cons[1], "leglab", cx + dx * 250 + math.cos(a) * 500, cz + dz * 250 + math.sin(a) * 500, dx, dz)
+				duelState.labOrdered, duelState.labCount, duelState.overflow = n, labs, 0
+				out("player: metal piling up, another lab ordered")
+			end
+		end
+	end
+	if duelState.labOrdered then
+		local labs = byName.leglab or {}
+		local newest = labs[#labs]
+		if #labs > duelState.labCount and newest and not Spring.GetUnitIsBeingBuilt(newest) then
+			SC.assign(ids.army, { newest })
+			duelState.labOrdered = nil
+			out("player: new lab to Army")
+		elseif n - duelState.labOrdered > 30 * 120 then
+			duelState.labOrdered = nil
 		end
 	end
 	if n % (30 * 60) == 0 then

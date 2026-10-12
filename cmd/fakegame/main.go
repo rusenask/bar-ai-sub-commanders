@@ -96,6 +96,22 @@ func main() {
 				fmt.Println("bridge closed the connection")
 				os.Exit(1)
 			}
+			switch m["type"] {
+			case "config":
+				fmt.Printf("CONFIG %v\n", m["args"])
+				if a, ok := m["args"].(map[string]any); ok && a["decider"] == true {
+					// what the widget asks the decision model when a factory picks its next unit
+					send(map[string]any{"type": "decide", "id": -1, "sub": 1, "args": map[string]any{
+						"state": "Beyond All Reason RTS. Our Army sub-commander's factory is choosing its next unit. Enemy units seen in the last 5 minutes: 6 assault, 4 bomber. First seen in the last 3 minutes: 4 bomber. Our units: 8 assault.",
+						"questions": map[string]any{"unit": map[string]any{"type": "choice", "instructions": "Which unit should the factory build next?",
+							"criteria": map[string]any{"legaabot": "mobile anti-air: shoots aircraft only, good against bombers", "legkark": "heavy: armored, good against assault units", "leggob": "raider: fast and cheap"}}},
+					}})
+				}
+				continue
+			case "decision":
+				fmt.Printf("DECISION ok=%v data=%v error=%v\n", m["ok"], m["data"], m["error"])
+				continue
+			}
 			args, _ := json.Marshal(m["args"])
 			fmt.Printf("ACTION sub=%v op=%v args=%s\n", m["sub"], m["op"], args)
 			result := map[string]any{"type": "result", "id": m["id"], "ok": true}
