@@ -1,6 +1,7 @@
 # test game write-dir output
 testenv/*
 !testenv/run.sh
+!testenv/batch.sh
 !testenv/script_*.txt
 !testenv/springsettings.template.cfg
 !testenv/LuaUI/

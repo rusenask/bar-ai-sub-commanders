@@ -2,7 +2,7 @@ BAR_DIR ?= $(HOME)/Library/Application Support/Beyond-All-Reason-mac
 MODEL ?= lightning/deepseek-v4.1-flash
 BAR_REF ?= 8247b61
 
-.PHONY: build install run up down restart logs test-game test-bridge decider-deploy decider-eval ref lint
+.PHONY: build install run up down restart logs test-game test-batch test-bridge decider-deploy decider-eval ref lint
 
 build:
 	go build -o bin/scbridge ./cmd/scbridge
@@ -39,6 +39,11 @@ TIMEOUT ?= 420
 test-game:
 	AI_PROFILE=$(AI_PROFILE) MAP="$(MAP)" SPEED=$(SPEED) LOCKSTEP=$(LOCKSTEP) testenv/run.sh "$(CURDIR)/testenv/$(SCRIPT)" $(TIMEOUT) $(SCENARIO)
 	@cat testenv/sctest_out.txt
+
+# several fast games in a row with a summary: make test-batch GAMES=5 SCENARIO=duelrules AI_PROFILE=medium
+GAMES ?= 3
+test-batch:
+	AI_PROFILE=$(AI_PROFILE) MAP="$(MAP)" SPEED=$(or $(SPEED),15) LOCKSTEP=$(LOCKSTEP) testenv/batch.sh $(GAMES) $(SCENARIO) $(SCRIPT)
 
 # bridge for test games (port 17878, opencode on 14517), separate from the one real games use
 test-bridge:

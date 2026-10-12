@@ -334,7 +334,10 @@ local function duel(n)
 	if n % (30 * 60) == 0 then
 		out(string.format("value: army us=%.0f  units us=%d", armyValue(myTeam), #Spring.GetTeamUnits(myTeam)))
 	end
-	if #Spring.GetTeamUnits(myTeam) == 0 then
+	-- commanders can spawn a few frames in: only a team that had units can have lost them
+	local count = #Spring.GetTeamUnits(myTeam)
+	duelState.hadUnits = duelState.hadUnits or count > 0
+	if duelState.hadUnits and count == 0 then
 		duelResult("LOSS (no units left)")
 	end
 end
@@ -825,6 +828,8 @@ local function gameFrame(n)
 	end
 end
 
+local startOffset
+
 -- lockstep: the game waits for the strategist (Update runs while paused, GameFrame doesn't)
 local lockPaused, lockChecked = false, 0
 function widget:Update()
@@ -853,14 +858,21 @@ function widget:Update()
 end
 
 function widget:GameFrame(n)
-	if speedOverride and n == 25 then
-		Spring.SendCommands("setmaxspeed " .. (speedOverride + 5), "setspeed " .. speedOverride)
-	end
 	if deselectAt and n >= deselectAt then
 		deselectAt = nil
 		Spring.SelectUnitArray({})
 	end
-	local ok, err = pcall(gameFrame, n)
+	-- scenario time starts once our commander exists (it can spawn a moment after frame 0)
+	if not startOffset then
+		if #Spring.GetTeamUnits(myTeam) == 0 then
+			return
+		end
+		startOffset = math.max(0, n - 9)
+	end
+	if speedOverride and n - startOffset == 30 then
+		Spring.SendCommands("setmaxspeed " .. (speedOverride + 5), "setspeed " .. speedOverride)
+	end
+	local ok, err = pcall(gameFrame, n - startOffset)
 	if not ok then
 		out("HARNESS ERROR: " .. tostring(err))
 	end

@@ -2746,6 +2746,19 @@ local function manualHeld(unitID, st, d)
 	if not st.manual then
 		return false
 	end
+	-- our order raced the player's and replaced it: put the player's back
+	local pc = st.playerCmd
+	if pc and frame - pc.frame >= 10 then
+		st.playerCmd = nil
+		local ours = false
+		for _, f in pairs(st.expect) do
+			ours = ours or f >= pc.frame - 20
+		end
+		local current = Spring.GetUnitCurrentCommand(unitID)
+		if ours and current ~= pc.id then
+			Spring.GiveOrderToUnit(unitID, pc.id, pc.params or {}, pc.opts or 0)
+		end
+	end
 	local busy
 	if d.factory then
 		busy = (spGetFactoryCommandCount(unitID) or 0) > 0
@@ -4436,6 +4449,11 @@ function widget:UnitCommand(unitID, unitDefID, unitTeam, cmdID, cmdParams, cmdOp
 		st.manual = true
 		st.manualUntil = frame + MANUAL_HOLD_FRAMES
 		planned[unitID] = nil
+		-- remember it: an order of ours sent around the same time may land after it and replace it
+		local shift = type(cmdOpts) == "table" and cmdOpts.shift
+		if not shift then
+			st.playerCmd = { id = cmdID, params = cmdParams, opts = type(cmdOpts) == "table" and cmdOpts.coded or 0, frame = frame }
+		end
 		-- reserve the player's spot right away, before any of our builders can take it
 		if cmdID < 0 and defs[-cmdID] and type(cmdParams) == "table" and cmdParams[3] then
 			Player.plans[#Player.plans + 1] = { defID = -cmdID, x = cmdParams[1], z = cmdParams[3], facing = cmdParams[4] or 0, builder = unitID }
