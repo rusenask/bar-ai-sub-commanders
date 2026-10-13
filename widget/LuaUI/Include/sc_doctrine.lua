@@ -113,6 +113,13 @@ D.economy = {
 	builderBonus = 0, -- added to the constructor target (tunable by the strategist)
 	maxStorage = 4000, -- metal storage beyond this hides waste instead of fixing it: spend instead
 	airPlantIncome = 35, -- full autonomy: past this income (and a saturated lab) the next factory is aircraft
+	-- tier 2: BARbarian techs around minute 25 and wins long games with T2 units; T2 constructors also
+	-- upgrade extractors (several times the metal) and build fusion. The T2 lab first makes t2Builders
+	-- constructors for the economy, then goes to the Army.
+	t2Income = 30, -- metal income at which the T2 lab is built (full autonomy)
+	t2Minute = 18, -- or from this minute with t2MinIncome
+	t2MinIncome = 20,
+	t2Builders = 2,
 	radarFrom = 30 * 90, -- the economy puts up a radar toward the enemy from about minute 1.5
 }
 

@@ -449,6 +449,31 @@ local function duel(n)
 			end
 		end
 	end
+	-- like a player who techs up once the economy carries it (BARbarian goes tier 2 around minute 25):
+	-- the T2 lab at minute 18 with 25+ metal/s, to the Economy (T2 constructors, then it goes to the Army)
+	if duelState.stage >= 3 and not duelState.t2Assigned and n >= 30 * 60 * 18 and n % 30 == 0 then
+		local t2 = (byName.legalab or {})[1]
+		if t2 and not Spring.GetUnitIsBeingBuilt(t2) then
+			SC.assign(ids.eco, { t2 })
+			duelState.t2Assigned = true
+			out("player: tier 2 lab to Economy")
+		elseif not duelState.t2Ordered or (n - duelState.t2Ordered > 30 * 150 and not t2) then
+			local _, _, _, mInc = Spring.GetTeamResources(myTeam, "metal")
+			local cons = ownedBy(ids.eco, "legck")
+			local building = false
+			for _, u in ipairs(Spring.GetTeamUnits(myTeam)) do
+				building = building or (UnitDefs[Spring.GetUnitDefID(u)].name == "legalab")
+			end
+			if (mInc or 0) >= 25 and cons[1] and not building then
+				local _, dx, dz = towardEnemy(0.1, 0)
+				duelState.t2Tries = (duelState.t2Tries or 0) + 1
+				local a = duelState.t2Tries * 2.1
+				playerBuild(cons[1], "legalab", cx - dx * 300 + math.cos(a) * 250, cz - dz * 300 + math.sin(a) * 250, dx, dz)
+				duelState.t2Ordered = n
+				out("player: tier 2 lab ordered")
+			end
+		end
+	end
 	if duelState.labOrdered then
 		local labs = byName[duelState.labKind or "leglab"] or {}
 		local newest = labs[#labs]

@@ -927,7 +927,9 @@ function Jobs.mex(sub, unitID, d, ux, uz)
 			if not exID or upgrade then
 				-- walking distance plus safety: the corner and behind home before the middle (sc_territory)
 				local safety = (sub.role == "economy" and Engine.homeX) and Engine.terr.spotCost(spot.x, spot.z, { Engine.homeX, Engine.homeZ }, { Engine.enemyX or MAP_X / 2, Engine.enemyZ or MAP_Z / 2 }) or 0
-				candidates[#candidates + 1] = { i = i, spot = spot, d = sqrt(dist2(ux, uz, spot.x, spot.z)) + (upgrade and 400 or 0) + (inZone and 0 or 700) + safety }
+				-- tier-2 constructors go for upgrades first (several times the metal of a new T1 spot)
+				local upgradeCost = upgrade and ((d.tech or 1) >= 2 and -1500 or 400) or 0
+				candidates[#candidates + 1] = { i = i, spot = spot, d = sqrt(dist2(ux, uz, spot.x, spot.z)) + upgradeCost + (inZone and 0 or 700) + safety }
 			end
 		end
 	end
@@ -1674,11 +1676,64 @@ function Jobs.escortTurret(sub, unitID, d, x, z)
 	return true
 end
 
+-- tier 2 (doctrine.economy.t2*): the T2 ground lab once income allows (full autonomy; balanced when metal
+-- piles up). It stays with the economy for its T2 constructors, then goes to the Army.
+function Jobs.techLab(sub, unitID, d)
+	local E = Engine.D.economy
+	if d.commander or (Engine.factoryCount or 0) < 1 or Engine.haveTechLab() then
+		return false
+	end
+	local income = max(econ.mInc, 0)
+	local due = income >= E.t2Income or (frame >= 30 * 60 * E.t2Minute and income >= E.t2MinIncome)
+	if not due or (Engine.auto(sub).factories == "overflow" and econ.mFrac < 0.7) then
+		return false
+	end
+	local o
+	for _, opt in ipairs(d.options) do
+		local od = defs[opt]
+		if od and od.factory and (od.tech or 1) >= 2 and not makesAircraft(od) and not (od.name or ""):find("hp$") and not (od.name or ""):find("sy$") then
+			if not o or (od.name or ""):find("alab$") then
+				o = opt
+			end
+		end
+	end
+	if not o or econ.m < 300 then
+		return false
+	end
+	local dx, dz = (Engine.enemyX or MAP_X / 2) - Engine.homeX, (Engine.enemyZ or MAP_Z / 2) - Engine.homeZ
+	local len = max(sqrt(dx * dx + dz * dz), 1)
+	local ax, az = clampToMap(Engine.homeX - dx / len * 300, Engine.homeZ - dz / len * 300)
+	local x, z = findBuildSpot(sub, o, ax, az, { gap = 48, rings = 12 })
+	if x and issueBuild(sub, unitID, o, x, z, facingToward(x, z, Engine.enemyX or MAP_X / 2, Engine.enemyZ or MAP_Z / 2), "tier 2 lab: T2 constructors, then T2 units") then
+		getState(unitID).rebuildFor, getState(unitID).newFactory = sub.id, true
+		return true
+	end
+	return false
+end
+
+function Engine.haveTechLab()
+	for _, u in ipairs(Spring.GetTeamUnits(myTeam) or {}) do
+		local ud = unitDef(u)
+		if ud and ud.factory and (ud.tech or 1) >= 2 then
+			return true
+		end
+	end
+	for _, p in pairs(planned) do
+		if defs[p.defID].factory and (defs[p.defID].tech or 1) >= 2 then
+			return true
+		end
+	end
+	return false
+end
+
 -- full autonomy: factories as income grows (strong players run one lab until about 25 metal/s, then add
 -- about one per 22); the first one if there's none. A new lab goes to an Army without one.
 function Jobs.newFactory(sub, unitID, d, ux, uz)
 	if not Engine.auto(sub).factories or not Engine.homeX then
 		return false
+	end
+	if Jobs.techLab(sub, unitID, d) then
+		return true
 	end
 	local E = Engine.D.economy
 	local have = Engine.factoryCount or 0
@@ -2317,6 +2372,35 @@ end
 -- of constructors and combat units; combat units go to an Army without a lab, else stay as a guard
 function Engine.economyProduction(sub, facID, fd, cap)
 	local st = getState(facID)
+	-- a tier-2 lab: its constructors first (extractor upgrades, fusion), then it goes to the Army
+	if (fd.tech or 1) >= 2 then
+		local t2 = 0
+		for u in pairs(sub.units) do
+			local ud = unitDef(u)
+			if ud and ud.builder and (ud.tech or 1) >= 2 then
+				t2 = t2 + 1
+			end
+		end
+		if t2 < Engine.D.economy.t2Builders then
+			local cons = buildableBy(fd, function(od)
+				return od.builder and not od.commander
+			end)
+			tsort(cons, function(a, b)
+				return defs[a].cost < defs[b].cost
+			end)
+			if cons[1] then
+				return cons[1], "tier 2 constructor"
+			end
+		end
+		for _, s in ipairs(subs) do
+			if s.role == "army" and not s.paused then
+				addUnit(s, facID)
+				log(sub, fd.human .. ": T2 constructors done, handed to " .. s.name)
+				log(s, "received " .. fd.human .. " (tier 2 units)")
+				return nil, "handed to the army"
+			end
+		end
+	end
 	st.handOff, st.handOffCombat, st.openingPending = nil, nil, nil
 	local counts = sub.counts
 	local income = max(econ.mInc, 0)

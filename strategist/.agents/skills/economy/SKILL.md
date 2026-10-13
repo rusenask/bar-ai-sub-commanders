@@ -89,8 +89,10 @@ Reports carry a **Pace** line: our metal and energy income against strong player
 
 - T2 (advanced extractors give ~4x metal, fusion, T2 units) costs roughly 4000 metal in total. It is worth it
   when the T1 spots are taken, income is stable (around +20 metal and +500 energy) and the front is quiet.
-- The rule engine upgrades extractors when it has T2 constructors; getting a T2 lab is the player's call -
-  suggest it with tell_player when the conditions hold.
+- The executor builds the T2 lab itself at full autonomy (30 metal/s, or minute 18 with 20+), and at
+  balanced when metal piles up; the lab first makes 2 T2 constructors for the economy (they upgrade
+  extractors first and build fusion), then goes to the Army for T2 units. BARbarian techs around minute 25
+  and wins long games with T2 units: an army still all T1 after minute 25 loses its fights.
 
 ## Posture
 
