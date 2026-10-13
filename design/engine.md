@@ -42,6 +42,8 @@ widget/LuaUI/Include/
   sc_squads.lua       army as squads: cohesion, engage / hold / retreat by local power vs threat
   sc_production.lua   what a factory builds: tier mix + counter matrix (pure)
   sc_autozones.lua    areas per role when the player drew no zones; clusters (wind farms)
+  sc_territory.lua    what's ours (cells near our structures), its frontier, and pickets: the frontier
+                      points to hold (facing the enemy, where intruders came from, what they protect)
 widget/tests/         plain-Lua unit tests of the modules (make test-lua; stubs for Spring)
 ```
 

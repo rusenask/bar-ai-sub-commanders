@@ -127,6 +127,7 @@ do
 	Engine.squads = include("sc_squads")({ tm = Engine.tm, doctrine = Engine.D })
 	Engine.prod = include("sc_production")({ defs = defs, doctrine = Engine.D })
 	Engine.zones = include("sc_autozones")({ mapX = Game.mapSizeX, mapZ = Game.mapSizeZ })
+	Engine.terr = include("sc_territory")({ mapX = Game.mapSizeX, mapZ = Game.mapSizeZ, cell = 256, reach = 700 })
 end
 
 --------------------------------------------------------------------------------
@@ -1835,6 +1836,10 @@ end
 -- points the radar net must cover: every zone's centre and its edge toward the enemy
 function Intel.watchPoints(sub)
 	local points = {}
+	-- the territory's pickets first: radar there sees raids coming from every side
+	for _, p in ipairs(Engine.pickets or {}) do
+		points[#points + 1] = { p.x, p.z }
+	end
 	for _, zone in ipairs(sub.zones) do
 		local cx, cz = Zone.center(zone)
 		local ex, ez = enemyDirectionRef(cx, cz)
@@ -3321,6 +3326,18 @@ local function thinkCombat(sub, unitID, d, st, threats)
 		return
 	end
 	st.engaged = nil
+	-- the economy's guards screen the side approaches (pickets 2..n; the army holds the main front)
+	local P = Engine.pickets
+	if sub.role == "economy" and P and #P > 1 then
+		local p = P[2 + (unitID % (#P - 1))]
+		if dist2(x, z, p.x, p.z) > 350 * 350 and (not busy or (st.softUntil and frame > st.softUntil)) then
+			local a = (unitID % 7) / 7 * 2 * pi
+			local gx, gz = clampToMap(p.x + cos(a) * 150, p.z + sin(a) * 150)
+			order(unitID, CMD.FIGHT, { gx, spGetGroundHeight(gx, gz), gz })
+			setTask(unitID, "picket", "guarding a side approach", true)
+		end
+		return
+	end
 	if not busy or (st.softUntil and frame > st.softUntil) or (#sub.zones > 0 and not inSubZones(sub, x, z, 900)) then
 		patrolZone(sub, unitID, x, z)
 	end
@@ -3564,6 +3581,17 @@ function Engine.updateAutoZones(sub)
 	local ax, az = Engine.approachDir()
 	if ax and sub.role == "defense" then
 		ex, ez = Engine.homeX + ax * 2000, Engine.homeZ + az * 2000
+	end
+	if sub.role == "defense" and Engine.pickets and #Engine.pickets > 0 then
+		local zones = {}
+		for i, p in ipairs(Engine.pickets) do
+			if i <= 3 then
+				local x, z = clampToMap(p.x, p.z)
+				zones[#zones + 1] = { kind = "circle", x = floor(x), z = floor(z), r = 600, auto = true }
+			end
+		end
+		sub.zones = zones
+		return
 	end
 	sub.zones = Engine.zones.forRole(sub.role, {
 		home = { Engine.homeX, Engine.homeZ },
@@ -5629,6 +5657,7 @@ function Engine.refreshHome()
 	Engine.enemyX, Engine.enemyZ = enemyDirectionRef(Engine.homeX, Engine.homeZ)
 	Engine.extractors, Engine.vitals = extractors, vitals
 	Engine.farms = Engine.zones.clusters(generators, 450, 4)
+	Engine.refreshTerritory()
 	Engine.factoryCount, Engine.labDef = factories, labDef or Engine.labDef
 end
 
@@ -5771,6 +5800,16 @@ function Engine.teamReport()
 		turretBudget = floor(Engine.turretBudgetValue()),
 		armyValue = floor(Engine.armyValue or 0),
 		approach = Engine.approachText and Engine.approachText() or nil,
+		territory = Engine.pickets and {
+			frontierCells = #Engine.terr.frontier,
+			pickets = (function()
+				local out = {}
+				for i, p in ipairs(Engine.pickets) do
+					out[i] = { x = floor(p.x), z = floor(p.z) }
+				end
+				return out
+			end)(),
+		} or nil,
 	}
 end
 
@@ -5843,6 +5882,28 @@ function Engine.nearVital(x, z)
 		end
 	end
 	return false
+end
+
+-- territory (sc_territory.lua): cells near our structures are ours; pickets are the frontier points worth
+-- holding (facing the enemy, where intruders came from, what they protect). Defense zones sit on them and
+-- the economy's guards screen the side ones, so raids can't simply walk around the army.
+function Engine.refreshTerritory()
+	if not Engine.homeX then
+		return
+	end
+	local list = {}
+	for _, u in ipairs(Spring.GetTeamUnits(myTeam) or {}) do
+		local d = unitDef(u)
+		if d and not d.mobile and not spGetUnitIsBeingBuilt(u) then
+			local x, _, z = spGetUnitPosition(u)
+			if x then
+				list[#list + 1] = { x = x, z = z, value = d.cost }
+			end
+		end
+	end
+	Engine.terr.update(list)
+	local A = Engine.approach
+	Engine.pickets = Engine.terr.pickets(4, { Engine.homeX, Engine.homeZ }, { Engine.enemyX or MAP_X / 2, Engine.enemyZ or MAP_Z / 2 }, A and A.sectors)
 end
 
 -- turrets have a budget (strong players put their metal into the army): metal of turrets we have plus
