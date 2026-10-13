@@ -139,3 +139,38 @@ minute (logger v2) changed that:
 
 Fights are learnable; whether a single unit pays for itself mostly depends on what happens to it later, so
 the unit task is weak from the situation alone.
+
+### Phase 3: training (v1, 43 games; Lightning studio, L40S)
+
+H100, H200 and A100 aren't available in the teamspace's cloud account; an L40S trains Kev-0.8B at about
+0.11 s per record (fight: 4,738 records x 2 epochs in ~18 minutes). Test split by game, same rows for all:
+
+| Task | Kev-0.8B as released | **Kev-0.8B fine-tuned (ours)** | Logistic regression | Gradient boosting | Rule today |
+|---|---|---|---|---|---|
+| fight (773) | AUC 0.57, Brier 0.247 | AUC 0.74, Brier 0.207, acc 0.65 | AUC 0.72, Brier 0.214 | **AUC 0.77, Brier 0.195**, acc 0.70 | AUC 0.55 |
+| turret (251) | AUC 0.45, Brier 0.238 | AUC 0.71, **Brier 0.143**, acc 0.79 | AUC 0.72, Brier 0.166 | AUC 0.72, Brier 0.161 | - |
+| unit (1,125) | AUC 0.51, Brier 0.230 | **AUC 0.59, Brier 0.186** | AUC 0.58, Brier 0.189 | AUC 0.57, Brier 0.199 | - |
+
+Fine-tuning turns Kev-0.8B from no better than chance into a useful model on every task; on fights the
+gradient-boosted trees are a little better, on turrets and units the fine-tune is the best calibrated.
+Temperatures fitted on dev came out near 1 (fight 1.07, turret 0.98).
+
+### Phase 4: serving
+
+On `force` (RTX 4090): three `kev.serve` processes (fight 8011, unit 8012, turret 8013) and the tree models
+behind `serve_gbt.py` (8014), 8.7 GB of GPU memory in total, ~30 ms per request once warm. The bridge
+routes per task (`-decider-routes`); in game every request was answered (no failures over 24 games).
+
+### Phase 5: in-game A/B (8 fast rules-only games per arm, BARbarian medium)
+
+| Arm | Lost | Metal | Kills | Losses | Damage dealt / taken |
+|---|---|---|---|---|---|
+| R: rules only | 2 | 22.9k | 30 | 147 | 0.51 |
+| K: our Kev models (fight, unit, turret) | 4 | 38.9k | 48 | 273 | 0.47 |
+| G: gradient boosting (all three tasks) | 5 | 32.1k | 40 | 275 | 0.47 |
+
+Better offline scores did **not** mean better play. The production model is the reason: asked "which
+candidate will most likely pay for itself?", it picks the cheapest units (K built 505 Satyrs, G mostly
+Goblins, the rules mostly Karkinos and Ballista). Cheap units clear that bar individually more often, but
+an army of them loses: the label can't see that heavier units protect the rest. The unit task as designed
+is a bad policy target.

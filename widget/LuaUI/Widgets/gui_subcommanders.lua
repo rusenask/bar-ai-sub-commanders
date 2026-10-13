@@ -2205,6 +2205,70 @@ function Decider.fightVerdict(sub, x, z)
 	return v and v.p
 end
 
+-- Production by lookahead with the combat model: for each candidate, add a fixed metal budget of it to
+-- our army and ask whether that army would come out ahead against the enemy army we have seen; build the
+-- candidate with the best answer. (Asking "will this unit pay for itself?" picked the cheapest units and
+-- lost games: design/decision-models.md, phase 5.)
+function Decider.lookahead(sub, options, st, ai)
+	local army, enemy = {}, {}
+	local armyValue = 0
+	for _, u in ipairs(Spring.GetTeamUnits(myTeam) or {}) do
+		local defID = Spring.GetUnitDefID(u)
+		local d = defID and defs[defID]
+		if d and d.mobile and d.armed and not d.builder and not d.commander and not spGetUnitIsBeingBuilt(u) then
+			army[#army + 1] = { defID, hpFraction(u) }
+			armyValue = armyValue + d.cost
+		end
+	end
+	for u, e in pairs(Enemy.units) do
+		local d = defs[e.defID]
+		if d.mobile and d.armed and not d.builder and not d.commander and frame - e.last < COMPOSITION_WINDOW then
+			enemy[#enemy + 1] = { e.defID, spGetUnitPosition(u) and hpFraction(u) or 1 }
+		end
+	end
+	if #enemy == 0 then
+		return false -- nothing to measure against yet: the rules decide
+	end
+	local budget = max(600, armyValue * 0.25)
+	local starts = getEnemyStarts()
+	local sx, _, sz = Spring.GetTeamStartPosition(myTeam)
+	local half = (starts[1] and sx and sx > 0) and floor(sqrt(dist2(sx, sz, starts[1].x, starts[1].z)) / 2) or -1
+	local enemyGroup = Decider.group(enemy)
+	local empty = Decider.group({})
+	local results, pending = {}, min(#options, 6)
+	for i = 1, pending do
+		local o = options[i]
+		local trial = {}
+		for j = 1, #army do
+			trial[j] = army[j]
+		end
+		for _ = 1, max(1, floor(budget / max(defs[o].cost, 1))) do
+			trial[#trial + 1] = { o, 1 }
+		end
+		local features = { minute = floor(frame / 1800), own = Decider.group(trial), ownTurrets = empty, enemy = enemyGroup, enemyTurrets = empty, heightDiff = 0, ownStart = half, enemyStart = half }
+		ai.decideTask(sub.id, "fight", features, function(answers)
+			local a = answers and answers.ahead
+			results[o] = type(a) == "table" and tonumber(a.noul) or nil
+			pending = pending - 1
+			if pending == 0 then
+				st.asking = nil
+				local best, bestP
+				for defID, p in pairs(results) do
+					if not bestP or p > bestP then
+						best, bestP = defID, p
+					end
+				end
+				if best then
+					st.pick, st.pickFrame = best, frame
+				else
+					st.askFailed = frame
+				end
+			end
+		end)
+	end
+	return true
+end
+
 -- returns a defID to build, nil while waiting for an answer, or false to let the rules decide
 function Decider.production(sub, facID, fd, st)
 	local ai = WG.SubCommandersAI
@@ -2235,19 +2299,7 @@ function Decider.production(sub, facID, fd, st)
 	tsort(options, function(a, b)
 		return defs[a].cost > defs[b].cost
 	end)
-	local candidates = {}
-	for i = 1, min(#options, 8) do
-		candidates[i] = Decider.traits(defs[options[i]])
-	end
-	local sent = ai.decideTask and ai.decideTask(sub.id, "unit", { minute = floor(frame / 1800), situation = Decider.situation(), candidates = candidates }, function(answers)
-		st.asking = nil
-		local best = Decider.bestCandidate(answers)
-		if best then
-			st.pick, st.pickFrame = best, frame
-		else
-			st.askFailed = frame
-		end
-	end)
+	local sent = ai.decideTask and Decider.lookahead(sub, options, st, ai)
 	if not sent then
 		return false
 	end
