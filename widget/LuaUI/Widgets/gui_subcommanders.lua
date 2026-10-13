@@ -1123,7 +1123,7 @@ end
 -- construction turrets: how many we have, and how many our income wants (doctrine.economy)
 function Engine.nanoTarget()
 	local E = Engine.D.economy
-	return floor(max(0, econ.mInc - E.nanoFrom) / E.nanoPerIncome)
+	return floor(max(0, econ.mInc - E.nanoFrom) * E.nanoRate / 10)
 end
 
 function Engine.nanoCount()
@@ -4416,8 +4416,8 @@ local function exportAPI()
 		teamReport = function()
 			return Engine.teamReport()
 		end,
-		tune = function(key, value)
-			return Engine.tune(key, value)
+		tune = function(key, value, role)
+			return Engine.tune(key, value, role)
 		end,
 		setRaids = function(id, on)
 			local sub = findSub(id)
@@ -5637,8 +5637,10 @@ function Engine.turretBudgetValue()
 end
 
 -- the strategist tunes the fast loops' doctrine (sc_doctrine.lua D.tunable): team-wide, within bounds
-function Engine.tune(key, value)
-	local t = Engine.D.tunable[key]
+-- role: the asking sub-commander's role (only the rule's owner may change it); nil = the player
+function Engine.tune(key, value, role)
+	local D = Engine.D
+	local t = D.tunable[key]
 	value = tonumber(value)
 	if not t then
 		return nil, "unknown rule '" .. tostring(key) .. "'"
@@ -5646,8 +5648,22 @@ function Engine.tune(key, value)
 	if not value then
 		return nil, "value must be a number"
 	end
-	value = max(t[3], min(t[4], value))
+	if role and t[6] and role ~= t[6] then
+		return nil, sformat("%s belongs to the %s sub-commander; tell them (or the player) instead", key, t[6])
+	end
+	Engine.tuned = Engine.tuned or {}
+	local last = Engine.tuned[key]
+	if role and last and frame - last < D.tuneEvery then
+		return nil, sformat("%s was changed %ds ago; give it %ds to show its effect", key, (frame - last) / 30, D.tuneEvery / 30)
+	end
 	local old = t[1][t[2]]
+	-- one step at a time: at most tuneStep of the current value (of the range when the value is near 0)
+	if role then
+		local step = max(abs(old), (t[4] - t[3]) * 0.2) * D.tuneStep
+		value = max(old - step, min(old + step, value))
+	end
+	value = max(t[3], min(t[4], value))
+	Engine.tuned[key] = frame
 	t[1][t[2]] = value
 	-- a lower factory cap also cancels factory builds that haven't started
 	if key == "max_factories" then

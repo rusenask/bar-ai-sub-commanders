@@ -34,6 +34,7 @@ return {
 			T.ok(type(v) == "number", key .. " is a number")
 			T.ok(v >= t[3] and v <= t[4], key .. " default within bounds")
 			T.ok(type(t[5]) == "string" and #t[5] > 10, key .. " described")
+			T.ok(t[6] == "economy" or t[6] == "defense" or t[6] == "army", key .. " has an owner role")
 		end
 	end,
 }

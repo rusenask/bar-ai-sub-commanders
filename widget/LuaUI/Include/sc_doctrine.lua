@@ -93,7 +93,7 @@ D.economy = {
 	-- construction turrets before more labs: 200 build power for 230 metal against a lab's 150 for 470;
 	-- a lab is saturated at 4-7 turrets (unit exit time), only then does another lab pay off
 	nanoFrom = 10, -- metal income the first lab uses on its own
-	nanoPerIncome = 6, -- one construction turret per this much metal income above that (8 left metal piling up)
+	nanoRate = 1.7, -- construction turrets per 10 metal/s of income above nanoFrom (1.25 left metal piling up)
 	nanosPerLab = 5, -- a lab with this many turrets around it is saturated
 	builderBonus = 0, -- added to the constructor target (tunable by the strategist)
 	maxStorage = 4000, -- metal storage beyond this hides waste instead of fixing it: spend instead
@@ -127,24 +127,27 @@ D.autonomy = {
 	full = { expand = true, factories = true, help = true, push = true, attack = true, proactiveTurrets = true, extractorCover = true },
 }
 
--- what the AI strategist may tune (tool tune_rules): key -> table and field, bounds, what it does.
--- Team-wide: the doctrine is shared by every sub-commander.
+-- what the AI strategist may tune (tool tune_rules): key -> table and field, bounds, what it does, and the
+-- role that owns it (only that role's sub-commanders may change it: they used to undo each other).
+-- Team-wide: the doctrine is shared by every sub-commander. Changes are rate-limited (Engine.tune).
 D.tunable = {
-	max_factories = { D.economy, "maxFactories", 1, 5, "most factories the economy builds on its own" },
-	nanos_per_lab = { D.economy, "nanosPerLab", 0, 10, "construction turrets per lab before another lab pays off" },
-	nano_per_income = { D.economy, "nanoPerIncome", 4, 30, "metal income per construction turret (lower = more turrets)" },
-	second_factory_income = { D.economy, "secondFactoryIncome", 10, 100, "metal income before a second lab (full autonomy)" },
-	builder_bonus = { D.economy, "builderBonus", -3, 6, "constructors above (or below) the income-based target" },
-	turret_budget_scale = { D.turrets, "scale", 0, 3, "multiplies the turret budget (0.5 = half the turrets)" },
-	raid_share = { D.raid, "share", 0, 0.6, "share of an army's units that are raiders while Raids is on" },
-	raid_need = { D.raid, "need", 1, 4, "how much stronger a raid must be than what guards a target" },
-	engage_attack = { D.engage, "attack", 0.8, 3, "strength ratio an army needs to start a fight away from home" },
-	engage_hold = { D.engage, "hold", 0.4, 2, "strength ratio below which an army breaks off a fight" },
-	engage_defend = { D.engage, "defend", 0.3, 1.5, "strength ratio an army defends the base down to" },
-	chase_distance = { D.engage, "chase", 0, 5000, "how far from home an army chases intruders it drove off" },
-	retreat_fighter = { D.retreat, "fighter", 0.2, 0.8, "health at which a fighting unit leaves the fight" },
-	retreat_builder = { D.retreat, "builder", 0.3, 1, "health at which a constructor under fire leaves" },
-	response_weight = { D, "responseWeight", 0, 1, "how much production follows counters to what the enemy fields" },
+	max_factories = { D.economy, "maxFactories", 1, 5, "most factories the economy builds on its own (lower stops new labs)", "economy" },
+	nanos_per_lab = { D.economy, "nanosPerLab", 0, 10, "construction turrets around a lab before another lab pays off", "economy" },
+	construction_turret_rate = { D.economy, "nanoRate", 0.5, 4, "construction turrets per 10 metal/s of income (higher = more turrets, more build power)", "economy" },
+	second_factory_income = { D.economy, "secondFactoryIncome", 10, 100, "metal income before a second lab (full autonomy)", "economy" },
+	builder_bonus = { D.economy, "builderBonus", -3, 6, "mobile constructors above (or below) the income-based target", "economy" },
+	turret_budget_scale = { D.turrets, "scale", 0.25, 3, "multiplies the turret budget (higher = more turrets)", "defense" },
+	retreat_builder = { D.retreat, "builder", 0.3, 1, "health at which a constructor under fire leaves (lower = they stay longer)", "defense" },
+	raid_share = { D.raid, "share", 0, 0.6, "share of an army's units that are raiders while Raids is on", "army" },
+	raid_need = { D.raid, "need", 1, 4, "how much stronger a raid must be than what guards a target", "army" },
+	engage_attack = { D.engage, "attack", 0.8, 2.5, "strength ratio an army needs to start a fight away from home (higher = fewer fights)", "army" },
+	engage_hold = { D.engage, "hold", 0.4, 1.5, "strength ratio below which an army breaks off a fight (higher = retreats sooner)", "army" },
+	engage_defend = { D.engage, "defend", 0.3, 1.2, "strength ratio an army defends the base down to (higher = gives up the base sooner)", "army" },
+	chase_distance = { D.engage, "chase", 0, 5000, "how far from home an army chases intruders it drove off", "army" },
+	retreat_fighter = { D.retreat, "fighter", 0.2, 0.7, "health at which a fighting unit leaves the fight (higher = fewer losses, fewer kills)", "army" },
+	response_weight = { D, "responseWeight", 0, 1, "how much production follows counters to what the enemy fields", "army" },
 }
+D.tuneEvery = 30 * 120 -- one change per rule per this many frames
+D.tuneStep = 0.5 -- a change moves a rule at most this fraction of its current value (or of its range near 0)
 
 return D

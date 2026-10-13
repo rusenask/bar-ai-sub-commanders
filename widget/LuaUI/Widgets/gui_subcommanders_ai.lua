@@ -186,7 +186,7 @@ local function apply(msg)
 		if not sc.tune then
 			return nil, "rule tuning isn't available in this widget version"
 		end
-		local v, err = sc.tune(args.key, args.value)
+		local v, err = sc.tune(args.key, args.value, sub.role)
 		if not v then
 			return nil, err
 		end
