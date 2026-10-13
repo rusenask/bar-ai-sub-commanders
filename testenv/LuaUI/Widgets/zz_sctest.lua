@@ -435,7 +435,9 @@ local function duel(n)
 		local m, mS = Spring.GetTeamResources(myTeam, "metal")
 		duelState.overflow = (m > mS * 0.8) and (duelState.overflow or 0) + 1 or 0
 		local labs = #(byName.leglab or {})
-		if duelState.overflow >= 60 and labs < 5 and not duelState.labOrdered then
+		-- construction turrets first (the economy adds them): another lab only once ours have ~5 each
+		local nanos = #(byName.legnanotc or {})
+		if duelState.overflow >= 60 and labs < 5 and nanos >= 5 * labs and not duelState.labOrdered then
 			local cons = ownedBy(ids.eco, "legck")
 			if #cons >= 2 then
 				local _, dx, dz = towardEnemy(0.1, 0)

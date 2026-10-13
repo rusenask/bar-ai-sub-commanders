@@ -89,6 +89,11 @@ D.economy = {
 		return math.min(12, math.floor(3 + income / 10))
 	end,
 	energyPerMetal = 12, -- energy income to aim for per metal income (strong players 10-16)
+	-- construction turrets before more labs: 200 build power for 230 metal against a lab's 150 for 470;
+	-- a lab is saturated at 4-7 turrets (unit exit time), only then does another lab pay off
+	nanoFrom = 10, -- metal income the first lab uses on its own
+	nanoPerIncome = 8, -- one construction turret per this much metal income above that
+	nanosPerLab = 5, -- a lab with this many turrets around it is saturated
 }
 
 -- turrets: a budget instead of filling zones (strong players: ~5 turrets by minute 6, ~1.7k metal at 12)

@@ -36,6 +36,11 @@ out wrong.
   wind farms, exposed extractors) has to do it, as strong players do. (engine-v1, game 1 and 3)
 - A squad's strength ratio only knows what it has seen: the first contact with a main army reads as 1x
   until radar contacts count too (threat map blips). (first engine test game)
+- Scale production with construction turrets before more labs (200 build power for 230 metal against a
+  lab's 150 for 470; a lab saturates at 4-7 turrets). Labs by income tier built three side by side.
+  (autopilot-raids-40m)
+- An army that attacks still needs to know where their factories are: scout their base before the push.
+  (autopilot-raids-40m: no enemy factory found or killed in 8 games)
 - The whole team dies with the commander (BAR's default end condition): keep it home. (game 10)
 - Letting emergency energy pick basic solar instead of wind made every average worse. (batch E)
 - The counter-push rarely triggers: the army is seldom 1.5x what it sees. (batch B)

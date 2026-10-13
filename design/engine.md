@@ -80,7 +80,7 @@ strategist sees the world model too.
 | retreat | constructors at 85% health under fire, fighters at 50%, commander 60% | BARb hard behaviour.json |
 | engage | attack where our local power >= 1.2 x local threat (turrets count); hold >= 0.8 x; else regroup | BARb thr_mod, adapted to metal power |
 | opening | economy lab: constructor, constructor, 2 raiders, then about 1 constructor per 2-3 combat units | BARb factory tier0 (10-25% constructors), strong players |
-| factories | one lab until income >= 25 metal/s or metal overflows; then one more per tier | strong players (1 until min 8-10) |
+| factories | one lab, scaled with construction turrets (one per 8 metal/s above 10, 5 per lab); another lab only when every lab is saturated and income supports it | strong players (1 lab until min 8-10), BAR guidance: 200 BP for 230 metal vs a lab's 150 for 470 |
 | constructors | target 3 + income / 10 (cap 12) | BARb buildpower 1.2, strong players 5-8 |
 | turrets | budget max(300 + 90 x minute, 0.4 x army value); first at exposed extractors from about minute 2.5 | strong players (5 by min 6, ~1.7k at 12), BARb build chain |
 | counters | response matrix: raiders vs scouts / raiders / artillery, skirmishers vs assault, anti-heavy vs heavy, artillery vs turrets, anti-air vs air (caps per kind) | BARb hard response.json |

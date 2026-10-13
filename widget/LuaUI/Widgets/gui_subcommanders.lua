@@ -1119,8 +1119,55 @@ function Jobs.guardTurret(sub, unitID, d, ux, uz)
 end
 
 -- metal piling up: construction turrets next to a busy factory turn it into units faster
+-- construction turrets: how many we have, and how many our income wants (doctrine.economy)
+function Engine.nanoTarget()
+	local E = Engine.D.economy
+	return floor(max(0, econ.mInc - E.nanoFrom) / E.nanoPerIncome)
+end
+
+function Engine.nanoCount()
+	local n = 0
+	for _, u in ipairs(Spring.GetTeamUnits(myTeam) or {}) do
+		local ud = unitDef(u)
+		if ud and ud.nano then
+			n = n + 1
+		end
+	end
+	for _, p in pairs(planned) do
+		if defs[p.defID].nano then
+			n = n + 1
+		end
+	end
+	return n
+end
+
+-- every lab has its share of construction turrets around it: only then does another lab pay off
+function Engine.labsSaturated()
+	local per = Engine.D.economy.nanosPerLab
+	for _, u in ipairs(Spring.GetTeamUnits(myTeam) or {}) do
+		local fd = unitDef(u)
+		if fd and fd.factory and not spGetUnitIsBeingBuilt(u) then
+			local fx, _, fz = spGetUnitPosition(u)
+			local n = 0
+			for _, v in ipairs(spGetUnitsInCylinder(fx, fz, 450)) do
+				local nd = unitDef(v)
+				if nd and nd.nano and spGetUnitTeam(v) == myTeam then
+					n = n + 1
+				end
+			end
+			if n < per then
+				return false
+			end
+		end
+	end
+	return true
+end
+
+-- construction turrets next to our labs: the cheap way to more production (one per ~8 metal/s of income,
+-- up to doctrine.economy.nanosPerLab each), and when metal piles up
 function Jobs.buildPower(sub, unitID, d, ux, uz)
-	if econ.mFrac < 0.6 or econ.eFrac < 0.4 then
+	local growth = Engine.nanoCount() < Engine.nanoTarget() and econ.eFrac > 0.25
+	if not growth and (econ.mFrac < 0.6 or econ.eFrac < 0.4) then
 		return false
 	end
 	local options = buildableBy(d, function(od)
@@ -1131,7 +1178,7 @@ function Jobs.buildPower(sub, unitID, d, ux, uz)
 	end
 	local o = options[1]
 	local reach = defs[o].buildRange
-	local limit = 2 * POSTURE_INFO[sub.posture].density
+	local limit = Engine.D.economy.nanosPerLab
 	local best, bestN
 	for _, teamID in ipairs({ myTeam }) do
 		for _, u in ipairs(Spring.GetTeamUnits(teamID) or {}) do
@@ -1173,7 +1220,7 @@ function Jobs.buildPower(sub, unitID, d, ux, uz)
 		end,
 	})
 	if x and dist2(x, z, fx, fz) < (reach * 0.9) ^ 2 then
-		return issueBuild(sub, unitID, o, x, z, 0, "construction turret (metal piling up)")
+		return issueBuild(sub, unitID, o, x, z, 0, growth and "construction turret (income allows more production)" or "construction turret (metal piling up)")
 	end
 	return false
 end
@@ -1505,6 +1552,10 @@ function Jobs.newFactory(sub, unitID, d, ux, uz)
 		end
 	end
 	if have >= min(want, E.maxFactories) then
+		return false
+	end
+	-- construction turrets first: another lab only once every lab has its turrets
+	if have > 0 and not Engine.labsSaturated() then
 		return false
 	end
 	for _, p in pairs(planned) do
@@ -2874,6 +2925,22 @@ function Engine.explorePoint(x, z)
 	end
 	Engine.visited = Engine.visited or {}
 	local ex, ez = Engine.enemyX or MAP_X / 2, Engine.enemyZ or MAP_Z / 2
+	-- their base first, while we know none of their factories: that's what an attack needs to find
+	local knowFactory = false
+	for _, e in pairs(Enemy.units) do
+		knowFactory = knowFactory or defs[e.defID].factory
+	end
+	if not knowFactory then
+		for _, st in ipairs(getEnemyStarts()) do
+			if frame - (Engine.visited.base or -99999) > Engine.D.raid.revisit and not Spring.IsPosInLos(st.x, 0, st.z, myAlly) then
+				if dist2(x, z, st.x, st.z) < 600 * 600 then
+					Engine.visited.base = frame
+				else
+					return st, "base"
+				end
+			end
+		end
+	end
 	local best, bestD
 	for i, sp in ipairs(spots) do
 		if dist2(sp.x, sp.z, ex, ez) < dist2(sp.x, sp.z, Engine.homeX, Engine.homeZ) and frame - (Engine.visited[i] or -99999) > Engine.D.raid.revisit
@@ -2954,7 +3021,7 @@ function Tactics.raid(sub)
 		else
 			local sp, i = Engine.explorePoint(rs.x, rs.z)
 			if sp then
-				action, tx, tz, name, id = "explore", sp.x, sp.z, "metal spot", "spot:" .. i
+				action, tx, tz, name, id = "explore", sp.x, sp.z, i == "base" and "their base" or "metal spot", "spot:" .. i
 			end
 		end
 	end
@@ -3002,8 +3069,9 @@ function Tactics.squad(sub)
 	local target, targetD
 	local function consider(list, helping)
 		for _, t in ipairs(list) do
-			-- helping elsewhere: not where our turrets and guards already outgun the intruders
-			if not t.air and not (helping and Engine.tm.influence(t.x, t.z) >= 1.5 * Engine.tm.enemyPower(t.x, t.z, 700, frame)) then
+			-- helping elsewhere: not where our turrets and guards already outgun the intruders (unless a
+			-- factory or the commander is in danger)
+			if not t.air and not (helping and not Engine.nearVital(t.x, t.z) and Engine.tm.influence(t.x, t.z) >= 1.5 * Engine.tm.enemyPower(t.x, t.z, 700, frame)) then
 				local dd = sqrt(dist2(sq.x, sq.z, t.x, t.z))
 				-- what they threaten counts more than how close they are: factories and the commander first
 				if Engine.nearVital(t.x, t.z) then
@@ -3015,7 +3083,11 @@ function Tactics.squad(sub)
 			end
 		end
 	end
-	consider(sub.threats)
+	-- an army out on an attack only turns back for what threatens a factory or the commander, or what
+	-- our turrets and guards can't handle there
+	local prev0 = sub.squadOrder
+	local attacking = prev0 and prev0.action ~= "hold" and not Engine.inBase(prev0.x, prev0.z)
+	consider(sub.threats, attacking)
 	if not target and auto.help then
 		consider(baseThreats, true)
 	end

@@ -148,3 +148,18 @@ Reports in `testenv/batch/<dir>/report.md` (gamereport: pace against 26 strong p
 - Against hard the first 8 games read 4 lost vs v2's 2; 8 more of each (same harness) pooled to 16
   show no difference (6 vs 5 lost, trades 0.54 vs 0.58). Against medium v3 is a little better (72 kills
   vs 51, trades 0.77). Kept: it matches BARbarian's mix and loses fewer units for the same trades.
+
+## Full autonomy with raids (autopilot scenario, 40 minutes, vs medium)
+
+| Arm | Games | Results | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|
+| 20261013-1520-autopilot-raids-40m | 8 | 4 timeout, 4 loss | 47.6k | 99 / 379 | 0.68 | 15.4 | 10.5 | 5.0k |
+
+- The army attacks now: kills reach their base area (up to 6.9k elmos out; their start is 6.5k away),
+  46 raid targets hit across 8 games, more kills per game than ever (46-163). No enemy factory died: their
+  base was never scouted, and base raids kept pulling the army home.
+- Lost 4/8, all commander deaths at home at 21-32 min when their main army arrived after ours had been
+  worn down: trades are still below 1 and income at 15 min is 25 metal/s against strong players' 58.
+- The economy built a lab per income tier (2-4 at 20 min, three side by side in one game): strong players
+  and BAR's own guidance scale one lab with construction turrets (200 BP for 230 metal vs a lab's 150 for
+  470) and add labs only once one is saturated. Changed in the next arm.

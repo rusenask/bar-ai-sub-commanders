@@ -28,6 +28,10 @@ Your job is to steer *where* (zones) and *how hard* (posture), and to ask the pl
 - **Build power**: about 2 constructors (or 1 construction turret) per 100 energy/s and per 5 metal/s of
   income keeps resources spent. Unused metal piling up with nothing to do = too little build power or no
   factories to spend it in; tell the player.
+- **Construction turrets before more labs**: a construction turret gives 200 build power for ~230 metal, a
+  lab 150 for ~470. One lab with 4-7 turrets around it is the standard way to scale production; the
+  executor adds them as income grows (about one per 8 metal/s above 10). A second lab only pays off once
+  the first is saturated (5 turrets), or for a different kind of unit (vehicles, aircraft) in parallel.
 - **Pull** is what everything is trying to spend per second. Pull well above income drains storage: when
   metal or energy storage is falling and pull > income, the team is overspending (conserve, or more income).
 
