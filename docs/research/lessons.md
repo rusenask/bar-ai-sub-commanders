@@ -95,6 +95,13 @@ out wrong.
   only show up in run.log after the game, which the next game overwrites.
 
 ## Process traps
+- The force host's first batch (v21c, 6 at a time at 100x) won 7 of the first 9 games where the same code
+  won 1 of 16 on the Mac. Two causes: a per-game wall-clock limit of 660 s killed the long, even games
+  (retried, killed again) and kept the quick decisive ones; and 6 games on 12 cores (load 27) may starve
+  BARbarian's worker threads so it plays worse. Give games room (limit = minutes x 30 + 300 s), run
+  fewer at once, and compare force arms only with force arms run the same way.
+- A background job that runs `ssh` must not read the terminal: `ssh -n` (or `< /dev/null`), or the job
+  stops or dies and nothing collects the results.
 - Watch the sub-commander status lines, not just the result: identical lines minutes apart (same counts,
   same `spend=`, `threats=0` while the base burns) mean the widget stopped. (v18 game 2)
 

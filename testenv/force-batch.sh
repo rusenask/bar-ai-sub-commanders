@@ -10,7 +10,7 @@ T="$(cd "$(dirname "$0")" && pwd)"
 HOST="${FORCE_HOST:-force}"
 N="${1:-8}"
 SCENARIO="${2:-duelrules}"
-PARALLEL="${PARALLEL:-6}"
+PARALLEL="${PARALLEL:-4}"
 SPEED="${SPEED:-100}"
 DUEL_MINUTES="${DUEL_MINUTES:-60}"
 AI_PROFILE="${AI_PROFILE:-medium}"
@@ -44,10 +44,12 @@ ssh "$HOST" "mkdir -p $R"
 rsync -a "$STAGE/" "$HOST:$R/template/"
 scp -q "$T/force/run_game.sh" "$HOST:bar-sim/run_game.sh"
 rm -rf "$STAGE"
-# wall-clock limit per game: the game at a tenth of SPEED (late games slow down), plus loading
-LIMIT=$(( DUEL_MINUTES * 60 * 10 / SPEED + 300 ))
+# wall-clock limit per game: the game at 2x (late games with big armies slow down a lot, more with
+# several games sharing the CPU), plus loading. A tight limit (660 s for 60 minutes) killed the long,
+# even games and kept the quick decisive ones: a biased batch.
+LIMIT=$(( DUEL_MINUTES * 60 / 2 + 300 ))
 start=$(date +%s)
-ssh "$HOST" "cd \$HOME/$R && seq 1 $N | xargs -P $PARALLEL -I{} bash \$HOME/bar-sim/run_game.sh \$HOME/$R {} $LIMIT"
+ssh -n "$HOST" "cd \$HOME/$R && seq 1 $N | xargs -P $PARALLEL -I{} bash \$HOME/bar-sim/run_game.sh \$HOME/$R {} $LIMIT"
 set +e # collecting: a missing file or an empty grep isn't fatal
 rsync -a "$HOST:$R/" "$DIR/remote/" --include='g*/' --include='sctest_out.txt' --include='run.log' --include='exit.txt' --exclude='*'
 for i in $(seq 1 "$N"); do
