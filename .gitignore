@@ -24,3 +24,4 @@ luac.out
 # local games against sub-commanders (play/vs.sh)
 play/*
 !play/vs.sh
+!testenv/arm.sh

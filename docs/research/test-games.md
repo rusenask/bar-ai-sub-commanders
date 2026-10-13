@@ -135,3 +135,16 @@ Reports in `testenv/batch/<dir>/report.md` (gamereport: pace against 26 strong p
   the harness never re-ordered it. The harness now retries the first lab like the later ones.
 - Late fights: cheap raiders (Goblins) were most of the late losses (500 after minute 12 in v1 hard);
   v3 cuts raiders after the opening and mixes the two strongest units of a category.
+
+## Engine v3 (fewer raiders after the opening, the two strongest units of a category mixed)
+
+| Arm | Games | Results | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|
+| 20261013-1400-engine-v3 | 8 | 6 timeout, 2 loss | 31.4k | 72 / 218 | 0.77 | 6.1 | 10.5 | 4.3k |
+| 20261013-1415-engine-v3-hard | 8 | 4 timeout, 4 loss | 34.0k | 43 / 240 | 0.56 | 7.1 | 12 | 4.9k |
+| engine-v2 vs hard, 16 games pooled | 16 | 11 timeout, 5 loss | 41.1k | 61 / 279 | 0.58 | 10.9 | 11.5 | 4.6k |
+| engine-v3 vs hard, 16 games pooled | 16 | 10 timeout, 6 loss | 36.9k | 51 / 236 | 0.54 | 7.1 | 12.5 | 4.1k |
+
+- Against hard the first 8 games read 4 lost vs v2's 2; 8 more of each (same harness) pooled to 16
+  show no difference (6 vs 5 lost, trades 0.54 vs 0.58). Against medium v3 is a little better (72 kills
+  vs 51, trades 0.77). Kept: it matches BARbarian's mix and loses fewer units for the same trades.

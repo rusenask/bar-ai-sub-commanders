@@ -12,8 +12,8 @@ description: Run and judge A/B test batches of BAR games for a sub-commander cha
 - **Widgets are copied at the start of every game.** Editing `widget/LuaUI/Widgets/*.lua` during a batch
   leaks the edit into the remaining games. Run arms from frozen copies:
   ```sh
-  rm -rf /tmp/armA && mkdir -p /tmp/armA && cp -r widget/LuaUI/Widgets widget/LuaUI/Include /tmp/armA/
-  WIDGET_SRC=/tmp/armA/Widgets LABEL=baseline testenv/batch.sh 8
+  WIDGET_SRC=$(testenv/arm.sh mine) LABEL=my-change testenv/batch.sh 8            # the working tree
+  WIDGET_SRC=$(testenv/arm.sh base 310182e) LABEL=baseline testenv/batch.sh 8     # any commit
   ```
   `testenv/LuaUI/Widgets/zz_sctest.lua` (the harness) is live too: don't edit it mid-batch (if you must,
   write a copy, `luac -p` it, then `mv` it in).

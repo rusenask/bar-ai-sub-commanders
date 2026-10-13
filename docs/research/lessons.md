@@ -12,6 +12,9 @@ out wrong.
 - Rules-only play decides most of the outcome against BARbarian; the AI strategist hasn't beaten rules
   only in raw strength (AI-1, AI-2). Measure executor changes with `duelrules`, strategist changes with
   `duel` + `LOCKSTEP=1`.
+- Against hard, two 8-game arms of nearly the same code read 2 vs 4 losses; pooled to 16 each they were
+  equal. Judge small changes on 16+ games, and on trades and losses per game more than on wins.
+  (engine-v2/v3 hard)
 - Offline model accuracy isn't game strength: the fight model (AUC 0.81) gave more kills and more lost
   games. (decision model arm F)
 
