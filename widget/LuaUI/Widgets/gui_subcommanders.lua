@@ -3678,6 +3678,46 @@ function Engine.raidsField(sub)
 	return Engine.raiding(sub)
 end
 
+-- factories and units the player took back stay theirs: never adopted again
+Engine.released, Engine.builtByUs = {}, {}
+
+function Engine.playerRelease(unitID)
+	Engine.released[unitID] = true
+	releaseUnit(unitID)
+end
+
+-- who adopts a factory our constructors built, when a sub-commander at full autonomy is involved: the
+-- Army (it produces), else the builder's own sub-commander; nil = it stays the player's
+function Engine.factoryAdopter(builderSub)
+	local full = (builderSub and builderSub.autonomy == "full")
+	local army
+	for _, s in ipairs(subs) do
+		if s.role == "army" and not s.paused and (not army or s.counts.factories < army.counts.factories) then
+			army = s
+		end
+		full = full or (s.role == "army" and s.autonomy == "full")
+	end
+	if not full then
+		return nil
+	end
+	return (army and army.autonomy == "full" and army) or (builderSub and builderSub.autonomy == "full" and builderSub) or nil
+end
+
+-- every 10 s at full autonomy: our factories that nobody owns (their sub-commander was deleted, or it was
+-- finished before adoption) and that the player didn't release go back to work
+function Engine.adoptFactories()
+	for _, u in ipairs(Spring.GetTeamUnits(myTeam) or {}) do
+		local d = unitDef(u)
+		if d and d.factory and not owner[u] and not Engine.released[u] and Engine.builtByUs[u] then
+			local adopter = Engine.factoryAdopter(nil)
+			if adopter then
+				addUnit(adopter, u, { takeOver = true })
+				log(adopter, "took over the idle " .. d.human .. " (full autonomy)")
+			end
+		end
+	end
+end
+
 -- Raids (armies, on by default): its fast units scout the enemy's side and hit what they beat
 function Engine.setRaids(sub, on)
 	sub.raids = on and true or false
@@ -4529,7 +4569,7 @@ local function exportAPI()
 		end,
 		release = function(unitIDs)
 			for _, u in ipairs(unitIDs) do
-				releaseUnit(u)
+				Engine.playerRelease(u)
 			end
 		end,
 		setRole = function(id, role)
@@ -4788,7 +4828,7 @@ local function textCommand(_, line, words)
 			assignUnits(sub, spGetSelectedUnits())
 		elseif verb == "release" then
 			for _, u in ipairs(spGetSelectedUnits()) do
-				releaseUnit(u)
+				Engine.playerRelease(u)
 			end
 		elseif verb == "zone" then
 			startZoneTool(sub)
@@ -4955,7 +4995,7 @@ local function drawActiveControls(sub, x1, x2, y, s)
 		{ "Release sel.", function()
 			for _, u in ipairs(spGetSelectedUnits()) do
 				if owner[u] == sub then
-					releaseUnit(u)
+					Engine.playerRelease(u)
 				end
 			end
 		end },
@@ -5502,6 +5542,16 @@ function widget:UnitCreated(unitID, unitDefID, unitTeam, builderID)
 			bst.newFactory = nil
 			return
 		end
+		-- full autonomy: factories our constructors build are put to work (the player can release them)
+		local adopter = Engine.factoryAdopter(sub)
+		if adopter then
+			addUnit(adopter, unitID)
+			getState(unitID).graceUntil = math.huge
+			Engine.builtByUs[unitID] = true
+			log(adopter, d.human .. " is being built: I'll produce with it (full autonomy; release it to keep it yours)")
+			return
+		end
+		Engine.builtByUs[unitID] = true
 		log(sub, d.human .. " stays yours: assign it to me if I should produce with it")
 		return
 	end
@@ -6137,6 +6187,7 @@ function widget:GameFrame(n)
 		Player.refreshPriorities()
 	end
 	if n % 300 == 0 then
+		Engine.adoptFactories()
 		Enemy.prune()
 		for _, sub in ipairs(subs) do
 			Engine.updateAutoZones(sub)
