@@ -1090,7 +1090,7 @@ function Jobs.guardTurret(sub, unitID, d, ux, uz)
 		return defs[a].cost < defs[b].cost
 	end)
 	local o = options[1]
-	if not canSpend(sub, defs[o], "essential") then
+	if not canSpend(sub, defs[o], "essential") or not Engine.turretBudget(defs[o].cost) then
 		return false
 	end
 	local t = sub.threats[1]
@@ -2203,6 +2203,9 @@ local BUILDER_PLANS = {
 	economy = function(sub, u, d, x, z)
 		return Jobs.removeMarked(sub, u, d, x, z)
 			or Jobs.guardTurret(sub, u, d, x, z)
+			-- metal piling up with energy to spare: build power first (constructors otherwise always found
+			-- one more contested extractor to try, and a watched game sat on full storage at +90 metal/s)
+			or (econ.mFrac > 0.7 and econ.eFrac > 0.3 and Jobs.buildPower(sub, u, d, x, z))
 			or Jobs.rebuildFactory(sub, u, d, x, z)
 			or Jobs.newFactory(sub, u, d, x, z)
 			or Jobs.earlyRadar(sub, u, d, x, z)
@@ -2417,7 +2420,7 @@ local function pickProduction(sub, facID, fd)
 		local scoutCap = sub.posture == "conserve" and 1 or (sub.posture == "spend" and 4 or 2)
 		if counts.scouts < scoutCap then
 			local options = buildableBy(fd, function(od)
-				return (od.scout or (od.air and not od.armed and not od.transport)) and od.cost <= cap
+				return (od.scout or (od.air and not od.armed and not od.transport and not od.builder)) and od.cost <= cap
 			end)
 			tsort(options, function(a, b)
 				return defs[a].cost < defs[b].cost
