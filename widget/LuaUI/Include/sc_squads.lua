@@ -82,6 +82,27 @@ return function(ctx)
 		return "hold", ratio
 	end
 
+	-- the best target the squad beats: candidates are { x, z, value, kind, id }; a candidate counts only
+	-- where the squad's power is at least `need` (default doctrine.engage.attack) times the threat around it.
+	-- score = value x prefer[kind] / (1 + distance / 1500): worth more, closer, preferred kinds first.
+	-- returns the candidate and its ratio, or nil
+	function S.pickTarget(squad, candidates, frame, opts)
+		opts = opts or {}
+		local need, prefer = opts.need or E.attack, opts.prefer or {}
+		local best, bestScore, bestRatio
+		for _, c in ipairs(candidates) do
+			local ratio = S.ratio(squad, c.x, c.z, frame)
+			if ratio >= need then
+				local d = sqrt((c.x - squad.x) ^ 2 + (c.z - squad.z) ^ 2)
+				local score = c.value * (prefer[c.kind] or 1) / (1 + d / 1500)
+				if not bestScore or score > bestScore then
+					best, bestScore, bestRatio = c, score, ratio
+				end
+			end
+		end
+		return best, bestRatio
+	end
+
 	-- may this squad attack on its own (no threat in our areas, autonomy allows)?
 	function S.canAttack(squad)
 		return squad.together >= E.minAttack

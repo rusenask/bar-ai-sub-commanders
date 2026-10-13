@@ -32,6 +32,11 @@ type autonomyArgs struct {
 	Autonomy string `json:"autonomy" jsonschema:"light | balanced | full"`
 }
 
+type raidsArgs struct {
+	SubID int  `json:"sub_id" jsonschema:"your sub-commander id"`
+	On    bool `json:"on" jsonschema:"true: fast units scout and raid; false: they stay with the army"`
+}
+
 type roleArgs struct {
 	SubID int    `json:"sub_id" jsonschema:"your sub-commander id"`
 	Role  string `json:"role" jsonschema:"economy | defense | airdefense | army | intelligence"`
@@ -258,6 +263,13 @@ func Handler(g *game.Server, guard Guard) http.Handler {
 		Description: "How much you do on your own between reviews. light: only the basics of your role in your zones (no expansion, no factories, turrets only where threats showed up, the army defends its own area). balanced: also expands safely, covers exposed extractors, helps other areas, counter-pushes when clearly stronger. full: also builds factories as income grows, keeps a turret schedule, and the army attacks and raids on its own when the threat map says it wins. The player usually chooses this; change it when their orders ask for more or less initiative.",
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in autonomyArgs) (*mcp.CallToolResult, any, error) {
 		return act(ctx, in.SubID, "set_autonomy", map[string]any{"autonomy": in.Autonomy}, "autonomy set to "+in.Autonomy), nil, nil
+	})
+
+	mcp.AddTool(s, &mcp.Tool{
+		Name:        "set_raids",
+		Description: "Armies only (on by default): the army's fast units form a raid squad that scouts the enemy's side and hits what it beats (constructors, extractors, generators), routing around their defences and coming home when a fight turns. Off: they stay with the army (e.g. when the base needs every unit).",
+	}, func(ctx context.Context, _ *mcp.CallToolRequest, in raidsArgs) (*mcp.CallToolResult, any, error) {
+		return act(ctx, in.SubID, "set_raids", map[string]any{"on": in.On}, fmt.Sprintf("raids on=%v", in.On)), nil, nil
 	})
 
 	mcp.AddTool(s, &mcp.Tool{

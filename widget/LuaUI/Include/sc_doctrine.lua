@@ -28,6 +28,17 @@ D.engage = {
 	raid = { 250, 900 }, -- [min, max] metal value of a raid squad (BARb quota.raid)
 }
 
+-- raids (Army sub-commanders with Raids on): its fast units scout the enemy's side and hit what they beat
+D.raid = {
+	min = 250, -- metal value of raiders needed before they go out (BARb quota.raid min)
+	max = 900, -- the rest of the raiders stay with the main army
+	need = 1.5, -- local power over threat needed to hit a target
+	share = 0.2, -- of the army's units, raiders while Raids is on
+	prefer = { constructor = 3, extractor = 2, generator = 1.5, radar = 1.5, structure = 1, factory = 0.5 },
+	revisit = 30 * 180, -- scouting: a metal spot is worth a look again after this long
+	reroute = 30 * 10, -- recompute the route this often
+}
+
 -- threat map
 D.threat = {
 	cell = 256, -- elmos per cell

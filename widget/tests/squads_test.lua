@@ -60,4 +60,19 @@ return {
 		T.eq(S.retreatAt({ cost = 20 }), nil, "cheap units fight on")
 		T.eq(S.retreatAt({ commander = true, builder = true, cost = 1000 }), 0.6)
 	end,
+	pick_target_skips_what_it_cant_beat = function()
+		local tm = F.map()
+		local S = T.load("sc_squads")({ tm = tm, doctrine = F.doctrine })
+		tm.see(1, 2, 3000, 3000, 0) -- a turret guards the far extractor
+		local raid = S.summarize({ { x = 1000, z = 1000, cost = 200 } })
+		local cands = {
+			{ id = "a", x = 3000, z = 3050, value = 60, kind = "extractor" }, -- guarded: 200 vs 300
+			{ id = "b", x = 2000, z = 1000, value = 60, kind = "extractor" }, -- free
+			{ id = "c", x = 1200, z = 1000, value = 30, kind = "generator" }, -- free, closer, worth less
+		}
+		local t, ratio = S.pickTarget(raid, cands, 0, { prefer = { extractor = 2 } })
+		T.eq(t.id, "b", "the free extractor beats the nearer generator (preferred, worth more)")
+		T.ok(ratio > 100, "nothing there")
+		T.eq(S.pickTarget(raid, { cands[1] }, 0), nil, "the guarded one is out")
+	end,
 }

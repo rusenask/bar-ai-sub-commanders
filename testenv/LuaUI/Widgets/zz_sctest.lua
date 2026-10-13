@@ -15,7 +15,9 @@ local byName = {}
 -- duels against BARbarian: our scripted player (duel = with the AI strategist, duelrules = rules only), or
 -- the Sub-Commanders Autopilot widget playing the team (autopilot; run.sh enables it)
 local isDuel = scenario == "duel" or scenario == "duelrules" or scenario == "autopilot"
-local endFrame = (isDuel and 30 * 60 * 25) or (scenario == "vsai" and 30 * 60 * 9) or (scenario == "ai" and 30 * 60 * 4) or 30 * 60 * 6
+-- duels last DUEL_MINUTES (run.sh writes sctest_minutes.txt; default 25)
+local duelMinutes = tonumber((VFS.LoadFile("sctest_minutes.txt", VFS.RAW) or ""):match("%d+")) or 25
+local endFrame = (isDuel and 30 * 60 * duelMinutes) or (scenario == "vsai" and 30 * 60 * 9) or (scenario == "ai" and 30 * 60 * 4) or 30 * 60 * 6
 local outFile = io and io.open and io.open("sctest_out.txt", "w")
 local function out(...)
 	local parts = { "[" .. Spring.GetGameFrame() .. "]" }

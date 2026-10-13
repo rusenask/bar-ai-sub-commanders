@@ -66,6 +66,9 @@ type Sub struct {
 	AutoZones bool   `json:"autoZones,omitempty"`
 	// an army's current decision about its target (engage / regroup / hold / fallback)
 	Squad *Squad `json:"squad,omitempty"`
+	// armies: whether its fast units raid (on by default), and what the raid squad is doing
+	Raids *bool           `json:"raids,omitempty"`
+	Raid  json.RawMessage `json:"raid,omitempty"`
 	// what the player's own constructors queue and how many of their units are in this sub's zones
 	PlayerActivity json.RawMessage `json:"playerActivity,omitempty"`
 	UnitCount      int             `json:"unitCount"`

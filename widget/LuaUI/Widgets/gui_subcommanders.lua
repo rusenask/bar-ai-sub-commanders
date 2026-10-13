@@ -2107,7 +2107,8 @@ function Engine.economyProduction(sub, facID, fd, cap)
 		st.openingPending = defID ~= nil
 	end
 	if not defID then
-		defID, cat = Engine.prod.pick(fd.options, have, income, kinds, { cap = cap, combatOnly = counts.builders >= target })
+		local raider = feed and counts.builders >= 2 and Engine.raidNeed(feed) and "raider" or nil
+		defID, cat = Engine.prod.pick(fd.options, have, income, kinds, { cap = cap, combatOnly = counts.builders >= target or raider ~= nil, category = raider })
 	end
 	if not defID then
 		return nil, "nothing affordable"
@@ -2127,13 +2128,26 @@ function Engine.economyProduction(sub, facID, fd, cap)
 	return defID, step and "opening" or "guard"
 end
 
+-- Raids on: keep about doctrine.raid.share of the army's units raiders (at least enough for one squad)
+function Engine.raidNeed(army)
+	if not Engine.raiding(army) then
+		return false
+	end
+	-- enough raider metal for a raid squad (doctrine.raid.min, with spare for losses), and their share
+	local R = Engine.D.raid
+	local power = (army.counts.catPower or {}).raider or 0
+	local raiders = (army.counts.cats or {}).raider or 0
+	return power < R.min * 1.5 or raiders < R.share * army.counts.combat
+end
+
 -- an Army's own labs: the income tier's mix, moved toward what counters the enemy (sc_production.lua)
 function Engine.armyProduction(sub, fd, cap)
 	local p = POSTURE_INFO[sub.posture]
 	if sub.counts.combat >= p.army * 3 * (econ.mFrac > 0.8 and 2 or 1) then
 		return nil, "at unit cap"
 	end
-	local defID = Engine.prod.pick(fd.options, sub.counts.cats or {}, max(econ.mInc, 0), Enemy.mix().kinds, { cap = cap, combatOnly = true })
+	local defID = Engine.prod.pick(fd.options, sub.counts.cats or {}, max(econ.mInc, 0), Enemy.mix().kinds,
+		{ cap = cap, combatOnly = true, category = Engine.raidNeed(sub) and "raider" or nil })
 	if not defID then
 		return nil, "nothing affordable"
 	end
@@ -2804,20 +2818,19 @@ local function turretSupport(x, z, r)
 	return v
 end
 
--- full autonomy: the nearest enemy group (threat map memory) the squad beats, preferring ones with few
--- defences (expansions, raiders)
+-- full autonomy: what the army goes for on its own, among what it beats (doctrine.engage.attack):
+-- their factories and economy (what wins games) and their armed groups (threat map memory)
+local ATTACK_PREFER = { factory = 3, extractor = 1.5, generator = 1.2, constructor = 1, radar = 1, structure = 1, army = 0.6 }
+
 function Tactics.attackTarget(sub, sq)
-	local best, bestScore
+	local cands = Engine.raidCandidates()
 	for _, g in ipairs(Engine.tm.groups(frame, 8)) do
-		local action = Engine.squads.decide(sq, g.x, g.z, frame, {})
-		if action == "engage" or action == "regroup" then
-			local score = sqrt(dist2(sq.x, sq.z, g.x, g.z)) + g.static * 2
-			if not bestScore or score < bestScore then
-				best, bestScore = { id = "group:" .. floor(g.x / 512) .. ":" .. floor(g.z / 512), x = g.x, z = g.z, name = sformat("enemy group (%d metal)", g.power) }, score
-			end
-		end
+		cands[#cands + 1] = { id = "group:" .. floor(g.x / 512) .. ":" .. floor(g.z / 512), x = g.x, z = g.z, value = g.power, kind = "army", name = sformat("%d metal", g.power) }
 	end
-	return best
+	local t = Engine.squads.pickTarget(sq, cands, frame, { prefer = ATTACK_PREFER })
+	if t then
+		return { id = t.id, x = t.x, z = t.z, name = "enemy " .. t.kind .. " (" .. t.name .. ")" }
+	end
 end
 
 local ACTION_TEXT = {
@@ -2826,6 +2839,138 @@ local ACTION_TEXT = {
 	hold = "holding: %s is too strong here (%.1fx)",
 	fallback = "falling back from %s (%.1fx)",
 }
+
+-- raids: is this an Army with Raids on (the default)?
+function Engine.raiding(sub)
+	return sub.role == "army" and sub.raids ~= false
+end
+
+-- what a raid can go for: enemy structures we know (not their defences) and constructors seen lately
+function Engine.raidCandidates()
+	local list = {}
+	for u, e in pairs(Enemy.units) do
+		local d = defs[e.defID]
+		local age = frame - e.last
+		local kind
+		if not d.mobile then
+			if age < 30 * 600 and not d.staticDef then
+				kind = (d.mex > 0 and "extractor") or (d.energy > 0 and "generator") or (d.factory and "factory") or (d.intelStructure and "radar") or "structure"
+			end
+		elseif d.builder and not d.commander and age < 30 * 20 then
+			kind = "constructor"
+		end
+		if kind then
+			list[#list + 1] = { id = u, x = e.x, z = e.z, value = max(d.cost, 30), kind = kind, name = d.human }
+		end
+	end
+	return list
+end
+
+-- scouting: the nearest metal spot on the enemy's side that nobody of ours has seen lately
+function Engine.explorePoint(x, z)
+	local spots = metalSpots()
+	if not spots or not Engine.homeX then
+		return nil
+	end
+	Engine.visited = Engine.visited or {}
+	local ex, ez = Engine.enemyX or MAP_X / 2, Engine.enemyZ or MAP_Z / 2
+	local best, bestD
+	for i, sp in ipairs(spots) do
+		if dist2(sp.x, sp.z, ex, ez) < dist2(sp.x, sp.z, Engine.homeX, Engine.homeZ) and frame - (Engine.visited[i] or -99999) > Engine.D.raid.revisit
+			and not Spring.IsPosInLos(sp.x, 0, sp.z, myAlly) then
+			local dd = dist2(x, z, sp.x, sp.z)
+			if not bestD or dd < bestD then
+				best, bestD = i, dd
+			end
+		end
+	end
+	return best and spots[best], best
+end
+
+-- the raid squad, once per combat pass: who's in it, where it goes, and when it comes home
+function Tactics.raid(sub)
+	if not Engine.raiding(sub) then
+		sub.raidOrder, sub.raidSquad = nil, nil
+		for u in pairs(sub.units) do
+			if ustate[u] then
+				ustate[u].raid = nil
+			end
+		end
+		return
+	end
+	local R = Engine.D.raid
+	local raiders = {}
+	for u in pairs(sub.units) do
+		local d = unitDef(u)
+		local st = ustate[u]
+		if st then
+			st.raid = nil
+		end
+		if d and Engine.prod.category(d) == "raider" and not spGetUnitIsBeingBuilt(u) and not (st and (st.retreating or st.manual)) then
+			local x, _, z = spGetUnitPosition(u)
+			if x then
+				raiders[#raiders + 1] = { id = u, x = x, z = z, cost = d.cost }
+			end
+		end
+	end
+	local members, power = {}, 0
+	for _, m in ipairs(raiders) do
+		if power + m.cost <= R.max then
+			members[#members + 1] = m
+			power = power + m.cost
+		end
+	end
+	if power < R.min then
+		-- not enough to go out yet: they stay with the army
+		sub.raidOrder, sub.raidSquad = nil, nil
+		return
+	end
+	for _, m in ipairs(members) do
+		getState(m.id).raid = true
+	end
+	local S = Engine.squads
+	local rs = S.summarize(members)
+	sub.raidSquad = rs
+	-- scouting: spots our raid has seen
+	local spots = metalSpots()
+	if spots then
+		Engine.visited = Engine.visited or {}
+		for i, sp in ipairs(spots) do
+			if dist2(rs.x, rs.z, sp.x, sp.z) < 500 * 500 then
+				Engine.visited[i] = frame
+			end
+		end
+	end
+	local prev = sub.raidOrder
+	local action, tx, tz, name, id
+	if prev and prev.action ~= "retreat" and S.ratio(rs, rs.x, rs.z, frame) < Engine.D.engage.hold then
+		action, tx, tz, name, id = "retreat", sub.rallyX or Engine.homeX, sub.rallyZ or Engine.homeZ, "home", "home"
+	elseif prev and prev.action == "retreat" and dist2(rs.x, rs.z, prev.x, prev.z) > 600 * 600 then
+		return -- still on the way home
+	else
+		local t = S.pickTarget(rs, Engine.raidCandidates(), frame, { need = R.need, prefer = R.prefer })
+		if t then
+			action, tx, tz, name, id = "raid", t.x, t.z, "enemy " .. t.kind .. " (" .. t.name .. ")", t.id
+		else
+			local sp, i = Engine.explorePoint(rs.x, rs.z)
+			if sp then
+				action, tx, tz, name, id = "explore", sp.x, sp.z, "metal spot", "spot:" .. i
+			end
+		end
+	end
+	if not action then
+		sub.raidOrder = nil
+		return
+	end
+	if prev and prev.id == id and prev.action == action and frame - prev.frame < R.reroute then
+		return
+	end
+	local route = Engine.path.route(rs.x, rs.z, tx, tz, { avoid = 8 })
+	sub.raidOrder = { action = action, id = id, x = tx, z = tz, route = route, frame = frame, seq = ((prev and prev.seq) or 0) + 1 }
+	if not prev or prev.id ~= id or prev.action ~= action then
+		log(sub, sformat("raid: %s %s at %d,%d", action == "raid" and "going for" or (action == "explore" and "scouting" or "pulling back"), name, tx, tz))
+	end
+end
 
 -- the army as one squad (sc_squads.lua), once per combat pass: where its main body is, what it goes for,
 -- and whether to engage, regroup, hold or fall back
@@ -2837,7 +2982,7 @@ function Tactics.squad(sub)
 	for u in pairs(sub.units) do
 		local d = unitDef(u)
 		local st = ustate[u]
-		if d and d.combat and not d.aaOnly and not d.air and not spGetUnitIsBeingBuilt(u) and not (st and (st.retreating or st.manual)) then
+		if d and d.combat and not d.aaOnly and not d.air and not spGetUnitIsBeingBuilt(u) and not (st and (st.retreating or st.manual or st.raid)) then
 			local x, _, z = spGetUnitPosition(u)
 			if x then
 				members[#members + 1] = { id = u, x = x, z = z, cost = d.cost }
@@ -2928,6 +3073,21 @@ local function thinkCombat(sub, unitID, d, st, threats)
 		end
 	end
 	local busy = (spGetUnitCommandCount(unitID) or 0) > 0
+	-- raid squad members follow the raid's route (Tactics.raid)
+	local ro = sub.raidOrder
+	if st.raid and ro then
+		if st.raidSeq ~= ro.seq or not busy then
+			local route = ro.route or { { x = ro.x, z = ro.z } }
+			for i = 1, #route - 1 do
+				order(unitID, CMD.MOVE, { route[i].x, spGetGroundHeight(route[i].x, route[i].z), route[i].z }, i > 1 and { "shift" } or nil)
+			end
+			local last = route[#route]
+			order(unitID, ro.action == "retreat" and CMD.MOVE or CMD.FIGHT, { last.x, spGetGroundHeight(last.x, last.z), last.z }, #route > 1 and { "shift" } or nil)
+			st.raidSeq = ro.seq
+			setTask(unitID, "raid", ro.action == "raid" and "raiding" or (ro.action == "explore" and "scouting" or "raid coming home"), true)
+		end
+		return
+	end
 	-- the army acts as one squad (Tactics.squad)
 	if sub.role == "army" and not d.aaOnly and not d.air then
 		local so, sq = sub.squadOrder, sub.squad
@@ -3182,6 +3342,20 @@ function Engine.setAutonomy(sub, level)
 	return true
 end
 
+-- for the report: true / false for armies, absent for other roles
+function Engine.raidsField(sub)
+	if sub.role ~= "army" then
+		return nil
+	end
+	return Engine.raiding(sub)
+end
+
+-- Raids (armies, on by default): its fast units scout the enemy's side and hit what they beat
+function Engine.setRaids(sub, on)
+	sub.raids = on and true or false
+	log(sub, on and "raids on: fast units scout and raid" or "raids off: all units stay with the army")
+end
+
 -- auto zones: recomputed from the base, the enemy's direction, exposed extractors and the army's rally
 function Engine.updateAutoZones(sub)
 	if not sub.autoZones or not Engine.homeX then
@@ -3245,7 +3419,7 @@ end
 --------------------------------------------------------------------------------
 
 local function updateCounts(sub)
-	local c = { builders = 0, factories = 0, combat = 0, nanos = 0, statics = 0, total = 0, scouts = 0, intelUnits = 0, power = 0, cats = {} }
+	local c = { builders = 0, factories = 0, combat = 0, nanos = 0, statics = 0, total = 0, scouts = 0, intelUnits = 0, power = 0, cats = {}, catPower = {} }
 	local spendM, spendE = 0, 0
 	local sx, sz, sn = 0, 0, 0
 	for u in pairs(sub.units) do
@@ -3255,6 +3429,7 @@ local function updateCounts(sub)
 			local cat = Engine.prod.category(d)
 			if cat then
 				c.cats[cat] = (c.cats[cat] or 0) + 1
+				c.catPower[cat] = (c.catPower[cat] or 0) + d.cost
 			end
 			if d.scout or (d.air and not d.armed and not d.transport) then
 				c.scouts = c.scouts + 1
@@ -3640,6 +3815,8 @@ local function summarize(sub)
 		posture = sub.posture,
 		autonomy = sub.autonomy or "balanced",
 		autoZones = sub.autoZones or false,
+		raids = Engine.raidsField(sub),
+		raid = sub.raidOrder and { action = sub.raidOrder.action, target = { x = floor(sub.raidOrder.x), z = floor(sub.raidOrder.z) } } or nil,
 		squad = sub.squadOrder and { action = sub.squadOrder.action, ratio = floor(sub.squadOrder.ratio * 10) / 10, target = { x = floor(sub.squadOrder.x), z = floor(sub.squadOrder.z) } } or nil,
 		paused = sub.paused,
 		ai = sub.ai or false,
@@ -4034,6 +4211,12 @@ local function exportAPI()
 			local sub = findSub(id)
 			return sub and Engine.setAutonomy(sub, level) or false
 		end,
+		setRaids = function(id, on)
+			local sub = findSub(id)
+			if sub then
+				Engine.setRaids(sub, on)
+			end
+		end,
 		clearZones = function(id)
 			local sub = findSub(id)
 			if sub then
@@ -4127,6 +4310,7 @@ local HELP = {
 	"  clearzones [id]  remove the drawn zones: back to automatic zones by role",
 	"  role <role> [id] / posture <conserve|balanced|spend> [id]",
 	"  autonomy <light|balanced|full> [id]   how much it does on its own",
+	"  raids <on|off> [id]   an army's fast units scout and raid (on by default)",
 	"  focus [id]       factory produces only the selected unit types (none selected = automatic)",
 	"  pause [id] / resume [id] / delete [id] / select [id] / list",
 	"  tell [id] <orders>   standing orders in plain words for its AI strategist (empty = clear)",
@@ -4231,7 +4415,7 @@ local function textCommand(_, line, words)
 		end
 	else
 		local sub
-		if verb == "role" or verb == "posture" or verb == "ai" or verb == "autonomy" then
+		if verb == "role" or verb == "posture" or verb == "ai" or verb == "autonomy" or verb == "raids" then
 			sub = target(3)
 		elseif verb == "tell" then
 			sub = tonumber(words[2]) and findSub(tonumber(words[2])) or activeSub
@@ -4252,6 +4436,8 @@ local function textCommand(_, line, words)
 			startZoneTool(sub)
 		elseif verb == "clearzones" or verb == "autozones" then
 			Engine.useAutoZones(sub)
+		elseif verb == "raids" then
+			Engine.setRaids(sub, words[2] ~= "off")
 		elseif verb == "autonomy" then
 			if not Engine.setAutonomy(sub, words[2] or "") then
 				spEcho("Sub-Commanders: autonomy is light, balanced or full")
@@ -4438,11 +4624,17 @@ local function drawActiveControls(sub, x1, x2, y, s)
 	}, fs)
 	y = y - h - 4 * s
 	local AL = Engine.D.autonomy
-	buttonRow(x1, x2, y, h, s, {
+	local row = {
 		{ "Autonomy: " .. AL.labels[sub.autonomy or "balanced"], function(button)
 			Engine.setAutonomy(sub, cycle(AL.levels, sub.autonomy or "balanced", button == 3 and -1 or 1))
 		end, (sub.autonomy == "full") and { 0.55, 1, 0.6 } or nil },
-	}, fs)
+	}
+	if sub.role == "army" then
+		row[2] = { Engine.raiding(sub) and "Raids: on" or "Raids: off", function()
+			Engine.setRaids(sub, not Engine.raiding(sub))
+		end, Engine.raiding(sub) and { 1, 0.75, 0.4 } or nil }
+	end
+	buttonRow(x1, x2, y, h, s, row, fs)
 	y = y - h - 4 * s
 	local drawing = zoneTool and zoneTool.sub == sub
 	buttonRow(x1, x2, y, h, s, {
@@ -5322,6 +5514,7 @@ function widget:GameFrame(n)
 	if combatPass then
 		for _, sub in ipairs(subs) do
 			Tactics.updatePush(sub)
+			Tactics.raid(sub)
 			Tactics.squad(sub)
 		end
 	end
@@ -5352,7 +5545,7 @@ local function serialize()
 				focus[#focus + 1] = defs[defID].name
 			end
 		end
-		out[#out + 1] = { id = sub.id, name = sub.name, role = sub.role, posture = sub.posture, paused = sub.paused, zones = not sub.autoZones and sub.zones or {}, autoZones = sub.autoZones or false, autonomy = sub.autonomy, colorIndex = sub.colorIndex, units = units, focus = focus, ai = sub.ai, directive = sub.directive }
+		out[#out + 1] = { id = sub.id, name = sub.name, role = sub.role, posture = sub.posture, paused = sub.paused, zones = not sub.autoZones and sub.zones or {}, autoZones = sub.autoZones or false, autonomy = sub.autonomy, raids = sub.raids, colorIndex = sub.colorIndex, units = units, focus = focus, ai = sub.ai, directive = sub.directive }
 	end
 	return out
 end
@@ -5381,6 +5574,7 @@ local function restore(game)
 			sub.autoZones = #sub.zones == 0
 		end
 		sub.autonomy = Engine.D.autonomy[s.autonomy or ""] and s.autonomy or "balanced"
+		sub.raids = s.raids
 		sub.colorIndex = s.colorIndex or sub.colorIndex
 		sub.color = PALETTE[sub.colorIndex] or sub.color
 		for _, pair in ipairs(s.units or {}) do

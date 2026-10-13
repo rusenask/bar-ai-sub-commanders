@@ -28,6 +28,8 @@ cp "${WIDGET_SRC:-$T/../widget/LuaUI/Widgets}"/../Include/sc_*.lua "$T/LuaUI/Inc
 # SPEED=10 runs the game that fast (as far as the machine keeps up); LOCKSTEP=1 pauses it while the
 # AI strategist is thinking, so it sees the game as often as at normal speed
 echo "${SPEED:-} ${LOCKSTEP:-0}" > "$T/sctest_speed.txt"
+# DUEL_MINUTES=40 lets duels run longer than the default 25 minutes
+echo "${DUEL_MINUTES:-25}" > "$T/sctest_minutes.txt"
 cd "$T"
 # fresh widget state each run: re-enable and forget saved sub-commanders
 python3 - "$T/LuaUI/Config/BYAR.lua" <<'PY'

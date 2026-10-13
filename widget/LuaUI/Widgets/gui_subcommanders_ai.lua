@@ -181,6 +181,11 @@ local function apply(msg)
 			return nil, "posture must be conserve, balanced or spend"
 		end
 		sc.setPosture(sub.id, args.posture)
+	elseif op == "set_raids" then
+		if not sc.setRaids then
+			return nil, "raids aren't available in this widget version"
+		end
+		sc.setRaids(sub.id, args.on and true or false)
 	elseif op == "set_autonomy" then
 		if not (sc.setAutonomy and sc.setAutonomy(sub.id, args.autonomy)) then
 			return nil, "autonomy must be light, balanced or full"
