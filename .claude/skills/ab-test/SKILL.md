@@ -30,6 +30,9 @@ make compare ARMS="testenv/batch/<date>-baseline testenv/batch/<date>-my-change"
 ```
 
 Each batch prints a line per game, the summary and its findings. About 2 minutes per game at 15x.
+`BATCH_SCENARIO=autopilot` lets the Sub-Commanders Autopilot widget play instead of the harness's scripted
+player (`MAP`, and the faction in `testenv/script_vsai.txt`, as needed); self-play against our own bot:
+`HOST_DIR=testenv SCENARIO=duelrules YOU=Legion BOT=Cortex play/vs.sh` (the host's log is the harness log).
 Strategist arms: `BATCH_SCENARIO=duel LOCKSTEP=1 SPEED=10` and a running `make test-bridge`.
 
 ## Judging

@@ -12,7 +12,9 @@ local startOffset -- frame our commander appeared (scenario time 0)
 local SC
 local ids = {}
 local byName = {}
-local isDuel = scenario == "duel" or scenario == "duelrules"
+-- duels against BARbarian: our scripted player (duel = with the AI strategist, duelrules = rules only), or
+-- the Sub-Commanders Autopilot widget playing the team (autopilot; run.sh enables it)
+local isDuel = scenario == "duel" or scenario == "duelrules" or scenario == "autopilot"
 local endFrame = (isDuel and 30 * 60 * 25) or (scenario == "vsai" and 30 * 60 * 9) or (scenario == "ai" and 30 * 60 * 4) or 30 * 60 * 6
 local outFile = io and io.open and io.open("sctest_out.txt", "w")
 local function out(...)
@@ -121,12 +123,13 @@ local function sampleStalls()
 end
 
 function widget:UnitDestroyed(unitID, unitDefID, unitTeam, attackerID, attackerDefID, attackerTeam)
-	if not (scenario == "duel" or scenario == "duelrules") or not startOffset then
+	if not isDuel or not startOffset then
 		return
 	end
 	local d = kinds[unitDefID]
+	-- enemies: every one that dies where we can see it (widgets rarely get the attacker of an enemy unit)
 	local mine = unitTeam == myTeam
-	if not d or (not mine and not (attackerTeam == myTeam)) then
+	if not d or (not mine and Spring.AreTeamsAllied(unitTeam, myTeam)) then
 		return
 	end
 	local x, _, z = Spring.GetUnitPosition(unitID)
@@ -254,7 +257,34 @@ local function duelResult(why)
 	Spring.SendCommands("screenshot png", "quitforce")
 end
 
+-- what every duel logs and checks, whoever plays
+local function duelWatch(n)
+	if n % 30 == 0 then
+		sampleStalls()
+	end
+	if n % (30 * 60) == 0 then
+		out(string.format("value: army us=%.0f  units us=%d", armyValue(myTeam), #Spring.GetTeamUnits(myTeam)))
+		if n > 0 then
+			ecoLine(n)
+		end
+	end
+	-- commanders can spawn a few frames in: only a team that had units can have lost them
+	local count = #Spring.GetTeamUnits(myTeam)
+	duelState.hadUnits = duelState.hadUnits or count > 0
+	if duelState.hadUnits and count == 0 then
+		duelResult("LOSS (no units left)")
+	end
+end
+
 local function duel(n)
+	if scenario == "autopilot" then
+		if n == 12 then
+			Spring.SendCommands("setmaxspeed 20", "setspeed 3")
+			out("scenario autopilot")
+		end
+		duelWatch(n)
+		return
+	end
 	local ai = scenario == "duel"
 	if n == 12 then
 		Spring.SendCommands("setmaxspeed 20", "setspeed 3")
@@ -407,21 +437,7 @@ local function duel(n)
 			duelState.labOrdered = nil
 		end
 	end
-	if n % 30 == 0 then
-		sampleStalls()
-	end
-	if n % (30 * 60) == 0 then
-		out(string.format("value: army us=%.0f  units us=%d", armyValue(myTeam), #Spring.GetTeamUnits(myTeam)))
-		if n > 0 then
-			ecoLine(n)
-		end
-	end
-	-- commanders can spawn a few frames in: only a team that had units can have lost them
-	local count = #Spring.GetTeamUnits(myTeam)
-	duelState.hadUnits = duelState.hadUnits or count > 0
-	if duelState.hadUnits and count == 0 then
-		duelResult("LOSS (no units left)")
-	end
+	duelWatch(n)
 end
 
 function widget:GameOver(winners)
@@ -678,7 +694,7 @@ local function gameFrame(n)
 			SC.assign(ids.aa, { ck[3] })
 		end
 	end
-	if scenario == "duel" or scenario == "duelrules" then
+	if isDuel then
 		duel(n)
 	end
 	if scenario == "intel" then

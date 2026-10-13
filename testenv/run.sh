@@ -22,6 +22,8 @@ fi
 cp "${WIDGET_SRC:-$T/../widget/LuaUI/Widgets}"/gui_subcommanders*.lua "$T/LuaUI/Widgets/"
 mkdir -p "$T/LuaUI/Include"
 cp "${WIDGET_SRC:-$T/../widget/LuaUI/Widgets}"/../Include/sc_*.lua "$T/LuaUI/Include/" 2>/dev/null || cp "$T"/../widget/LuaUI/Include/sc_*.lua "$T/LuaUI/Include/"
+# the autopilot scenario plays the team with the Sub-Commanders Autopilot widget (off by default)
+[ "$3" = autopilot ] && sed -i '' 's/enabled = false,/enabled = true,/' "$T/LuaUI/Widgets/gui_subcommanders_autopilot.lua"
 [ -n "$3" ] && echo "$3" > "$T/sctest_scenario.txt"
 # SPEED=10 runs the game that fast (as far as the machine keeps up); LOCKSTEP=1 pauses it while the
 # AI strategist is thinking, so it sees the game as often as at normal speed
@@ -37,6 +39,8 @@ except FileNotFoundError:
     sys.exit()
 s = re.sub(r'\n\t\t\["Sub-Commanders"\] = \{.*?\n\t\t\},', '', s, flags=re.S)
 s = re.sub(r'\["Sub-Commanders"\] = 0,', '["Sub-Commanders"] = 1001,', s)
+# the autopilot's enabled state comes from the widget file (run.sh enables it for its scenario only)
+s = re.sub(r'\n\s*\["Sub-Commanders Autopilot"\] = \d+,', '', s)
 open(p, "w").write(s)
 PY
 SPRING_DATADIR="$RES:$BAR" BAR_INFOLOG="$T/infolog.txt" perl -e 'alarm shift; exec @ARGV' "${2:-300}" \

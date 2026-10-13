@@ -2,7 +2,7 @@ BAR_DIR ?= $(HOME)/Library/Application Support/Beyond-All-Reason-mac
 MODEL ?= lightning/deepseek-v4.1-flash
 BAR_REF ?= 8247b61
 
-.PHONY: build install run up down restart logs test-game test-batch test-bridge report compare benchmarks decider-deploy decider-eval ref lint
+.PHONY: build install run up down restart logs test-game test-batch test-bridge play-vs report compare benchmarks decider-deploy decider-eval ref lint
 
 build:
 	go build -o bin/scbridge ./cmd/scbridge
@@ -47,6 +47,11 @@ test-game:
 GAMES ?= 3
 test-batch:
 	LABEL="$(LABEL)" AI_PROFILE=$(or $(AI_PROFILE),medium) MAP="$(MAP)" SPEED=$(or $(SPEED),15) LOCKSTEP=$(LOCKSTEP) testenv/batch.sh $(GAMES) $(or $(BATCH_SCENARIO),duelrules) script_vsai.txt
+
+# play a local 1v1 against sub-commanders (a second BAR window joins as the bot):
+# make play-vs YOU=Armada BOT=Legion MAP="..." BOT_AI=1 BARB=ally:hard
+play-vs:
+	MAP="$(MAP)" YOU="$(YOU)" BOT="$(BOT)" BOT_AI="$(BOT_AI)" BARB="$(BARB)" play/vs.sh
 
 # analyse games: make report (the latest batch), make report BATCH=testenv/batch/<dir>, or a single log
 report:

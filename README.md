@@ -109,6 +109,30 @@ Everything also works as text commands: `/luaui sc help`, `sc new defense`, `sc 
 
 Standing orders for the AI strategist can also be typed in chat: see [Orders from chat](#orders-from-chat).
 
+### Autopilot, and playing against sub-commanders
+
+The **Sub-Commanders Autopilot** widget (off by default; enable it in the widget list) plays the whole team
+through sub-commanders: it builds the first lab, then creates Economy, Defense, Army (with a second lab),
+Air Defense and Intelligence, gives each standing orders and adds labs when metal piles up. Enabled
+mid-game it takes over what you have. `/luaui autopilot ai` turns the AI strategist on for its
+sub-commanders, `/luaui autopilot rules` off.
+
+To play **against** sub-commanders on your machine (macOS):
+
+```sh
+make install                                  # your BAR gets the current widgets
+make play-vs YOU=Armada BOT=Legion            # MAP="...", BARB=ally:hard or enemy:hard, BOT_AI=1
+```
+
+Your BAR hosts a 1v1 and a second, small BAR window joins as the bot player, whose team the autopilot runs
+(`play/bot/` is its separate write dir). `BOT_AI=1` lets the bot's sub-commanders use the AI strategist
+through the test bridge (`make test-bridge` first). `BARB` adds a BARbarian AI to either side. Both
+windows run the full game, so expect it to be heavier than a normal skirmish.
+
+How strong is it? Rules-only sub-commanders survive BARbarian medium most of the time but haven't beaten
+it yet, and lose to hard (see [docs/research/test-games.md](docs/research/test-games.md)). Every
+improvement to the sub-commanders makes the bot stronger too.
+
 <br clear="right">
 
 ## 3. Set up the AI strategist locally

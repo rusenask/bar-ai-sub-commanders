@@ -21,3 +21,6 @@ ref/
 secrets/
 testenv/springsettings.cfg
 luac.out
+# local games against sub-commanders (play/vs.sh)
+play/*
+!play/vs.sh
