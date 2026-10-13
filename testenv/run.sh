@@ -54,8 +54,8 @@ cp "${WIDGET_SRC:-$T/../widget/LuaUI/Widgets}"/../Include/sc_*.lua "$W/LuaUI/Inc
 # SPEED=10 runs the game that fast (as far as the machine keeps up); LOCKSTEP=1 pauses it while the
 # AI strategist is thinking, so it sees the game as often as at normal speed
 echo "${SPEED:-} ${LOCKSTEP:-0}" > "$W/sctest_speed.txt"
-# DUEL_MINUTES=40 lets duels run longer than the default 25 minutes
-echo "${DUEL_MINUTES:-25}" > "$W/sctest_minutes.txt"
+# duels last DUEL_MINUTES (default 45: at 25 most games were still going)
+echo "${DUEL_MINUTES:-45}" > "$W/sctest_minutes.txt"
 cd "$W"
 # fresh widget state each run: re-enable and forget saved sub-commanders
 python3 - "$W/LuaUI/Config/BYAR.lua" <<'PY'
@@ -73,7 +73,7 @@ open(p, "w").write(s)
 PY
 # wall-clock limit: twice the game at the requested speed plus loading, unless given
 SPEEDX="${SPEED:-3}"
-LIMIT="${2:-$(( ${DUEL_MINUTES:-25} * 60 * 2 / SPEEDX + 180 ))}"
+LIMIT="${2:-$(( ${DUEL_MINUTES:-45} * 60 * 2 / SPEEDX + 180 ))}"
 [ "${LOCKSTEP:-0}" = 1 ] && [ -z "$2" ] && LIMIT=$((LIMIT * 4))
 STALL="${STALL:-$([ "${LOCKSTEP:-0}" = 1 ] && echo 600 || echo 120)}"
 SPRING_DATADIR="$RES:$BAR" BAR_INFOLOG="$W/infolog.txt" perl -e 'alarm shift; exec @ARGV' "$LIMIT" \
@@ -82,8 +82,16 @@ pid=$!
 # watchdog: the harness writes a line at least every 30 game seconds; nothing new for STALL seconds
 # (once the game has started) means it hung
 stalled=0
+launched=$(date +%s)
 while kill -0 "$pid" 2>/dev/null; do
 	sleep 5
+	# loading hangs too (seen with several games loading at once): no harness output within LOADMAX
+	if [ ! -f "$W/sctest_out.txt" ] && [ $(( $(date +%s) - launched )) -gt "${LOADMAX:-150}" ]; then
+		echo "stalled: the game didn't start within ${LOADMAX:-150}s" >> "$W/run.log"
+		kill "$pid" 2>/dev/null
+		stalled=1
+		break
+	fi
 	if [ -f "$W/sctest_out.txt" ]; then
 		age=$(( $(date +%s) - $(stat -f %m "$W/sctest_out.txt") ))
 		if [ "$age" -gt "$STALL" ]; then

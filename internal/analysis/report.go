@@ -9,7 +9,7 @@ import (
 )
 
 // PaceMinutes are the minutes the report compares economies at.
-var PaceMinutes = []int{3, 5, 8, 10, 12, 15, 20}
+var PaceMinutes = []int{3, 5, 8, 10, 12, 15, 20, 25, 30, 40}
 
 // Finding is a weakness worth working on, most severe first.
 type Finding struct {
@@ -367,12 +367,17 @@ type Arm struct {
 
 // Compare writes a side-by-side table of test arms.
 func Compare(w io.Writer, arms []Arm) {
-	fmt.Fprintln(w, "| Arm | Games | Results | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 min | Army at 12 min |")
-	fmt.Fprintln(w, "|---|---|---|---|---|---|---|---|---|")
+	fmt.Fprintln(w, "| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 min | Army at 12 min |")
+	fmt.Fprintln(w, "|---|---|---|---|---|---|---|---|---|---|")
 	for _, a := range arms {
 		var metal, killed, died, dealt, taken, builders float64
+		lost25 := 0
 		for _, g := range a.Games {
 			s := Summarize(g)
+			// comparable across game lengths (older arms ran 25 minutes)
+			if g.Result == "LOSS" && g.Seconds <= 25*60 {
+				lost25++
+			}
 			metal += s.Metal
 			killed += s.Killed
 			died += s.Died
@@ -396,7 +401,7 @@ func Compare(w io.Writer, arms []Arm) {
 			}
 			return fmtNum(v)
 		}
-		fmt.Fprintf(w, "| %s | %d | %s | %s | %.0f / %.0f | %.2f | %.1f | %s | %s |\n", a.Label, len(a.Games), resultCounts(a.Games),
+		fmt.Fprintf(w, "| %s | %d | %s | %d | %s | %.0f / %.0f | %.2f | %.1f | %s | %s |\n", a.Label, len(a.Games), resultCounts(a.Games), lost25,
 			fmtNum(metal/n), killed/n, died/n, ratio, builders/n, cell(mex, haveMex), cell(army, haveArmy))
 	}
 }

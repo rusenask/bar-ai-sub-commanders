@@ -12,7 +12,8 @@ T="$(cd "$(dirname "$0")" && pwd)"
 N="${1:-3}"
 SCENARIO="${2:-duelrules}"
 SCRIPT="${3:-script_vsai.txt}"
-export AI_PROFILE="${AI_PROFILE:-medium}" SPEED="${SPEED:-15}" LOCKSTEP="${LOCKSTEP:-0}" MAP="${MAP:-}" DUEL_MINUTES="${DUEL_MINUTES:-25}"
+# 45 game minutes by default: at 25 most games were still going (nobody can win that fast)
+export AI_PROFILE="${AI_PROFILE:-medium}" SPEED="${SPEED:-15}" LOCKSTEP="${LOCKSTEP:-0}" MAP="${MAP:-}" DUEL_MINUTES="${DUEL_MINUTES:-45}"
 WORKERS="${WORKERS:-$([ "$SCENARIO" = duel ] && echo 1 || echo 3)}"
 [ "$SCENARIO" = duel ] && WORKERS=1
 DIR="$T/batch/$(date +%Y%m%d-%H%M)-${LABEL:-$SCENARIO}"
@@ -33,13 +34,15 @@ play() { # play <game> <worker>
 	local i="$1" w="$2" start try out
 	for try in 1 2; do
 		start=$(date +%s)
+		local rc wdir
 		if [ "$WORKERS" -gt 1 ]; then
-			WORKER="$w" "$T/run.sh" "$T/$SCRIPT" "" "$SCENARIO" >/dev/null 2>&1
-			out="$T/workers/$w/sctest_out.txt"
+			rc=$(WORKER="$w" "$T/run.sh" "$T/$SCRIPT" "" "$SCENARIO" 2>/dev/null | tail -1)
+			wdir="$T/workers/$w"
 		else
-			"$T/run.sh" "$T/$SCRIPT" "" "$SCENARIO" >/dev/null 2>&1
-			out="$T/sctest_out.txt"
+			rc=$("$T/run.sh" "$T/$SCRIPT" "" "$SCENARIO" 2>/dev/null | tail -1)
+			wdir="$T"
 		fi
+		out="$wdir/sctest_out.txt"
 		if [ -s "$out" ] && grep -q "RESULT" "$out"; then
 			cp "$out" "$DIR/$i.txt"
 			local result us
@@ -50,6 +53,11 @@ play() { # play <game> <worker>
 			echo "$i|$line" >> "$DIR/results.txt"
 			return
 		fi
+		# keep the evidence: why it didn't finish (run.sh's exit: 124 = stalled, 142 = time limit)
+		mkdir -p "$DIR/failed"
+		cp "$wdir/run.log" "$DIR/failed/$i-try$try-run.log" 2>/dev/null
+		[ -f "$out" ] && cp "$out" "$DIR/failed/$i-try$try-harness.txt"
+		echo "$i try $try: $rc after $(( $(date +%s) - start ))s, worker $w" >> "$DIR/failed/README.txt"
 	done
 	echo "game $i: did not run twice (see the run.log of worker $w)"
 	echo "$i|game $i: did not run twice" >> "$DIR/results.txt"
@@ -58,6 +66,8 @@ play() { # play <game> <worker>
 for w in $(seq 1 "$WORKERS"); do
 	[ "$WORKERS" -gt 1 ] && "$T/worker.sh" "$w" >/dev/null
 	(
+		# stagger the workers: several engines loading a map at once can hang
+		sleep $(( (w - 1) * 20 ))
 		i=$w
 		while [ "$i" -le "$N" ]; do
 			play "$i" "$w"

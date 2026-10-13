@@ -200,3 +200,8 @@ Reports in `testenv/batch/<dir>/report.md` (gamereport: pace against 26 strong p
   the base core for the pickets. v8 adds a commander escort and a safe-point retreat.
 - Every game ends with a loss or at the 25-minute limit (TIMEOUT = alive): nothing else stops them. About
   1 in 5 games needed a second try (first try killed or failed; the cause wasn't kept: batch.sh now saves it).
+| v8 (escort, safe-point retreat) |  15 | 14 timeout, 1 loss | 1 | 26.6k | 65 / 208 | 0.73 | 6.2 | 9 | 3.2k |
+
+- v8: 1 of 15 lost (best so far; one game hung loading twice), 1 commander death (v7: 7). The economy
+  plateaus again (9 extractors at 8-15 min, 6 at 20): two guards stay with the commander instead of the
+  pickets. From here on batches run 45 game minutes (at 25 most games were still going).
