@@ -18,12 +18,19 @@ ln -sfn "$DIR" "$T/batch/latest"
 	echo "commit: $(git -C "$T/.." rev-parse --short HEAD)$(git -C "$T/.." diff --quiet -- widget testenv/LuaUI || echo ' (+ uncommitted widget changes)')"
 	echo "widgets: ${WIDGET_SRC:-widget/LuaUI/Widgets}"
 	echo "scenario: $SCENARIO  script: $SCRIPT  opponent: $AI_PROFILE  map: ${MAP:-All That Simmers}  speed: $SPEED  lockstep: $LOCKSTEP"
+	# the test bridge serves the decision models: they change how the rules play, so record them
+	echo "test bridge: $(docker inspect scbridge-test --format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | grep -E '^SCBRIDGE_DECIDER_(URL|ROUTES)=.' | tr '\n' ' ' || true)$(docker inspect scbridge-test >/dev/null 2>&1 || echo 'not running')"
 	echo "started: $(date '+%Y-%m-%d %H:%M')"
 } > "$DIR/meta.txt"
 wins=0 losses=0 timeouts=0
 for i in $(seq 1 "$N"); do
 	start=$(date +%s)
+	rm -f "$T/sctest_out.txt"
 	"$T/run.sh" "$T/$SCRIPT" 1500 "$SCENARIO" >/dev/null 2>&1
+	if [ ! -s "$T/sctest_out.txt" ]; then
+		echo "game $i: did not run (see testenv/run.log)"
+		continue
+	fi
 	cp "$T/sctest_out.txt" "$DIR/$i.txt"
 	result=$(grep -m1 "RESULT" "$DIR/$i.txt" | sed 's/^\[[0-9]*\] RESULT //')
 	us=$(grep -m1 "  us:" "$DIR/$i.txt" | sed -E 's/.*metalProduced=([0-9]+).*unitsKilled=([0-9]+) unitsDied=([0-9]+).*damageDealt=([0-9]+) damageReceived=([0-9]+).*/metal=\1 killed=\2 lost=\3 dealt=\4 taken=\5/')

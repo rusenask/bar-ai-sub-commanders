@@ -75,7 +75,8 @@ func load(args []string) []*analysis.Game {
 			log.Fatal(err)
 		}
 		if st.IsDir() {
-			m, _ := filepath.Glob(filepath.Join(a, "*.txt"))
+			// game logs are <n>.txt (meta.txt describes the batch)
+			m, _ := filepath.Glob(filepath.Join(a, "[0-9]*.txt"))
 			sort.Slice(m, func(i, j int) bool { return natural(m[i]) < natural(m[j]) })
 			files = append(files, m...)
 		} else {

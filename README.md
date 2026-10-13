@@ -120,14 +120,15 @@ sub-commanders, `/luaui autopilot rules` off.
 To play **against** sub-commanders on your machine (macOS):
 
 ```sh
-make install                                  # your BAR gets the current widgets
-make play-vs YOU=Armada BOT=Legion            # MAP="...", BARB=ally:hard or enemy:hard, BOT_AI=1
+make up install       # once: bridges (yours on 7878, the bot's on 7879) and the widgets
+make play-vs          # that's it: you Armada, the bot a random faction, AI strategist on
 ```
 
 Your BAR hosts a 1v1 and a second, small BAR window joins as the bot player, whose team the autopilot runs
-(`play/bot/` is its separate write dir). `BOT_AI=1` lets the bot's sub-commanders use the AI strategist
-through the test bridge (`make test-bridge` first). `BARB` adds a BARbarian AI to either side. Both
-windows run the full game, so expect it to be heavier than a normal skirmish.
+(`play/bot/` is its separate write dir). The bot's sub-commanders use the AI strategist through their own
+bridge (the `scbridge-bot` service); if it isn't running they play on rules alone. Optional:
+`YOU=Cortex BOT=Legion MAP="Altair_Crossing_V4.1" BARB=ally:hard BOT_AI=0` (`BARB` adds a BARbarian AI to
+your side or the bot's). Both windows run the full game, so expect it to be heavier than a normal skirmish.
 
 How strong is it? Rules-only sub-commanders survive BARbarian medium most of the time but haven't beaten
 it yet, and lose to hard (see [docs/research/test-games.md](docs/research/test-games.md)). Every

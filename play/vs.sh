@@ -1,13 +1,14 @@
 #!/bin/bash
-# usage: [MAP="..."] [YOU=Armada] [BOT=Legion] [BOT_AI=1] [BARB=ally:hard|enemy:hard] [NAME=Player] play/vs.sh
+# usage: play/vs.sh   (all settings optional: [MAP="..."] [YOU=Armada] [BOT=Cortex] [BOT_AI=0] [BARB=...])
 #
 # A local 1v1 against sub-commanders: your BAR hosts the game and a second, small BAR window joins as the
 # bot player, whose whole team is run by sub-commanders (gui_subcommanders_autopilot.lua). macOS.
 #
 #   MAP      map name as in BAR's archive cache (default All That Simmers v1.1.1)
-#   YOU/BOT  factions: Armada, Cortex, Legion
-#   BOT_AI   1 = the bot's sub-commanders use the AI strategist, through the test bridge on port 17878
-#            (start it first: make test-bridge); default rules only
+#   YOU/BOT  factions: Armada, Cortex, Legion (default: you Armada, the bot a random one)
+#   BOT_AI   default 1: the bot's sub-commanders use the AI strategist, through their own bridge on port
+#            7879 (the scbridge-bot service, started by make up; without it they play on rules alone).
+#            0 = rules only
 #   BARB     add a BARbarian AI on your side (ally:<profile>) or the bot's (enemy:<profile>)
 #   HOST_DIR write dir of the hosting game (default: your BAR install, with your settings and widgets)
 #   SCENARIO with HOST_DIR=testenv: the test harness scenario the host plays (self-play tests)
@@ -26,6 +27,9 @@ PORT="${PORT:-8452}"
 NAME="${NAME:-Player}"
 HOST_DIR="${HOST_DIR:-$BAR}"
 BOTDIR="$P/bot"
+YOU="${YOU:-Armada}"
+FACTIONS=(Armada Cortex Legion)
+BOT="${BOT:-${FACTIONS[$((RANDOM % 3))]}}"
 TIMEOUT="${TIMEOUT:-10800}"
 
 # the bot: its own write dir, small window, our widgets with the autopilot on
@@ -39,9 +43,9 @@ sed 's/enabled = false,/enabled = true,/' "$ROOT/widget/LuaUI/Widgets/gui_subcom
 cp "$ROOT"/widget/LuaUI/Include/sc_*.lua "$BOTDIR/LuaUI/Include/"
 # the bot's own bridge for the AI strategist: the test bridge, or another port when the test harness hosts
 # (a new connection replaces the old one, so two games can't share a bridge)
-BOT_BRIDGE="${BOT_BRIDGE:-127.0.0.1:$([ -n "$SCENARIO" ] && echo 17879 || echo 17878)}"
+BOT_BRIDGE="${BOT_BRIDGE:-127.0.0.1:$([ -n "$SCENARIO" ] && echo 17879 || echo 7879)}"
 sed -i '' "s/^SubCommandersBridge = .*/SubCommandersBridge = $BOT_BRIDGE/" "$BOTDIR/springsettings.cfg"
-[ "${BOT_AI:-0}" = 1 ] && echo ai > "$BOTDIR/autopilot.txt" || echo rules > "$BOTDIR/autopilot.txt"
+[ "${BOT_AI:-1}" = 1 ] && echo ai > "$BOTDIR/autopilot.txt" || echo rules > "$BOTDIR/autopilot.txt"
 rm -f "$BOTDIR/LuaUI/Config/BYAR.lua" # fresh widget state: no saved sub-commanders
 
 ai_section=""
@@ -51,7 +55,7 @@ if [ -n "$BARB" ]; then
 	side="${BARB%%:*}" profile="${BARB#*:}"
 	[ "$side" = ally ] && barb_ally=0 || barb_ally=1
 	ai_section="
-  [team2] { teamleader=0; allyteam=$barb_ally; side=$([ "$side" = ally ] && echo "${YOU:-Armada}" || echo "${BOT:-Legion}"); }
+  [team2] { teamleader=0; allyteam=$barb_ally; side=$([ "$side" = ally ] && echo "$YOU" || echo "$BOT"); }
   [ai0] { shortname=BARb; version=stable; team=2; host=0; name=BARbarian; [options] { profile=${profile:-hard}; } }"
 fi
 
@@ -67,8 +71,8 @@ cat > "$P/host_script.txt" <<EOF
   startpostype=0;
   [player0] { name=$NAME; team=0; spectator=0; }
   [player1] { name=SubCommanders; team=1; spectator=0; }
-  [team0] { teamleader=0; allyteam=$ally_you; side=${YOU:-Armada}; }
-  [team1] { teamleader=1; allyteam=$ally_bot; side=${BOT:-Legion}; }$ai_section
+  [team0] { teamleader=0; allyteam=$ally_you; side=$YOU; }
+  [team1] { teamleader=1; allyteam=$ally_bot; side=$BOT; }$ai_section
   [allyteam0] { numallies=0; }
   [allyteam1] { numallies=0; }
   [modoptions] { experimentallegionfaction=1; }
@@ -88,7 +92,7 @@ run() { # run <write dir> <datadirs> <script> <log>
 	SPRING_DATADIR="$2" perl -e 'alarm shift; exec @ARGV' "$TIMEOUT" "$APP/MacOS/spring" --window --write-dir "$1" "$3" > "$4" 2>&1
 }
 
-echo "hosting: $NAME (${YOU:-Armada}) vs SubCommanders (${BOT:-Legion}, $(cat "$BOTDIR/autopilot.txt")) on $MAP${BARB:+, BARbarian $BARB}"
+echo "hosting: $NAME ($YOU) vs SubCommanders ($BOT, $(cat "$BOTDIR/autopilot.txt")) on $MAP${BARB:+, BARbarian $BARB}"
 if [ -n "$SCENARIO" ]; then
 	# self-play test: the test harness hosts (testenv/run.sh: isolated write dir, scenario, logs)
 	(cd "$ROOT/testenv" && ./run.sh "$P/host_script.txt" "$TIMEOUT" "$SCENARIO" > /dev/null 2>&1) &

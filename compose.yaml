@@ -24,6 +24,24 @@ services:
       - opencode-data:/root/.local/share/opencode
       - opencode-cache:/root/.cache/opencode
 
+  # the bridge for the bot opponent's sub-commanders (play/vs.sh, make play-vs): a second game connection
+  # would replace yours on 7878, so the bot gets its own
+  scbridge-bot:
+    image: bar-scbridge
+    depends_on: [scbridge]
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:7879:7878"
+      - "127.0.0.1:4518:4517"
+    environment:
+      SCBRIDGE_MODEL: ${MODEL:-lightning/deepseek-v4.1-flash}
+    secrets:
+      - llm_api_key
+    volumes:
+      - ./strategist:/app/strategist:ro
+      - opencode-bot-data:/root/.local/share/opencode
+      - opencode-cache:/root/.cache/opencode
+
 secrets:
   # file holding the API key for the provider in docker/opencode.json (set the path in .env)
   llm_api_key:
@@ -31,4 +49,5 @@ secrets:
 
 volumes:
   opencode-data:
+  opencode-bot-data:
   opencode-cache:
