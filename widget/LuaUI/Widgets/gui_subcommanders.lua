@@ -5628,6 +5628,11 @@ function Engine.refreshWorld(n)
 	end
 	tm.update(n, own, true)
 	Engine.turretValue, Engine.armyValue = turrets, army
+	-- once a second: mark the big groups in sight as hordes (remembered longer, sc_threatmap)
+	if n - (Engine.hordeFrame or -99) >= 30 then
+		Engine.hordeFrame = n
+		tm.groups(n, 8)
+	end
 	if n - (Engine.homeFrame or -9999) >= 300 then
 		Engine.homeFrame = n
 		Engine.refreshHome()

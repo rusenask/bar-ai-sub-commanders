@@ -27,7 +27,14 @@ widgets, opponent, map, speed). The report has:
 Severity is rough (about 1 = clearly hurting games). Batches of fewer than 8 games are anecdotes:
 results swing hugely with the same code (metal produced 9k-92k in one batch).
 
+For agents: `go run ./cmd/gamereport -json <dir>` gives the same report as JSON (games, pace against strong
+players, losses per kind, trades per phase, recurring problems, findings); `-compare -json` per arm.
+
 ## Digging into one game
+
+Start with its timeline: `make timeline GAME=testenv/batch/latest/3.txt` (or `gamereport -timeline <log>`,
+`-json` for JSON): minute by minute the economy, what we lost and killed by kind, and the decisions (squad
+engage / hold / fall back with ratios, raids, factories, the player's actions, alarms). Then the raw log:
 
 The harness log (`<n>.txt`, or `testenv/sctest_out.txt` for a single game) has `[frame]` prefixed lines
 (30 frames = 1 s, 1800 = 1 min):

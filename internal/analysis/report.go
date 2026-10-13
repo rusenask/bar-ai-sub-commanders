@@ -13,9 +13,9 @@ var PaceMinutes = []int{3, 5, 8, 10, 12, 15, 20, 25, 30, 40}
 
 // Finding is a weakness worth working on, most severe first.
 type Finding struct {
-	Severity float64 // rough: 1 = clearly hurting games
-	Area     string  // economy, army, defense, losses, sub-commanders, harness
-	Text     string
+	Severity float64 `json:"severity"` // rough: 1 = clearly hurting games
+	Area     string  `json:"area"`     // economy, army, defense, losses, sub-commanders, harness
+	Text     string  `json:"text"`
 }
 
 // Summary is one game's headline numbers.

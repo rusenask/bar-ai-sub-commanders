@@ -80,7 +80,12 @@ return function(ctx)
 		if age <= T.fresh then
 			return 1
 		end
-		return max(0, 1 - (age - T.fresh) / max(1, T.mobileMemory - T.fresh))
+		local w = max(0, 1 - (age - T.fresh) / max(1, T.mobileMemory - T.fresh))
+		-- part of a horde: remembered longer, never below the floor until hordeMemory has passed
+		if e.horde and age < (T.hordeMemory or 0) then
+			w = max(w, T.hordeFloor or 0)
+		end
+		return w
 	end
 
 	-- an enemy unit was seen (entered sight, or refreshed while visible)
@@ -278,6 +283,7 @@ return function(ctx)
 				groups[#groups + 1] = g
 			end
 			g.power, g.count = g.power + it.p, g.count + 1
+			g.last = max(g.last or 0, it.e.last)
 			-- long-range mobile units (artillery): they outrange turrets; the army dives them
 			local dd = defOf(it.e)
 			if dd.mobile and (dd.range or 0) >= 600 then
@@ -292,10 +298,23 @@ return function(ctx)
 		table.sort(groups, function(a, b)
 			return a.power > b.power
 		end)
+		-- big groups seen right now become hordes: their members are remembered longer (weight)
+		if T.hordePower then
+			for _, g in ipairs(groups) do
+				if g.power >= T.hordePower then
+					for _, it in ipairs(list) do
+						if frame - it.e.last <= T.fresh and (it.e.x - g.x) ^ 2 + (it.e.z - g.z) ^ 2 <= r2 then
+							it.e.horde = true
+						end
+					end
+				end
+			end
+		end
 		local out = {}
 		for i = 1, min(#groups, n or #groups) do
 			local g = groups[i]
-			out[i] = { x = floor(g.x), z = floor(g.z), power = floor(g.power), count = g.count, static = floor(g.static), ranged = floor(g.ranged or 0) }
+			out[i] = { x = floor(g.x), z = floor(g.z), power = floor(g.power), count = g.count, static = floor(g.static), ranged = floor(g.ranged or 0),
+				lastSeenSec = floor((frame - (g.last or frame)) / 30) }
 		end
 		return out
 	end

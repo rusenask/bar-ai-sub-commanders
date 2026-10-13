@@ -115,4 +115,21 @@ return {
 		T.eq(tm.enemyPower(1000, 1000, 300, D.fresh + 30, { fresh = true }), 0, "a memory")
 		T.ok(tm.enemyPower(1000, 1000, 300, D.fresh + 30) > 0, "still remembered otherwise")
 	end,
+	hordes_are_remembered = function()
+		local tm = F.map()
+		local D = F.doctrine.threat
+		-- a horde: 16 artillery (250 each = 4000 metal) seen together, and a lone raider elsewhere
+		for i = 1, 16 do
+			tm.see(100 + i, 4, 2000 + i * 20, 2000, 0)
+		end
+		tm.see(1, 1, 500, 3500, 0)
+		tm.groups(0, 5) -- marks the horde
+		local later = D.mobileMemory + 30 * 60 -- well past normal memory
+		tm.update(later, {}, true)
+		T.eq(tm.threat(500, 3500), 0, "the lone raider is forgotten")
+		T.ok(tm.threat(2150, 2000) >= 4000 * D.hordeFloor - 1, "the horde isn't: " .. tm.threat(2150, 2000))
+		T.ok(tm.enemyPower(2150, 2000, 700, later) >= 4000 * D.hordeFloor - 1, "and counts in fights")
+		tm.update(D.hordeMemory + 30, {}, true)
+		T.eq(tm.threat(2150, 2000), 0, "until hordeMemory has passed")
+	end,
 }

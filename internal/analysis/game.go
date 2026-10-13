@@ -52,6 +52,14 @@ type Game struct {
 	Player  []string       // the scripted player's actions, in order
 	Errors  []string       // harness errors
 	Logs    map[string]int // sub-commander log messages (numbers stripped) -> times seen
+	Events  []Event        // sub-commander log messages as they appeared (first sighting of each)
+}
+
+// Event is a sub-commander's log message (or the scripted player's action) at a game time.
+type Event struct {
+	Second int    `json:"second"`
+	Sub    string `json:"sub,omitempty"` // e.g. "Army 3"; "player" for the scripted player
+	Text   string `json:"text"`
 }
 
 var (
@@ -86,6 +94,7 @@ func ParseGame(source string, r io.Reader) (*Game, error) {
 	ecoLines := false
 	var incomes []Eco                        // from the 30 s status lines, for logs without eco lines
 	prevLogs := map[string]map[string]bool{} // sub -> messages in its previous snapshot
+	subName := map[string]string{}           // sub id -> "Army 3"
 	curLogs := map[string]map[string]bool{}
 	sub := ""
 	for sc.Scan() {
@@ -136,10 +145,12 @@ func ParseGame(source string, r io.Reader) (*Game, error) {
 			}
 		case strings.HasPrefix(body, "player: "):
 			g.Player = append(g.Player, body[8:])
+			g.Events = append(g.Events, Event{Second: frameOf(m[1]) / 30, Sub: "player", Text: body[8:]})
 		case strings.HasPrefix(body, "HARNESS ERROR"):
 			g.Errors = append(g.Errors, body)
 		case reSub.MatchString(body):
 			sub = reSub.FindStringSubmatch(body)[1]
+			subName[sub] = subNameOf(body)
 		case strings.HasPrefix(body, "     log: "), strings.HasPrefix(body, "     AI: "):
 			msg := strings.TrimSpace(body[strings.Index(body, ":")+1:])
 			if curLogs[sub] == nil {
@@ -149,6 +160,7 @@ func ParseGame(source string, r io.Reader) (*Game, error) {
 			// the harness prints each sub-commander's latest few messages every 30 s: count the new ones
 			if !prevLogs[sub][msg] {
 				g.Logs[normalize(msg)]++
+				g.Events = append(g.Events, Event{Second: frameOf(m[1]) / 30, Sub: subName[sub], Text: msg})
 			}
 		}
 	}
@@ -156,6 +168,23 @@ func ParseGame(source string, r io.Reader) (*Game, error) {
 		g.Eco = incomes
 	}
 	return g, sc.Err()
+}
+
+func frameOf(s string) int {
+	n, _ := strconv.Atoi(s)
+	return n
+}
+
+// "  [3] Army 3 army/balanced B0 ..." -> "Army 3" (the words before role/posture)
+func subNameOf(line string) string {
+	var name []string
+	for _, w := range strings.Fields(line)[1:] {
+		if strings.Contains(w, "/") {
+			break
+		}
+		name = append(name, w)
+	}
+	return strings.Join(name, " ")
 }
 
 // normalize strips numbers and positions so repeats of a message count together.

@@ -4,6 +4,9 @@
 //	gamereport testenv/batch/latest              # one batch (a directory of harness logs) or single logs
 //	gamereport -compare batch/A batch/B          # A/B arms side by side, one directory per arm
 //	gamereport -bench-from testenv/data/pro      # rebuild the strong players' benchmark from replay logs
+//	gamereport -json testenv/batch/latest        # the report as JSON (for agents); -compare -json too
+//	gamereport -timeline testenv/batch/latest/3.txt [-json]  # one game minute by minute: economy,
+//	                                             # losses and kills by kind, squad / raid decisions
 package main
 
 import (
@@ -27,6 +30,8 @@ func main() {
 	benchOut := flag.String("bench-out", "internal/analysis/benchmarks/pro-duel.json", "where -bench-from writes the benchmark")
 	benchDesc := flag.String("bench-desc", "strong players' 1v1s (both rated 30+, BAR replays)", "benchmark description")
 	playbookOut := flag.String("playbook-out", "docs/research/pro-playbook.md", "with -bench-from: where to write what strong players build and when")
+	asJSON := flag.Bool("json", false, "print JSON (report, compare, timeline) instead of markdown / text")
+	timeline := flag.Bool("timeline", false, "each argument is one game's harness log: show it minute by minute")
 	flag.Parse()
 
 	if *benchFrom != "" {
@@ -48,10 +53,28 @@ func main() {
 			log.Fatal(err)
 		}
 	}
+	if *timeline {
+		for _, g := range load(flag.Args()) {
+			if *asJSON {
+				printJSON(map[string]any{"game": g.Source, "result": g.Result, "detail": g.Detail, "seconds": g.Seconds, "minutes": analysis.Timeline(g)})
+			} else {
+				fmt.Print(analysis.TimelineText(g))
+			}
+		}
+		return
+	}
 	if *compare {
 		var arms []analysis.Arm
 		for _, dir := range flag.Args() {
 			arms = append(arms, analysis.Arm{Label: filepath.Base(dir), Games: load([]string{dir})})
+		}
+		if *asJSON {
+			out := map[string]analysis.ReportData{}
+			for _, a := range arms {
+				out[a.Label] = analysis.BuildReport(a.Label, a.Games, bench)
+			}
+			printJSON(out)
+			return
 		}
 		analysis.Compare(os.Stdout, arms)
 		return
@@ -63,7 +86,19 @@ func main() {
 	if *title == "" {
 		*title = "Games: " + strings.Join(flag.Args(), ", ")
 	}
+	if *asJSON {
+		printJSON(analysis.BuildReport(*title, games, bench))
+		return
+	}
 	analysis.Report(os.Stdout, *title, games, bench)
+}
+
+func printJSON(v any) {
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", " ")
+	if err := enc.Encode(v); err != nil {
+		log.Fatal(err)
+	}
 }
 
 // load reads harness logs: files, or every *.txt in directories.

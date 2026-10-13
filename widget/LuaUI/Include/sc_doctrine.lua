@@ -50,6 +50,12 @@ D.threat = {
 	fresh = 30 * 8, -- seen this recently: full weight
 	minRange = 200, -- treat short-ranged and unknown weapons as at least this
 	blip = { cost = 120, range = 350 }, -- what an unidentified radar contact is assumed to be
+	-- a big army that walks out of sight isn't gone: units seen in a group worth hordePower+ are remembered
+	-- for hordeMemory, never fading below hordeFloor of their value (a watched game forgot a huge horde
+	-- 90 s after it left view and walked into it)
+	hordePower = 1500,
+	hordeMemory = 30 * 300,
+	hordeFloor = 0.4,
 }
 
 -- production by income tier: shares of what a factory makes (BARb hard factory.json tiers, adapted to

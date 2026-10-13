@@ -131,3 +131,41 @@ func TestPlaybook(t *testing.T) {
 		}
 	}
 }
+
+func TestBuildReportAndTimeline(t *testing.T) {
+	g, err := ParseGame("1", strings.NewReader(harnessLog))
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := BuildReport("test", []*Game{g}, nil)
+	if len(r.Games) != 1 || r.Games[0].Result != "LOSS" || r.Games[0].ConstructorsLost != 1 || r.Averages["dealtTaken"] != 0.5 {
+		t.Errorf("report %+v", r)
+	}
+	if len(r.Trades) != 3 || r.Trades[0].Lost != 330 || r.Trades[0].Killed != 100 {
+		t.Errorf("trades %+v", r.Trades)
+	}
+	tl := Timeline(g)
+	var m1 *Minute
+	for i := range tl {
+		if tl[i].Minute == 1 {
+			m1 = &tl[i]
+		}
+	}
+	if m1 == nil || m1.Lost["constructor"] != 1 || m1.Killed["raider"] != 1 || m1.LostMetal != 330 || m1.Eco == nil {
+		t.Fatalf("minute 1: %+v", m1)
+	}
+	// the scripted player's action and the "gave up" alarm are in the timeline
+	var texts []string
+	for _, m := range tl {
+		for _, e := range m.Events {
+			texts = append(texts, e.Sub+": "+e.Text)
+		}
+	}
+	all := strings.Join(texts, "\n")
+	if !strings.Contains(all, "player: legcom builds leglab") || !strings.Contains(all, "Economy 1: gave up on Radar Tower") {
+		t.Errorf("events:\n%s", all)
+	}
+	if !strings.Contains(TimelineText(g), "lost 330 metal (1 anti-air turret, 1 constructor)") {
+		t.Errorf("text:\n%s", TimelineText(g))
+	}
+}

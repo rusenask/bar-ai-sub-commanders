@@ -2,7 +2,7 @@ BAR_DIR ?= $(HOME)/Library/Application Support/Beyond-All-Reason-mac
 MODEL ?= lightning/deepseek-v4.1-flash
 BAR_REF ?= 8247b61
 
-.PHONY: build install run up down restart logs test-game test-batch test-bridge play-vs report compare benchmarks test-lua decider-deploy decider-eval ref lint
+.PHONY: build install run up down restart logs test-game test-batch test-bridge play-vs report compare timeline benchmarks test-lua decider-deploy decider-eval ref lint
 
 build:
 	go build -o bin/scbridge ./cmd/scbridge
@@ -56,6 +56,10 @@ play-vs:
 # analyse games: make report (the latest batch), make report BATCH=testenv/batch/<dir>, or a single log
 report:
 	go run ./cmd/gamereport $(or $(BATCH),testenv/batch/latest/)
+
+# one game minute by minute (economy, losses / kills by kind, decisions): make timeline GAME=<log> [JSON=1]
+timeline:
+	go run ./cmd/gamereport -timeline $(if $(JSON),-json) $(GAME)
 
 # A/B arms side by side: make compare ARMS="testenv/batch/<A> testenv/batch/<B>"
 compare:
