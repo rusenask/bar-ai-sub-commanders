@@ -49,6 +49,28 @@ D.responders = {
 	speed = 70, -- fast units only
 }
 
+-- team planning (sc_team.lua): the phase and the requests between sub-commanders
+D.team = {
+	openingMinutes = 6,
+	defendBase = 600, -- enemy metal inside the base that makes the whole team defend
+	defendRatio = 1.2, -- a known enemy army this much bigger than ours: defend
+	pushRatio = 1.6, -- ours this much bigger than everything known of theirs: push
+	pushMin = 4000, -- and at least this big
+	requestLife = 30 * 45, -- a request nobody refreshes expires
+	mergeRadius = 900,
+	defendTurrets = 1.5, -- the turret budget while the team defends
+	defendResponders = 1.5, -- the response squad's share of the army while the team defends
+}
+
+-- the commander (sc_commander.lua): modes and personality
+D.commander = {
+	careful = { retreat = 0.6, dgunMin = 150, homeRange = 1600, frontline = false },
+	bold = { retreat = 0.45, dgunMin = 90, homeRange = 3200, frontline = true },
+	dgunRange = 250, -- elmos (BAR's D-gun reaches about 250-300)
+	dgunEnergy = 600, -- energy needed in storage before firing (it costs ~500)
+	dgunCooldown = 30 * 2,
+}
+
 -- threat map
 D.threat = {
 	cell = 256, -- elmos per cell

@@ -37,6 +37,20 @@ type raidsArgs struct {
 	On    bool `json:"on" jsonschema:"true: fast units scout and raid; false: they stay with the army"`
 }
 
+type commanderArgs struct {
+	SubID int    `json:"sub_id" jsonschema:"your sub-commander id"`
+	Set   string `json:"set" jsonschema:"a mode (auto, builder, defender, frontline) or a personality (careful, bold)"`
+}
+
+type requestArgs struct {
+	SubID int    `json:"sub_id" jsonschema:"your sub-commander id"`
+	Kind  string `json:"kind" jsonschema:"defend, constructor or production"`
+	X     *int   `json:"x,omitempty" jsonschema:"for defend: where (map x)"`
+	Z     *int   `json:"z,omitempty" jsonschema:"for defend: where (map z)"`
+	Need  int    `json:"need,omitempty" jsonschema:"how much (metal of enemy strength to answer, or of units)"`
+	Note  string `json:"note,omitempty" jsonschema:"one line: why"`
+}
+
 type tuneArgs struct {
 	SubID int     `json:"sub_id" jsonschema:"your sub-commander id"`
 	Key   string  `json:"key" jsonschema:"a rule from 'rules' in the Rules engine line of your report, e.g. max_factories"`
@@ -283,6 +297,24 @@ func Handler(g *game.Server, guard Guard) http.Handler {
 		Description: "Armies only (on by default): the army's fast units form a raid squad that scouts the enemy's side and hits what it beats (constructors, extractors, generators), routing around their defences and coming home when a fight turns. Off: they stay with the army (e.g. when the base needs every unit).",
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in raidsArgs) (*mcp.CallToolResult, any, error) {
 		return act(ctx, in.SubID, "set_raids", map[string]any{"on": in.On}, fmt.Sprintf("raids on=%v", in.On)), nil, nil
+	})
+
+	mcp.AddTool(s, &mcp.Tool{
+		Name:        "set_commander",
+		Description: "The commander (team-wide; its death loses the game). Modes: auto (builder in the opening and while expanding, defender when enemies are near or the team defends, frontline only when the team pushes, the personality is bold and autonomy is full), builder, defender (stays in turret cover at home, D-guns raiders), frontline (follows the army's main body at a distance, D-guns expensive targets). Personality: careful (retreats at 60% health, stays within 1600 of home) or bold (45%, 3200). The current mode is in the team report (commander). Strong players keep it alive above all; bold only when the enemy has no artillery or air near the front.",
+	}, func(ctx context.Context, _ *mcp.CallToolRequest, in commanderArgs) (*mcp.CallToolResult, any, error) {
+		return act(ctx, in.SubID, "set_commander", map[string]any{"set": in.Set}, "commander "+in.Set), nil, nil
+	})
+
+	mcp.AddTool(s, &mcp.Tool{
+		Name:        "request_help",
+		Description: "Ask the team (the plan and open requests are in the team report). defend (x, z): the Army sends its squad there when it's in the base; constructor: the Economy builds you one; production: the Economy's lab builds combat units for the Army. Requests expire after 45 s unless asked again; the rules engine posts its own when an area is outgunned or a known enemy army outweighs ours.",
+	}, func(ctx context.Context, _ *mcp.CallToolRequest, in requestArgs) (*mcp.CallToolResult, any, error) {
+		args := map[string]any{"kind": in.Kind, "need": in.Need, "note": in.Note}
+		if in.X != nil && in.Z != nil {
+			args["x"], args["z"] = *in.X, *in.Z
+		}
+		return act(ctx, in.SubID, "request_help", args, "asked the team for "+in.Kind), nil, nil
 	})
 
 	mcp.AddTool(s, &mcp.Tool{

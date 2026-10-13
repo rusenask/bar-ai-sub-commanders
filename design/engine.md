@@ -44,6 +44,10 @@ widget/LuaUI/Include/
   sc_autozones.lua    areas per role when the player drew no zones; clusters (wind farms)
   sc_territory.lua    what's ours (cells near our structures), its frontier, and pickets: the frontier
                       points to hold (facing the enemy, where intruders came from, what they protect)
+  sc_team.lua         the swarm's blackboard: the team plan (opening / expand / tech / defend / push)
+                      and requests sub-commanders post for each other (defend, constructor, production)
+  sc_commander.lua    the commander's modes (auto / builder / defender / frontline), personality
+                      (careful / bold) and D-gun target choice
 widget/tests/         plain-Lua unit tests of the modules (make test-lua; stubs for Spring)
 ```
 
@@ -98,6 +102,28 @@ strategist sees the world model too.
 | intelligence | radar only | + cameras, scouts | + jammer, hunting enemy intel |
 
 The autopilot (bot opponent) runs everything at **full**.
+
+## The team (swarm) and the commander
+
+Every combat pass `Engine.refreshTeam` recomputes the **plan** from the state of the game: `defend` when
+enemy metal inside the base passes `D.team.defendBase` or the strongest known enemy army outweighs ours
+by `defendRatio`; `opening` for the first minutes; `push` when our army is at least `pushMin` and
+`pushRatio` x everything known of theirs; `tech` when the economy carries tier 2 and we have no T2 lab;
+else `expand`. Everyone reads it: no pushes or attacks while defending, raids pause when the base itself
+is attacked, more turret budget and a bigger response squad; a push lets a balanced army attack; tech
+lets a balanced economy start the T2 lab without overflowing metal.
+
+**Requests** (posted by the rules, or by the strategist with `request_help`): an outgunned non-army area
+posts `defend` (the Army's squad answers if it's in the base); an Army facing a bigger known army posts
+`production` (the Economy's lab feeds it combat units even when it has labs); a Defense without
+constructors posts `constructor` (the Economy's lab builds one and hands it over). Same kind, same
+sender, nearby: merged; nobody refreshes them for 45 s: gone.
+
+**The commander** (`Tactics.commander`, every combat pass for the sub-commander that owns it): the mode
+(auto picks builder / defender / frontline from the plan, the threat near it, its health, autonomy and
+personality), the D-gun at the most expensive armed enemy in reach above the personality's minimum,
+frontline following the army's main body 350 behind it within the personality's range of home, and
+retreat at the personality's health (`guardCommander`).
 
 ## Zones are optional
 

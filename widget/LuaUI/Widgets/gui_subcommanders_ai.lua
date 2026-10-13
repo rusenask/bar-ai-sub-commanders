@@ -197,6 +197,21 @@ local function apply(msg)
 			return nil, "raids aren't available in this widget version"
 		end
 		sc.setRaids(sub.id, args.on and true or false)
+	elseif op == "set_commander" then
+		if not (sc.setCommander and sc.setCommander(args.set)) then
+			return nil, "set is a mode (auto, builder, defender, frontline) or a personality (careful, bold)"
+		end
+		sc.noteAI(sub.id, "commander: " .. tostring(args.set))
+	elseif op == "request_help" then
+		local kinds = { defend = true, constructor = true, production = true }
+		if not sc.request or not kinds[args.kind] then
+			return nil, "kind is defend, constructor or production"
+		end
+		if args.kind == "defend" and not (tonumber(args.x) and tonumber(args.z)) then
+			return nil, "defend needs x and z"
+		end
+		sc.request({ kind = args.kind, from = sub.id, x = tonumber(args.x), z = tonumber(args.z), need = tonumber(args.need) or 0, note = args.note, ai = true })
+		sc.noteAI(sub.id, "asked the team for " .. args.kind)
 	elseif op == "set_autonomy" then
 		if not (sc.setAutonomy and sc.setAutonomy(sub.id, args.autonomy)) then
 			return nil, "autonomy must be light, balanced or full"

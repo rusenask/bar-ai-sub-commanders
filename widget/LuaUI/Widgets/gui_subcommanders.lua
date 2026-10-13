@@ -128,6 +128,9 @@ do
 	Engine.prod = include("sc_production")({ defs = defs, doctrine = Engine.D })
 	Engine.zones = include("sc_autozones")({ mapX = Game.mapSizeX, mapZ = Game.mapSizeZ })
 	Engine.terr = include("sc_territory")({ mapX = Game.mapSizeX, mapZ = Game.mapSizeZ, cell = 256, reach = 700 })
+	Engine.team = include("sc_team")({ doctrine = Engine.D })
+	Engine.com = include("sc_commander")({ doctrine = Engine.D })
+	Engine.comMode, Engine.comPersonality = "auto", "careful"
 end
 
 --------------------------------------------------------------------------------
@@ -1685,7 +1688,8 @@ function Jobs.techLab(sub, unitID, d)
 	end
 	local income = max(econ.mInc, 0)
 	local due = income >= E.t2Income or (frame >= 30 * 60 * E.t2Minute and income >= E.t2MinIncome)
-	if not due or (Engine.auto(sub).factories == "overflow" and econ.mFrac < 0.7) then
+	-- balanced waits for overflowing metal unless the team plan is tier 2
+	if not due or (Engine.auto(sub).factories == "overflow" and econ.mFrac < 0.7 and Engine.team.plan.phase ~= "tech") then
 		return false
 	end
 	local o
@@ -2374,6 +2378,15 @@ function Engine.armyToFeed()
 			return s
 		end
 	end
+	-- an Army that asked the team for production (a known enemy army outweighs it) gets the economy's
+	-- combat units even with labs of its own
+	for _, r in ipairs(Engine.team.open("production")) do
+		for _, s in ipairs(subs) do
+			if s.id == r.from and s.role == "army" and not s.paused then
+				return s
+			end
+		end
+	end
 end
 
 -- the economy's lab: the opening (constructors and raiders in doctrine order), then the income tier's mix
@@ -2427,6 +2440,16 @@ function Engine.economyProduction(sub, facID, fd, cap)
 		target = min(target, 2)
 	elseif sub.posture == "spend" then
 		target = target + 2
+	end
+	-- a sub-commander asked the team for a constructor (sc_team.lua): one per request a minute
+	local creq = Engine.team.open("constructor")[1]
+	if creq and frame - (creq.answered or -99999) > 30 * 60 then
+		local cons, ccat = Engine.prod.pick(fd.options, {}, income, {}, { category = "constructor", cap = cap })
+		if cons and ccat == "constructor" then
+			creq.answered = frame
+			st.handOff = creq.from
+			return cons, "constructor (asked for by sub-commander " .. creq.from .. ")"
+		end
 	end
 	local feed = Engine.D.production.feedArmy and Engine.armyToFeed()
 	local have = {}
@@ -3188,7 +3211,8 @@ local ACTION_TEXT = {
 
 -- raids: is this an Army with Raids on (the default)?
 function Engine.raiding(sub)
-	return sub.role == "army" and sub.raids ~= false
+	-- raids pause while the base is under attack (the team plan): every unit is needed at home
+	return sub.role == "army" and sub.raids ~= false and not Engine.team.plan.base
 end
 
 -- what a raid can go for: enemy structures we know (not their defences) and constructors seen lately
@@ -3361,7 +3385,7 @@ function Tactics.responders(sub)
 	tsort(cands, function(a, b)
 		return a.speed > b.speed
 	end)
-	local limit = R.share * (sub.counts.power or 0)
+	local limit = R.share * (sub.counts.power or 0) * (Engine.team.plan.phase == "defend" and Engine.D.team.defendResponders or 1)
 	local members, power = {}, 0
 	for _, m in ipairs(cands) do
 		if power + m.cost <= limit then
@@ -3404,6 +3428,128 @@ function Tactics.responders(sub)
 	local hx, hz = Engine.homeX, Engine.homeZ
 	local sx, sz = Engine.tm.safePoint(hx, hz, hx, hz)
 	sub.responseOrder = { action = "wait", x = sx or hx, z = sz or hz }
+end
+
+-- the team's plan and requests (sc_team.lua), once per combat pass: the phase from the game's state, and
+-- the requests sub-commanders post for each other
+function Engine.refreshTeam()
+	local team = Engine.team
+	team.expire(frame)
+	local E = Engine.D.economy
+	local enemyArmy, inBase = 0, 0
+	for _, g in ipairs(Engine.tm.groups(frame, 8)) do
+		local mobile = g.power - g.static
+		enemyArmy = max(enemyArmy, mobile)
+		if Engine.homeX and Engine.inBase(g.x, g.z) then
+			inBase = inBase + mobile
+		end
+	end
+	local income = max(econ.mInc, 0)
+	local prev = team.plan.phase
+	local plan = team.phase({
+		minute = Engine.minute(), income = income, armyPower = Engine.armyValue or 0, enemyArmy = enemyArmy,
+		baseUnderAttack = inBase, techLab = Engine.haveTechLab(),
+		techReady = income >= E.t2Income or (frame >= 30 * 60 * E.t2Minute and income >= E.t2MinIncome),
+	})
+	if plan.phase ~= prev then
+		for _, sub in ipairs(subs) do
+			log(sub, sformat("team plan: %s (%s)", plan.phase, plan.why))
+		end
+	end
+	-- requests: an area whose intruders outgun our firepower there asks for help
+	for _, sub in ipairs(subs) do
+		if sub.role ~= "army" and #sub.threats > 0 then
+			local t = sub.threats[1]
+			local theirs = Engine.tm.enemyPower(t.x, t.z, 700, frame)
+			local ours = Engine.tm.influence(t.x, t.z)
+			if theirs > ours and not t.air then
+				team.post({ kind = "defend", from = sub.id, x = t.x, z = t.z, need = floor(theirs - ours), note = sub.name .. " is outgunned" }, frame)
+			end
+		end
+		-- a defending sub-commander without constructors asks for one (after the opening)
+		if (sub.role == "defense" or sub.role == "airdefense") and not sub.paused and sub.counts.builders == 0 and Engine.minute() >= 4 then
+			team.post({ kind = "constructor", from = sub.id, need = 1, note = sub.name .. " has no constructors" }, frame)
+		end
+		-- an army a known enemy army outweighs asks for combat production
+		if sub.role == "army" and enemyArmy > (sub.counts.power or 0) * Engine.D.team.defendRatio then
+			team.post({ kind = "production", from = sub.id, need = floor(enemyArmy - (sub.counts.power or 0)), note = "their army outweighs " .. sub.name }, frame)
+		end
+	end
+end
+
+-- the commander (sc_commander.lua), each combat pass: its mode, D-gun shots, and at the front following
+-- the army. Returns true when it took the commander this pass.
+function Tactics.commander(sub, unitID, d, st)
+	local x, _, z = spGetUnitPosition(unitID)
+	if not x or not Engine.homeX then
+		return false
+	end
+	local C = Engine.com
+	local hp, maxHp = Spring.GetUnitHealth(unitID)
+	local threatNear = Engine.tm.enemyPower(x, z, 900, frame, { mobileOnly = true })
+	local mode = C.mode(Engine.comMode, Engine.comPersonality, {
+		phase = Engine.team.plan.phase, threatNear = threatNear,
+		health = (hp and maxHp and maxHp > 0) and hp / maxHp or 1, full = sub.autonomy == "full",
+	})
+	if mode ~= Engine.comModeNow then
+		Engine.comModeNow = mode
+		log(sub, "commander: " .. mode .. (Engine.comMode == "auto" and " (auto)" or ""))
+	end
+	-- the D-gun: the most valuable armed enemy in reach (any mode)
+	if frame - (st.dgunFrame or -99999) > Engine.D.commander.dgunCooldown then
+		local enemies = {}
+		for _, u in ipairs(spGetUnitsInCylinder(x, z, Engine.D.commander.dgunRange)) do
+			if isEnemyUnit(u) then
+				local ud = unitDef(u)
+				local ex, _, ez = spGetUnitPosition(u)
+				if ud and ex then
+					enemies[#enemies + 1] = { id = u, x = ex, z = ez, cost = ud.cost, armed = ud.armed and not ud.aaOnly }
+				end
+			end
+		end
+		local t = C.dgunTarget(enemies, { x, z }, econ.e, Engine.comPersonality)
+		local dgun = CMD.MANUALFIRE or CMD.DGUN
+		if t and dgun then
+			order(unitID, dgun, { t.id })
+			st.dgunFrame, st.comBusy = frame, frame + 45
+			planned[unitID] = nil
+			setTask(unitID, "dgun", "commander: D-gun", true)
+			return true
+		end
+	end
+	-- at the front: behind the army's main body, never past the personality's range from home
+	if mode == "frontline" then
+		local army
+		for _, s in ipairs(subs) do
+			if s.role == "army" and s.squad and s.squad.x then
+				army = s
+			end
+		end
+		if army then
+			local sq = army.squad
+			local dx, dz = Engine.homeX - sq.x, Engine.homeZ - sq.z
+			local len = max(sqrt(dx * dx + dz * dz), 1)
+			local fx, fz = sq.x + dx / len * 350, sq.z + dz / len * 350
+			if C.inRange(fx, fz, { Engine.homeX, Engine.homeZ }, Engine.comPersonality) and dist2(x, z, fx, fz) > 300 * 300 then
+				order(unitID, CMD.FIGHT, { fx, spGetGroundHeight(fx, fz), fz })
+				st.comBusy = frame + 90
+				planned[unitID] = nil
+				setTask(unitID, "front", "commander: with the army", true)
+				return true
+			end
+		end
+	end
+	-- defender: back into turret cover at home when it wandered off and enemies are near it or in the
+	-- base (else it keeps building: pulling it home on every plan change fought its build jobs)
+	if mode == "defender" and (threatNear > 0 or Engine.team.plan.base) and sqrt(dist2(x, z, Engine.homeX, Engine.homeZ)) > 1200 then
+		local sx, sz = Engine.tm.safePoint(Engine.homeX, Engine.homeZ, Engine.homeX, Engine.homeZ)
+		order(unitID, CMD.MOVE, { sx or Engine.homeX, spGetGroundHeight(sx or Engine.homeX, sz or Engine.homeZ), sz or Engine.homeZ })
+		st.comBusy = frame + 60
+		planned[unitID] = nil
+		setTask(unitID, "home", "commander: back home to defend", true)
+		return true
+	end
+	return false
 end
 
 -- the army as one squad (sc_squads.lua), once per combat pass: where its main body is, what it goes for,
@@ -3460,6 +3606,13 @@ function Tactics.squad(sub)
 	if not target and auto.help then
 		consider(baseThreats, true)
 	end
+	-- the team asks: a sub-commander's area outgunned (sc_team.lua defend requests)
+	if not target and auto.help then
+		local r, rd = Engine.team.nearest("defend", sq.x, sq.z)
+		if r and rd < 5000 and Engine.inBase(r.x, r.z) then
+			target = { id = "req:" .. r.id, x = r.x, z = r.z, name = "a call for help (" .. (r.note or "defend") .. ")" }
+		end
+	end
 	-- their artillery outranges our turrets: dive it when it's within reach of home and we beat it there
 	if not target and auto.help and Engine.homeX then
 		for _, g in ipairs(Engine.tm.groups(frame, 6)) do
@@ -3485,11 +3638,13 @@ function Tactics.squad(sub)
 		end
 	end
 	local home = target and Engine.inBase(target.x, target.z)
-	if not target and auto.push and sub.pushTarget then
+	-- the team plan: no pushes or attacks while defending; a push plan lets a balanced army attack too
+	local phase = Engine.team.plan.phase
+	if not target and auto.push and sub.pushTarget and phase ~= "defend" then
 		local p = sub.pushTarget
 		target = { id = p.id, x = p.x, z = p.z, name = p.name }
 	end
-	if not target and auto.attack and S.canAttack(sq) then
+	if not target and (auto.attack or (auto.push and phase == "push")) and phase ~= "defend" and S.canAttack(sq) then
 		target = Tactics.attackTarget(sub, sq)
 	end
 	local prev = sub.squadOrder
@@ -3909,6 +4064,31 @@ function Engine.adoptFactories()
 	end
 end
 
+-- the commander's mode (auto / builder / defender / frontline) or personality (careful / bold), team-wide.
+-- Returns false for anything else.
+function Engine.setCommander(what)
+	local C = Engine.com
+	local kind
+	for _, m in ipairs(C.MODES) do
+		if m == what then
+			Engine.comMode, kind = what, "mode"
+		end
+	end
+	for _, p in ipairs(C.PERSONALITIES) do
+		if p == what then
+			Engine.comPersonality, kind = what, "personality"
+		end
+	end
+	if not kind then
+		return false
+	end
+	local sub = Engine.commanderID and owner[Engine.commanderID]
+	for _, s in ipairs(sub and { sub } or subs) do
+		log(s, sformat("commander %s: %s", kind, what))
+	end
+	return true
+end
+
 -- Raids (armies, on by default): its fast units scout the enemy's side and hit what they beat
 function Engine.setRaids(sub, on)
 	sub.raids = on and true or false
@@ -4131,7 +4311,7 @@ function Tactics.guardCommander(sub, unitID, st)
 		end
 	end
 	local hp, maxHp = Spring.GetUnitHealth(unitID)
-	local hurt = hp and maxHp and hp < maxHp * 0.6
+	local hurt = hp and maxHp and hp < maxHp * Engine.com.personality(Engine.comPersonality).retreat
 	if n == 0 or (power < 100 and not hurt) then
 		return false
 	end
@@ -4253,6 +4433,8 @@ local function runSub(sub, budget, combatPass)
 				if d.builder then
 					if d.commander and ((combatPass and Tactics.guardCommander(sub, unitID, st)) or (st.fleeing and frame - st.fleeing < 30 * 15)) then
 						-- the commander is getting out of danger
+					elseif d.commander and ((combatPass and Tactics.commander(sub, unitID, d, st)) or (st.comBusy and frame < st.comBusy)) then
+						-- the commander is D-gunning or at the front (sc_commander.lua)
 					elseif not d.commander and ((combatPass and Tactics.builderSafety(sub, unitID, d, st)) or (st.fleeing and frame - st.fleeing < 30 * 10)) then
 						-- a constructor is getting out of danger
 					elseif budget > 0 and builderNeedsThink(unitID, st) then
@@ -4801,6 +4983,16 @@ local function exportAPI()
 		tune = function(key, value, role)
 			return Engine.tune(key, value, role)
 		end,
+		setCommander = function(what)
+			return Engine.setCommander(what)
+		end,
+		-- a request to the team (sc_team.lua): { kind = "defend"|"constructor"|"production", from, x, z, need, note }
+		request = function(req)
+			if type(req) ~= "table" or not req.kind then
+				return nil
+			end
+			return Engine.team.post(req, frame)
+		end,
 		setRaids = function(id, on)
 			local sub = findSub(id)
 			if sub then
@@ -5028,6 +5220,10 @@ local function textCommand(_, line, words)
 			Engine.useAutoZones(sub)
 		elseif verb == "raids" then
 			Engine.setRaids(sub, words[2] ~= "off")
+		elseif verb == "commander" then
+			if not Engine.setCommander(words[2] or "") then
+				spEcho("Sub-Commanders: commander is auto, builder, defender, frontline, careful or bold")
+			end
 		elseif verb == "autonomy" then
 			if not Engine.setAutonomy(sub, words[2] or "") then
 				spEcho("Sub-Commanders: autonomy is light, balanced or full")
@@ -5226,6 +5422,21 @@ local function drawActiveControls(sub, x1, x2, y, s)
 	end
 	buttonRow(x1, x2, y, h, s, row, fs)
 	y = y - h - 4 * s
+	-- the sub-commander with the commander: its mode and personality (sc_commander.lua)
+	if Engine.commanderID and owner[Engine.commanderID] == sub then
+		local C = Engine.com
+		local mode = Engine.comMode
+		local label = mode == "auto" and ("Auto: " .. (Engine.comModeNow or "builder")) or mode
+		buttonRow(x1, x2, y, h, s, {
+			{ "Commander: " .. label, function(button)
+				Engine.setCommander(cycle(C.MODES, mode, button == 3 and -1 or 1))
+			end, mode == "auto" and { 0.55, 1, 0.6 } or nil },
+			{ Engine.comPersonality == "bold" and "Bold" or "Careful", function()
+				Engine.setCommander(Engine.comPersonality == "bold" and "careful" or "bold")
+			end, Engine.comPersonality == "bold" and { 1, 0.6, 0.4 } or nil },
+		}, fs)
+		y = y - h - 4 * s
+	end
 	local drawing = zoneTool and zoneTool.sub == sub
 	buttonRow(x1, x2, y, h, s, {
 		{ drawing and "Drawing…" or "+ Zone", function()
@@ -6032,7 +6243,9 @@ function Engine.refreshHome()
 end
 
 function Engine.turretBudgetValue()
-	return Engine.D.turrets.budget(Engine.minute(), Engine.armyValue or 0) * (Engine.D.turrets.scale or 1)
+	-- the team defending: more turrets (they hold where a weaker army can't)
+	local defend = Engine.team.plan.phase == "defend" and Engine.D.team.defendTurrets or 1
+	return Engine.D.turrets.budget(Engine.minute(), Engine.armyValue or 0) * (Engine.D.turrets.scale or 1) * defend
 end
 
 -- the strategist tunes the fast loops' doctrine (sc_doctrine.lua D.tunable): team-wide, within bounds
@@ -6179,6 +6392,16 @@ function Engine.teamReport()
 		turretBudget = floor(Engine.turretBudgetValue()),
 		armyValue = floor(Engine.armyValue or 0),
 		approach = Engine.approachText and Engine.approachText() or nil,
+		-- the team's plan and what sub-commanders asked each other for (sc_team.lua)
+		plan = { phase = Engine.team.plan.phase, why = Engine.team.plan.why },
+		requests = (function()
+			local out = {}
+			for i, r in ipairs(Engine.team.open()) do
+				out[i] = { kind = r.kind, from = r.from, x = r.x and floor(r.x), z = r.z and floor(r.z), need = r.need, note = r.note }
+			end
+			return out
+		end)(),
+		commander = { mode = Engine.comMode, now = Engine.comModeNow, personality = Engine.comPersonality },
 		territory = Engine.pickets and {
 			exposedFrontierCells = Engine.terr.exposed, -- our edge cells enemies can walk to (cliffs, water, map edge excluded)
 			pickets = (function()
@@ -6403,6 +6626,7 @@ function widget:GameFrame(n)
 			end
 		end
 		Engine.noteApproaches(baseThreats)
+		Engine.refreshTeam()
 	end
 	if combatPass then
 		for _, sub in ipairs(subs) do
@@ -6489,6 +6713,10 @@ local function restore(game)
 		end
 		log(sub, "restored after reload")
 	end
+	if game.commander then
+		Engine.setCommander(game.commander.mode or "auto")
+		Engine.setCommander(game.commander.personality or "careful")
+	end
 	activeSub = subs[1]
 end
 
@@ -6496,7 +6724,8 @@ function widget:GetConfigData()
 	local data = { panelX = panel.x, panelY = panel.y, collapsed = panel.collapsed }
 	local f = spGetGameFrame()
 	if f > 0 and #subs > 0 then
-		data.game = { map = Game.mapName, team = myTeam, frame = f, time = os and os.time and os.time() or nil, subs = serialize() }
+		data.game = { map = Game.mapName, team = myTeam, frame = f, time = os and os.time and os.time() or nil, subs = serialize(),
+			commander = { mode = Engine.comMode, personality = Engine.comPersonality } }
 	end
 	return data
 end
