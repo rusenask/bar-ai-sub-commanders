@@ -1702,8 +1702,9 @@ function Jobs.techLab(sub, unitID, d)
 	end
 	local dx, dz = (Engine.enemyX or MAP_X / 2) - Engine.homeX, (Engine.enemyZ or MAP_Z / 2) - Engine.homeZ
 	local len = max(sqrt(dx * dx + dz * dz), 1)
-	local ax, az = clampToMap(Engine.homeX - dx / len * 300, Engine.homeZ - dz / len * 300)
-	local x, z = findBuildSpot(sub, o, ax, az, { gap = 48, rings = 12 })
+	-- deep behind home: a 2600-metal frame near the front died before it finished
+	local ax, az = clampToMap(Engine.homeX - dx / len * 700, Engine.homeZ - dz / len * 700)
+	local x, z = findBuildSpot(sub, o, ax, az, { gap = 48, rings = 14, anywhere = true })
 	if x and issueBuild(sub, unitID, o, x, z, facingToward(x, z, Engine.enemyX or MAP_X / 2, Engine.enemyZ or MAP_Z / 2), "tier 2 lab: T2 constructors, then T2 units") then
 		getState(unitID).rebuildFor, getState(unitID).newFactory = sub.id, true
 		return true
@@ -1720,6 +1721,13 @@ function Engine.haveTechLab()
 	end
 	for _, p in pairs(planned) do
 		if defs[p.defID].factory and (defs[p.defID].tech or 1) >= 2 then
+			return true
+		end
+	end
+	-- the player's own queued builds count too (a player-ordered T2 lab and ours were both built)
+	for _, p in ipairs(Player.plans or {}) do
+		local pd = defs[p.defID]
+		if pd and pd.factory and (pd.tech or 1) >= 2 then
 			return true
 		end
 	end

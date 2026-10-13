@@ -468,7 +468,7 @@ local function duel(n)
 				local _, dx, dz = towardEnemy(0.1, 0)
 				duelState.t2Tries = (duelState.t2Tries or 0) + 1
 				local a = duelState.t2Tries * 2.1
-				playerBuild(cons[1], "legalab", cx - dx * 300 + math.cos(a) * 250, cz - dz * 300 + math.sin(a) * 250, dx, dz)
+				playerBuild(cons[1], "legalab", cx - dx * 700 + math.cos(a) * 250, cz - dz * 700 + math.sin(a) * 250, dx, dz)
 				duelState.t2Ordered = n
 				out("player: tier 2 lab ordered")
 			end
