@@ -2380,6 +2380,7 @@ end
 -- of constructors and combat units; combat units go to an Army without a lab, else stay as a guard
 function Engine.economyProduction(sub, facID, fd, cap)
 	local st = getState(facID)
+	st.handOff, st.handOffCombat, st.openingPending = nil, nil, nil
 	-- a tier-2 lab: its constructors first (extractor upgrades, fusion), then it goes to the Army
 	if (fd.tech or 1) >= 2 then
 		local t2 = 0
@@ -2390,11 +2391,17 @@ function Engine.economyProduction(sub, facID, fd, cap)
 			end
 		end
 		if t2 < Engine.D.economy.t2Builders then
+			-- the real T2 constructor (legack / armack / corack), else the builder with the most build
+			-- options: the cheapest "builder" was the Infestor, built 212 times in one batch
 			local cons = buildableBy(fd, function(od)
 				return od.builder and not od.commander
 			end)
 			tsort(cons, function(a, b)
-				return defs[a].cost < defs[b].cost
+				local an, bn = (defs[a].name or ""):find("ack$") and 1 or 0, (defs[b].name or ""):find("ack$") and 1 or 0
+				if an ~= bn then
+					return an > bn
+				end
+				return #(defs[a].options or {}) > #(defs[b].options or {})
 			end)
 			if cons[1] then
 				return cons[1], "tier 2 constructor"

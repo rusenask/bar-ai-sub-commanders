@@ -205,3 +205,18 @@ Reports in `testenv/batch/<dir>/report.md` (gamereport: pace against 26 strong p
 - v8: 1 of 15 lost (best so far; one game hung loading twice), 1 commander death (v7: 7). The economy
   plateaus again (9 extractors at 8-15 min, 6 at 20): two guards stay with the commander instead of the
   pickets. From here on batches run 45 game minutes (at 25 most games were still going).
+
+## 45-minute games: v14 (response squad) and v16 (tier 2)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261013-1843-engine-v14-responders | 16 | 7 timeout, 9 loss | 2 | 75.4k | 136 / 457 | 0.69 | 15.8 | 11.5 | 4.5k |
+| 20261013-1942-engine-v16 | 16 | 16 loss | 3 | 54.2k | 98 / 298 | 0.78 | 18.1 | 12.5 | 5.4k |
+
+- v14: 7/16 alive at 45 min, 2 lost by 25; the economy scales late (30 extractors, +62 metal/s at 40)
+  but BARbarian goes tier 2 around minute 25 and its T2 army (Fido, Bulldog, Maverick, Zeus, Panther)
+  wins most fights after 28 minutes.
+- v16 (T2 lab at minute 18 / 30 metal/s): 16/16 lost. Bug, not tier 2 itself: the "T2 constructor" pick
+  took the cheapest builder, the Infestor (212 built across the batch), handed to the army because the
+  hand-off wasn't reset, so the lab never stopped; the army shrank from 13k to 7k and the minute-25 push
+  wiped the base every game. Fixed in v17 (the real T2 constructor; hand-off reset first).

@@ -43,6 +43,9 @@ out wrong.
   (autopilot-raids-40m: no enemy factory found or killed in 8 games)
 - Moving the base guards out to the frontier (pickets) let the economy grow but doubled commander deaths:
   whatever spreads the defence out must leave an escort with the commander. (engine-v7-territory)
+- "Cheapest builder" isn't "the constructor": the T2 lab's cheapest builder was the Infestor, spammed 212
+  times. Pick constructors by role (name / build options), and read the timeline of a disaster batch first:
+  it showed the spam in the first minute of reading. (engine-v16)
 - The whole team dies with the commander (BAR's default end condition): keep it home. (game 10)
 - Letting emergency energy pick basic solar instead of wind made every average worse. (batch E)
 - The counter-push rarely triggers: the army is seldom 1.5x what it sees. (batch B)
