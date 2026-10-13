@@ -1,6 +1,8 @@
 """Fetch replays of strong players' 1v1 games from BAR's public replay archive, with what they need to play.
 
 usage: uv run --with certifi python testenv/pro_replays.py [--pages 5] [--min-skill 30] [--max 20]
+       [--preset duel|team|ffa]   (team / ffa: 2v2 up to 8v8, free-for-alls; default output demos/<preset>,
+                                   duels in demos/pro; team games are rated on the average player)
 On the force host (testenv/force/README.md): BAR_PRD=~/bar-sim/engine/pr-downloader BAR_DATA=~/bar-sim/data
 BAR_DEMOS=~/bar-sim/demos python3 pro_replays.py ... (system CA certificates; certifi optional)
 
@@ -30,7 +32,7 @@ STORAGE = "https://storage.uk.cloud.ovh.net/v1/AUTH_10286efc0d334efd917d476d7183
 ENGINE = "2026.07.04"
 PRD = os.environ.get("BAR_PRD", "/Applications/BAR Launcher.app/Contents/MacOS/pr-downloader")
 BAR = Path(os.environ.get("BAR_DATA", Path.home() / "Library/Application Support/Beyond-All-Reason-mac"))
-OUT = Path(os.environ.get("BAR_DEMOS", Path(__file__).resolve().parent / "demos/pro"))
+OUT = None  # set in main: BAR_DEMOS, else demos/pro for duels and demos/<preset> otherwise
 CTX = ssl.create_default_context(cafile=certifi.where()) if certifi else ssl.create_default_context()
 
 
@@ -56,14 +58,17 @@ def main():
     ap.add_argument("--pages", type=int, default=5, help="pages of 100 recent duels to scan")
     ap.add_argument("--min-skill", type=float, default=30)
     ap.add_argument("--max", type=int, default=20)
+    ap.add_argument("--preset", default="duel", choices=["duel", "team", "ffa"])
     args = ap.parse_args()
+    global OUT
+    OUT = Path(os.environ.get("BAR_DEMOS") or Path(__file__).resolve().parent / ("demos/pro" if args.preset == "duel" else f"demos/{args.preset}"))
     OUT.mkdir(parents=True, exist_ok=True)
     manifest_path = OUT / "manifest.json"
     manifest = json.loads(manifest_path.read_text()) if manifest_path.exists() else {}
     have_maps, have_games = set(), set()
     fetched = 0
     for page in range(1, args.pages + 1):
-        listing = get(f"{API}?page={page}&limit=100&preset=duel&hasBots=false&endedNormally=true")["data"]
+        listing = get(f"{API}?page={page}&limit=100&preset={args.preset}&hasBots=false&endedNormally=true")["data"]
         if not listing:
             break
         for item in listing:
@@ -73,8 +78,11 @@ def main():
                 continue
             r = get(f"{API}/{item['id']}")
             players = [p for at in r["AllyTeams"] for p in at["Players"]]
-            if (r["engineVersion"] != ENGINE or len(players) != 2 or r["durationMs"] < 8 * 60000
-                    or min(skill(p) for p in players) < args.min_skill):
+            # duels: both players rated; team games and free-for-alls: the average player
+            rated = (min(skill(p) for p in players) if args.preset == "duel"
+                     else sum(skill(p) for p in players) / max(len(players), 1)) if players else 0
+            if (r["engineVersion"] != ENGINE or (args.preset == "duel" and len(players) != 2)
+                    or len(players) < 2 or r["durationMs"] < 8 * 60000 or rated < args.min_skill):
                 continue
             path = OUT / f"{r['id']}.sdfz"
             if not path.exists():
@@ -90,7 +98,8 @@ def main():
             winners = [p["name"] for at in r["AllyTeams"] if at.get("winningTeam") for p in at["Players"]]
             manifest[r["id"]] = {
                 "file": path.name, "map": mapname, "game": game, "minutes": r["durationMs"] // 60000,
-                "players": [{"name": p["name"], "skill": skill(p), "faction": p.get("faction")} for p in players],
+                "preset": args.preset, "teams": [len(at["Players"]) for at in r["AllyTeams"]],
+                "players": [{"name": p["name"], "skill": skill(p), "faction": p.get("faction"), "team": p.get("teamId")} for p in players],
                 "winners": winners, "start": r["startTime"],
             }
             fetched += 1

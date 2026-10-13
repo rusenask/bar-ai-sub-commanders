@@ -2,6 +2,8 @@ package analysis
 
 import (
 	"bytes"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -217,5 +219,36 @@ func TestMicro(t *testing.T) {
 	doc := MicroDoctrine(kinds)
 	if !strings.Contains(doc, `["skirmisher"] = { hold = 0.90, kite = 0.50`) || !strings.Contains(doc, `["heavy"] = { hold = 0.50, kite = false, front = true`) {
 		t.Errorf("doctrine:\n%s", doc)
+	}
+}
+
+func TestRoles(t *testing.T) {
+	dir := t.TempDir()
+	lines := []string{
+		`{"type":"teams","teams":[{"team":0,"ally":0,"side":"Cortex"},{"team":1,"ally":0,"side":"Armada"},{"team":2,"ally":1,"side":"Cortex"},{"team":3,"ally":1,"side":"Cortex"}]}`,
+		`{"type":"build","frame":18000,"team":0,"chosen":"corfig","options":[{"name":"corfig","kind":"fighter","cost":1200,"air":true}]}`,
+		`{"type":"build","frame":3000,"team":1,"chosen":"armpw","options":[{"name":"armpw","kind":"raider","cost":1500}]}`,
+		`{"type":"turretbuild","frame":3000,"team":2,"chosen":"corllt","options":[{"name":"corllt","kind":"turret","cost":900}]}`,
+		`{"type":"build","frame":3000,"team":2,"chosen":"corak","options":[{"name":"corak","kind":"raider","cost":800}]}`,
+		`{"type":"build","frame":3000,"team":3,"chosen":"corak","options":[{"name":"corak","kind":"raider","cost":600}]}`,
+		`{"type":"eco","team":3,"mex":20}`,
+		`{"type":"eco","team":2,"mex":8}`,
+	}
+	if err := os.WriteFile(filepath.Join(dir, "g.jsonl"), []byte(strings.Join(lines, "\n")+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	players, err := ReadRoles(dir)
+	if err != nil || len(players) != 4 {
+		t.Fatal(err, players)
+	}
+	got := map[int]string{}
+	for _, p := range players {
+		got[p.Team] = p.Role
+	}
+	if got[0] != "air" || got[1] != "ground" || got[2] != "defense" || got[3] != "eco" {
+		t.Errorf("roles %v", got)
+	}
+	if txt := RolesText(players); !strings.Contains(txt, "| 2 | 4 |") || !strings.Contains(txt, "| 50% | 10.0 |") {
+		t.Errorf("text:\n%s", txt)
 	}
 }

@@ -7,6 +7,7 @@
 //	gamereport -json testenv/batch/latest        # the report as JSON (for agents); -compare -json too
 //	gamereport -micro testenv/data/pro [-json]   # how strong players' units move and shoot, by kind,
 //	                                             # and the D.micro.kinds doctrine that follows
+//	gamereport -roles testenv/data/team [-json]  # team games: what each player specialises in
 //	gamereport -timeline testenv/batch/latest/3.txt [-json]  # one game minute by minute: economy,
 //	                                             # losses and kills by kind, squad / raid decisions
 package main
@@ -33,10 +34,23 @@ func main() {
 	benchDesc := flag.String("bench-desc", "strong players' 1v1s (both rated 30+, BAR replays)", "benchmark description")
 	playbookOut := flag.String("playbook-out", "docs/research/pro-playbook.md", "with -bench-from: where to write what strong players build and when")
 	asJSON := flag.Bool("json", false, "print JSON (report, compare, timeline) instead of markdown / text")
+	roles := flag.String("roles", "", "directory of data logger JSONL files of team games: players' roles by side size")
 	micro := flag.String("micro", "", "directory of data logger JSONL files: per-kind unit behaviour and doctrine")
 	timeline := flag.Bool("timeline", false, "each argument is one game's harness log: show it minute by minute")
 	flag.Parse()
 
+	if *roles != "" {
+		players, err := analysis.ReadRoles(*roles)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if *asJSON {
+			printJSON(players)
+			return
+		}
+		fmt.Printf("%d players\n\n%s", len(players), analysis.RolesText(players))
+		return
+	}
 	if *micro != "" {
 		samples, err := analysis.ReadMicro(*micro)
 		if err != nil {

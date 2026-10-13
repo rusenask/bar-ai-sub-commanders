@@ -1,5 +1,5 @@
 #!/bin/bash
-# usage: [PARALLEL=6] [SPEED=100] testenv/force-replays.sh [outdir]
+# usage: [PARALLEL=6] [SPEED=100] [PRESET=duel|team|ffa] testenv/force-replays.sh [outdir]
 # Plays every strong players' replay on the force host (~/bar-sim/demos, fetched there with
 # pro_replays.py: testenv/force/README.md) with the data logger, PARALLEL at a time, and copies the
 # samples to <outdir> (default testenv/data/pro), one <replay id>.jsonl each. Replays already logged on
@@ -7,7 +7,10 @@
 set -e
 T="$(cd "$(dirname "$0")" && pwd)"
 HOST="${FORCE_HOST:-force}"
-OUT="${1:-$T/data/pro}"
+PRESET="${PRESET:-duel}"
+# duels: ~/bar-sim/demos -> testenv/data/pro; team games / ffa: ~/bar-sim/demos-<preset> -> testenv/data/<preset>
+if [ "$PRESET" = duel ]; then DEMOS=bar-sim/demos PRODATA=bar-sim/prodata; LOCAL=pro; else DEMOS=bar-sim/demos-$PRESET PRODATA=bar-sim/prodata-$PRESET; LOCAL=$PRESET; fi
+OUT="${1:-$T/data/$LOCAL}"
 PARALLEL="${PARALLEL:-6}"
 SPEED="${SPEED:-100}"
 STAGE="$(mktemp -d)"
@@ -19,13 +22,14 @@ cp "$T/springsettings.template.cfg" "$STAGE/springsettings.cfg"
 touch "$STAGE/datalog.txt"
 echo replay > "$STAGE/sctest_scenario.txt"
 echo "$SPEED 0" > "$STAGE/sctest_speed.txt"
-ssh "$HOST" "rm -rf bar-sim/replay-template && mkdir -p bar-sim/prodata bar-sim/replay-runs"
+ssh -n "$HOST" "rm -rf bar-sim/replay-template && mkdir -p $PRODATA bar-sim/replay-runs"
 rsync -a "$STAGE/" "$HOST:bar-sim/replay-template/"
 scp -q "$T/force/run_replay.sh" "$HOST:bar-sim/run_replay.sh"
 rm -rf "$STAGE"
 # only replays in the manifest: their game version and map were fetched (other .sdfz files are
 # leftovers of failed fetches)
-ssh -n "$HOST" "python3 -c 'import json,os; d=os.path.expanduser(\"~/bar-sim/demos\"); [print(d + \"/\" + v[\"file\"]) for v in json.load(open(d + \"/manifest.json\")).values()]' | xargs -P $PARALLEL -I{} bash \$HOME/bar-sim/run_replay.sh \$HOME/bar-sim/replay-template {} \$HOME/bar-sim/prodata 1800"
-rsync -a "$HOST:bar-sim/prodata/" "$OUT/"
-rsync -a "$HOST:bar-sim/demos/manifest.json" "$T/demos/pro/manifest.json"
+ssh -n "$HOST" "python3 -c 'import json,os; d=os.path.expanduser(\"~/$DEMOS\"); [print(d + \"/\" + v[\"file\"]) for v in json.load(open(d + \"/manifest.json\")).values()]' | xargs -P $PARALLEL -I{} bash \$HOME/bar-sim/run_replay.sh \$HOME/bar-sim/replay-template {} \$HOME/$PRODATA 3600"
+rsync -a "$HOST:$PRODATA/" "$OUT/"
+mkdir -p "$T/demos/$LOCAL"
+rsync -a "$HOST:$DEMOS/manifest.json" "$T/demos/$LOCAL/manifest.json"
 echo "$(ls "$OUT"/*.jsonl | wc -l | tr -d ' ') replays logged in $OUT"

@@ -551,5 +551,12 @@ function widget:Initialize()
 	math.randomseed(os.time())
 	gameKey = os.date("%Y%m%d-%H%M%S") .. "-" .. math.random(1000, 9999)
 	out = io.open("datalog.jsonl", "w")
-	write({ type = "start", game = gameKey, map = Game.mapName, mapX = Game.mapSizeX, mapZ = Game.mapSizeZ, version = 4 })
+	write({ type = "start", game = gameKey, map = Game.mapName, mapX = Game.mapSizeX, mapZ = Game.mapSizeZ, version = 5 })
+	-- who is allied with whom (team games: roles within a side), and each team's faction
+	local list = {}
+	for t, ally in pairs(teams) do
+		local _, _, _, _, side = Spring.GetTeamInfo(t, false)
+		list[#list + 1] = { team = t, ally = ally, side = side }
+	end
+	write({ type = "teams", game = gameKey, teams = list })
 end
