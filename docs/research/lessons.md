@@ -41,6 +41,8 @@ out wrong.
   (autopilot-raids-40m)
 - An army that attacks still needs to know where their factories are: scout their base before the push.
   (autopilot-raids-40m: no enemy factory found or killed in 8 games)
+- Moving the base guards out to the frontier (pickets) let the economy grow but doubled commander deaths:
+  whatever spreads the defence out must leave an escort with the commander. (engine-v7-territory)
 - The whole team dies with the commander (BAR's default end condition): keep it home. (game 10)
 - Letting emergency energy pick basic solar instead of wind made every average worse. (batch E)
 - The counter-push rarely triggers: the army is seldom 1.5x what it sees. (batch B)

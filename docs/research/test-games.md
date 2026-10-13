@@ -179,3 +179,24 @@ Reports in `testenv/batch/<dir>/report.md` (gamereport: pace against 26 strong p
 - Watching a game: metal and energy overflowed with one lab all game: a 48-unit army cap idled the lab,
   storage (10.7k) hid the waste, the turret target was too low. No radar before minute 8-9.5 (only
   Intelligence built them, created at 8 min). Fixed in v5.
+
+## v5 with the strategist, v6, v7 (16-game arms on 3 parallel workers from v6)
+
+| Arm | Games | Results | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|
+| 20261013-1719-engine-v6-16 | 16 | 13 timeout, 3 loss | 26.5k | 67 / 193 | 0.80 | 5.6 | 8 | 3.5k |
+| 20261013-1739-engine-v7-territory | 16 | 9 timeout, 7 loss | 28.5k | 57 / 193 | 0.71 | 6.6 | 10 | 3.4k |
+| 20261013-1633-engine-v5-strategist | 3 | 1 timeout, 2 loss | 24.5k | 49 / 195 | 0.75 | 8.3 | 10 | 3.4k |
+
+- v5 + strategist (3 games, stopped: lockstep paused the game nearly all the time): it read the audit and
+  tuned sensibly at first (capped factories, raised the turret budget, raids off against a push) but
+  misread a rule (raised nano_per_income to get more turrets), ratcheted engage_attack to 2.0 and
+  retreat_fighter to 0.75, and roles overwrote each other's rules. Fixed: rule ownership, rate limits,
+  half-steps, clearer names; lockstep now slows to real time instead of pausing.
+- v6 (turret mix per area, no army cap, tuning safeguards): best so far, 3/16 lost, trades 0.80. The
+  economy plateaus: 8-11 extractors from minute 8, metal ~20/s all game.
+- v7 (territory: terrain-aware frontier, pickets for Defense zones and guards): the economy grows (13-14
+  extractors at 12-15 min, metal 30/s at 15) but 7/16 lost, all commander deaths (v6: 3): the guards left
+  the base core for the pickets. v8 adds a commander escort and a safe-point retreat.
+- Every game ends with a loss or at the 25-minute limit (TIMEOUT = alive): nothing else stops them. About
+  1 in 5 games needed a second try (first try killed or failed; the cause wasn't kept: batch.sh now saves it).
