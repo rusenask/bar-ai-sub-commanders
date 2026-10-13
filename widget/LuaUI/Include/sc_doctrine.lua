@@ -52,7 +52,8 @@ D.responders = {
 -- team planning (sc_team.lua): the phase and the requests between sub-commanders
 D.team = {
 	openingMinutes = 6,
-	defendBase = 600, -- enemy metal inside the base that makes the whole team defend
+	defendBase = 600, -- enemy metal inside the base that makes the whole team defend ...
+	defendBaseShare = 0.08, -- ... or this share of our army's metal, whichever is more
 	defendRatio = 1.2, -- a known enemy army this much bigger than ours: defend
 	pushRatio = 1.6, -- ours this much bigger than everything known of theirs: push
 	pushMin = 4000, -- and at least this big

@@ -3378,9 +3378,12 @@ function Tactics.updatePush(sub)
 	end
 	local power = sub.counts.power
 	local near = Enemy.powerNear(sub.armyX, sub.armyZ, 1800)
-	if #baseThreats > 0 or power < 2000 or power < 1.5 * near then
+	-- only a real attack on the base calls a push off (the team plan's measure, scaled to our army):
+	-- raiders are the response squad's and the turrets' job
+	local baseAttacked = Engine.team.plan.base
+	if baseAttacked or power < 2000 or power < 1.5 * near then
 		if sub.pushTarget then
-			log(sub, "push called off: " .. (#baseThreats > 0 and "the base needs us" or "not strong enough here"))
+			log(sub, "push called off: " .. (baseAttacked and "the base needs us" or "not strong enough here"))
 		end
 		sub.pushTarget = nil
 		return
@@ -4242,7 +4245,8 @@ function Tactics.squad(sub)
 			local handled = rsq and Engine.inBase(t.x, t.z) and theirs < 0.8 * rsq.together
 			-- pushing: a raid the main army outweighs many times is the response squad's and the turrets' job
 			-- (v19's 200-unit army chased raiders at home through the whole push)
-			handled = handled or (rsq and Engine.team.plan.phase == "push" and theirs * Engine.D.escalation.overkill < sq.power)
+			-- (not just in a push: v23's whole army regrouped "before intruders (290.8x)")
+			handled = handled or (rsq and theirs * Engine.D.escalation.overkill < sq.power)
 			if not t.air and not handled and not (helping and not Engine.nearVital(t.x, t.z) and Engine.tm.influence(t.x, t.z) >= 1.5 * Engine.tm.enemyPower(t.x, t.z, 700, frame)) then
 				local dd = sqrt(dist2(sq.x, sq.z, t.x, t.z))
 				-- what they threaten counts more than how close they are: factories and the commander first

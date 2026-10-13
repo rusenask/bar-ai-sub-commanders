@@ -81,8 +81,11 @@ return function(ctx)
 	-- between push and defend ten times a game) unless the base itself comes under attack.
 	function T.phase(s)
 		local plan
-		if s.baseUnderAttack >= P.defendBase or (s.enemyArmy > 0 and s.enemyArmy > s.armyPower * P.defendRatio) then
-			local base = s.baseUnderAttack >= P.defendBase
+		-- "under attack" grows with our army: a 600-metal raid is a crisis at minute 8, nothing at minute 50
+		-- with a 120k army (v23 called its pushes off for every raider and timed out undecided)
+		local threshold = math.max(P.defendBase, (P.defendBaseShare or 0) * s.armyPower)
+		if s.baseUnderAttack >= threshold or (s.enemyArmy > 0 and s.enemyArmy > s.armyPower * P.defendRatio) then
+			local base = s.baseUnderAttack >= threshold
 			plan = { phase = "defend", base = base, why = base and "the base is under attack" or "a known enemy army outweighs ours" }
 		elseif s.minute < P.openingMinutes then
 			plan = { phase = "opening", why = "the first minutes: economy and raiders" }

@@ -69,4 +69,14 @@ return {
 		q.baseUnderAttack, q.frame = 2000, q.frame + 30
 		T.eq(u.phase(q).phase, "defend", "the base attacked: at once")
 	end,
+	base_attack_scales_with_our_army = function()
+		local t = team()
+		local s = { minute = 50, income = 150, armyPower = 120000, enemyArmy = 10000, baseUnderAttack = 900, techLab = true, techReady = true, frame = 30 * 3000 }
+		T.eq(t.phase(s).phase, "push", "a 900-metal raid doesn't stop a 120k army's push")
+		s.baseUnderAttack, s.frame = 12000, s.frame + 30 * 60
+		T.eq(t.phase(s).phase, "defend", "a real attack does")
+		T.ok(t.plan.base)
+		local u = team()
+		T.eq(u.phase({ minute = 8, income = 20, armyPower = 2000, enemyArmy = 0, baseUnderAttack = 700, techLab = false, techReady = false, frame = 30 * 480 }).phase, "defend", "early, 700 metal is an attack")
+	end,
 }
