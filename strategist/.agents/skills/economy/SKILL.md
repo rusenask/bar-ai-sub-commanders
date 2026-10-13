@@ -69,6 +69,11 @@ Reports carry a **Pace** line: our metal and energy income against strong player
 
 ## Expansion
 
+- **Fewer sides to defend.** Strong players grow the base against the map edge, cliffs and water, and hold
+  the few passable approaches. The report's `territory` counts our exposed frontier (edge cells enemies can
+  walk to) and lists the pickets (the approaches worth holding). Prefer expansions that keep the territory
+  compact and behind natural walls; a far expansion that opens a new side costs a picket of its own.
+
 - Extend or add zones over clusters of free metal spots on our half of the map (look at the map picture:
   yellow rings). Keep each zone 600-2500 elmos across.
 - Don't expand toward the enemy start or where red sightings are fresh: raiders kill lone extractors.

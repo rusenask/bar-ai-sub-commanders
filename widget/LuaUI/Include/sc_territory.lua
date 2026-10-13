@@ -1,5 +1,8 @@
 -- Sub-Commanders territory (design/engine.md): what's ours on the map and where its edge needs holding.
--- Cells within `reach` of our structures are ours; the frontier is our cells next to cells that aren't.
+-- Cells within `reach` of our structures are ours. Terrain (terrain(heightAt)) marks cells ground units
+-- can't use (steep slopes, deep water); the frontier is then only our cells that enemies can actually
+-- reach: next to a passable cell connected to their side. Cliffs, water and the map edge defend
+-- themselves (strong players build against them), so pickets gather at the real approaches.
 -- Pickets are frontier points worth guarding, scored by where intruders came from (approach sectors),
 -- whether they face the enemy, and how much of ours is behind them. Without pickets on the sides, raids
 -- simply walk around the army (seen in test games: attacks from every side).
@@ -17,7 +20,7 @@ return function(ctx)
 	local W = max(1, math.ceil(ctx.mapX / CELL))
 	local H = max(1, math.ceil(ctx.mapZ / CELL))
 	local reach = ctx.reach or 700
-	local T = { W = W, H = H, cell = CELL, owned = {}, value = {}, frontier = {} }
+	local T = { W = W, H = H, cell = CELL, owned = {}, value = {}, frontier = {}, blocked = {}, exposed = 0 }
 
 	local function idx(ix, iz)
 		return iz * W + ix + 1
@@ -32,8 +35,49 @@ return function(ctx)
 		return T.owned[idx(ix, iz)] == true
 	end
 
-	-- structures: list of { x, z, value }. Rebuilds ownership, the value each cell protects, the frontier.
-	function T.update(structures)
+	-- terrain: heightAt(x, z) -> height. A cell is blocked for ground units when it's steep (the steepest
+	-- step between samples a quarter cell apart above 1.6 x maxSlope: one cliff edge in a corner doesn't
+	-- wall it off) or deeper than maxDepth under water.
+	function T.terrain(heightAt, opts)
+		opts = opts or {}
+		local maxSlope, maxDepth = opts.maxSlope or 0.45, opts.maxDepth or 22
+		local step = CELL / 4
+		local blocked, n = {}, 0
+		for iz = 0, H - 1 do
+			for ix = 0, W - 1 do
+				local x0, z0 = ix * CELL, iz * CELL
+				local h = {}
+				for sz = 0, 4 do
+					h[sz] = {}
+					for sx = 0, 4 do
+						h[sz][sx] = heightAt(x0 + sx * step, z0 + sz * step)
+					end
+				end
+				local steep, low = 0, math.huge
+				for sz = 0, 4 do
+					for sx = 0, 4 do
+						low = min(low, h[sz][sx])
+						if sx < 4 then
+							steep = max(steep, math.abs(h[sz][sx + 1] - h[sz][sx]) / step)
+						end
+						if sz < 4 then
+							steep = max(steep, math.abs(h[sz + 1][sx] - h[sz][sx]) / step)
+						end
+					end
+				end
+				if steep > maxSlope * 1.6 or low < -maxDepth then
+					blocked[idx(ix, iz)] = true
+					n = n + 1
+				end
+			end
+		end
+		T.blocked = blocked
+		return n
+	end
+
+	-- structures: list of { x, z, value }; enemy: { x, z } (their start; nil = every passable cell counts).
+	-- Rebuilds ownership, the value each cell protects, and the exposed frontier.
+	function T.update(structures, enemy)
 		local owned, value = {}, {}
 		local r = reach + CELL * 0.5
 		for _, s in ipairs(structures) do
@@ -50,17 +94,45 @@ return function(ctx)
 				end
 			end
 		end
+		-- where enemies can walk: passable cells that aren't ours, connected to their start
+		local blocked = T.blocked
+		local walk = {}
+		if enemy then
+			local sx, sz = T.cellOf(enemy[1], enemy[2])
+			local queue, head = { idx(sx, sz) }, 1
+			walk[queue[1]] = true
+			while queue[head] do
+				local i = queue[head]
+				head = head + 1
+				local ix, iz = (i - 1) % W, floor((i - 1) / W)
+				for dz = -1, 1 do
+					for dx = -1, 1 do
+						local nx, nz = ix + dx, iz + dz
+						if (dx ~= 0 or dz ~= 0) and nx >= 0 and nz >= 0 and nx < W and nz < H then
+							local ni = idx(nx, nz)
+							if not walk[ni] and not blocked[ni] and not owned[ni] then
+								walk[ni] = true
+								queue[#queue + 1] = ni
+							end
+						end
+					end
+				end
+			end
+		end
 		local frontier = {}
 		for i in pairs(owned) do
 			local ix, iz = (i - 1) % W, floor((i - 1) / W)
 			local edge = false
-			for dz = -1, 1 do
-				for dx = -1, 1 do
-					local nx, nz = ix + dx, iz + dz
-					if (dx ~= 0 or dz ~= 0) and (nx < 0 or nz < 0 or nx >= W or nz >= H or not owned[idx(nx, nz)]) then
-						-- the map edge isn't a frontier: nothing comes from there
-						if nx >= 0 and nz >= 0 and nx < W and nz < H then
-							edge = true
+			if not blocked[i] then
+				for dz = -1, 1 do
+					for dx = -1, 1 do
+						local nx, nz = ix + dx, iz + dz
+						-- the map edge, cliffs and deep water aren't a frontier: nothing comes from there
+						if (dx ~= 0 or dz ~= 0) and nx >= 0 and nz >= 0 and nx < W and nz < H then
+							local ni = idx(nx, nz)
+							if not owned[ni] and not blocked[ni] and (not enemy or walk[ni]) then
+								edge = true
+							end
 						end
 					end
 				end
@@ -69,7 +141,7 @@ return function(ctx)
 				frontier[#frontier + 1] = { ix = ix, iz = iz, x = (ix + 0.5) * CELL, z = (iz + 0.5) * CELL }
 			end
 		end
-		T.owned, T.value, T.frontier = owned, value, frontier
+		T.owned, T.value, T.frontier, T.exposed = owned, value, frontier, #frontier
 		return #frontier
 	end
 

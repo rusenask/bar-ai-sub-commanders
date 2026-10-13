@@ -53,4 +53,39 @@ return {
 			T.ok(p.x > 256 or p.z > 256, "not the corner against the map edge")
 		end
 	end,
+	cliffs_and_water_are_not_frontier = function()
+		local t = terr()
+		-- deep water west of x = 1200, a cliff rising north of z = 1500
+		local walls = t.terrain(function(x, z)
+			if x < 1200 then
+				return -60
+			end
+			if z < 1500 then
+				return 40 + (1500 - z) * 2
+			end
+			return 40
+		end)
+		T.ok(walls > 0, "some cells are walls")
+		local open = terr()
+		open.update(BASE, { 7000, 2000 })
+		t.update(BASE, { 7000, 2000 })
+		T.ok(t.exposed < open.exposed, "fewer exposed cells with walls: " .. t.exposed .. " vs " .. open.exposed)
+		for _, p in ipairs(t.frontier) do
+			T.ok(p.x >= 1200 and p.z >= 1280, "no frontier against the water or the cliff: " .. p.x .. "," .. p.z)
+		end
+	end,
+	only_what_the_enemy_can_reach = function()
+		local t = terr()
+		-- a cliff wall across the whole map at x 3400-3700, with one gap at z 1900-2400
+		t.terrain(function(x, z)
+			if x >= 3400 and x < 3700 and not (z >= 1900 and z < 2400) then
+				return 400 + (x - 3400) * 3
+			end
+			return 40
+		end)
+		t.update(BASE, { 7000, 2000 })
+		T.ok(t.exposed > 0, "the base is still reachable through the gap")
+		local ps = t.pickets(1, { 2000, 2000 }, { 7000, 2000 }, nil)
+		T.ok(ps[1] and ps[1].x > 2000, "the picket holds the side facing the gap")
+	end,
 }

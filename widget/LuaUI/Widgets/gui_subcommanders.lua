@@ -5801,7 +5801,7 @@ function Engine.teamReport()
 		armyValue = floor(Engine.armyValue or 0),
 		approach = Engine.approachText and Engine.approachText() or nil,
 		territory = Engine.pickets and {
-			frontierCells = #Engine.terr.frontier,
+			exposedFrontierCells = Engine.terr.exposed, -- our edge cells enemies can walk to (cliffs, water, map edge excluded)
 			pickets = (function()
 				local out = {}
 				for i, p in ipairs(Engine.pickets) do
@@ -5901,7 +5901,14 @@ function Engine.refreshTerritory()
 			end
 		end
 	end
-	Engine.terr.update(list)
+	-- the map's walls (steep slopes, deep water) once: they cut the frontier down to the real approaches
+	if not Engine.terrainDone then
+		Engine.terrainDone = true
+		Engine.terr.terrain(function(x, z)
+			return spGetGroundHeight(x, z) or 0
+		end)
+	end
+	Engine.terr.update(list, { Engine.enemyX or MAP_X / 2, Engine.enemyZ or MAP_Z / 2 })
 	local A = Engine.approach
 	Engine.pickets = Engine.terr.pickets(4, { Engine.homeX, Engine.homeZ }, { Engine.enemyX or MAP_X / 2, Engine.enemyZ or MAP_Z / 2 }, A and A.sectors)
 end
