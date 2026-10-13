@@ -139,6 +139,24 @@ guards idling at home. Escalation by income:
 | metal piling up | the Economy's lab sends units beyond its guards to the Army |
 | push plan | intruders the main army outweighs 8x are left to the response squad and turrets |
 
+## The Air Force (sc_air.lua, Tactics.air)
+
+A sub-commander role (`air`). Its constructor builds its own aircraft plant (outside the economy's
+factory cap; a tier 2 one once it has a tier 2 constructor, asked for from 70 metal/s) and extends the
+radar net. Production follows `air.want`: one scout plane, fighters up to 25% of the armed planes (1.5x
+the enemy's air share when they fly, at most 60%), then bombers and gunships half and half.
+
+Every combat pass `Tactics.air` gives each wing one order; `Tactics.airUnit` makes each plane follow it:
+
+| Wing | Order |
+|---|---|
+| fighters | intercept enemy aircraft (scouts too) within 3500 of home or the army; else escort the strike; else patrol between home and the army |
+| gunships | hunt the biggest raiding party near the base they beat 1.5x, where its anti-air is under a third of them; else join the strike |
+| strike (bombers + idle gunships) | from 800 metal: their extractors, generators, constructors, factories and anti-air, scored value / anti-air there / distance; their anti-air counts 3x when the wing is 3x it (clearing the way); only targets with anti-air under a third of the wing; routed on the air threat layer around anti-air; home at half strength |
+| scouts | fly to unexplored metal spots on the enemy's side around anti-air |
+
+Planes under 45% health fly home until 90%.
+
 ## Zones are optional
 
 A sub-commander without player-drawn zones gets **auto zones** recomputed by role: economy around our

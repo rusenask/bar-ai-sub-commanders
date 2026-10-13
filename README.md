@@ -98,6 +98,7 @@ constructors asks for one).
 | Air Defense | repair, AA turrets next to the least-covered valuable buildings | 1 constructor, then mobile AA | engage air in zone |
 | Army | repair, help build, assist its factory | combat units (without a factory: the economy's factory builds them) | one squad: engages only where its local power beats the threat (turrets count), regroups first, falls back when a fight turns, waits out of reach of known enemy weapons |
 | Intelligence | radar net on high ground, cameras at the front, a jammer over the base, sonar on water | scouts, a mobile radar/jammer, then raiders | scouts sweep the map; raiders hunt known enemy radar and jammers |
+| Air Force | its own aircraft plant (tier 2 with a big economy), radar net | a scout plane, fighters (more when the enemy flies), bombers and gunships | fighters hold the sky over base and army and escort strikes; gunships hunt raiding parties near the base; bombers strike their economy around anti-air, clearing anti-air they can destroy outright; hurt planes fly home to repair |
 
 Economy also takes safe free metal spots just outside its zones and puts construction turrets next to busy
 factories when metal piles up. Its factory opens with constructors and raiders, then follows a unit mix by

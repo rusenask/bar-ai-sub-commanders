@@ -59,7 +59,7 @@ type tuneArgs struct {
 
 type roleArgs struct {
 	SubID int    `json:"sub_id" jsonschema:"your sub-commander id"`
-	Role  string `json:"role" jsonschema:"economy | defense | airdefense | army | intelligence"`
+	Role  string `json:"role" jsonschema:"economy | defense | airdefense | army | intelligence | air"`
 }
 
 type focusArgs struct {

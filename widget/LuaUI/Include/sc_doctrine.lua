@@ -186,6 +186,24 @@ D.airRaid = {
 	reroute = 30 * 20, -- pick a new target at most this often unless the old one is gone
 }
 
+-- the Air Force sub-commander (sc_air.lua): its mix and where its wings go
+D.air = {
+	scouts = 1, -- scout (or radar) planes kept looking at the enemy's side
+	fighters = 0.25, -- share of the armed planes that are fighters (1.5x their air share when they fly)
+	maxFighters = 0.6,
+	bombers = 0.5, -- of the strike planes (bombers and gunships): bombers
+	coverRange = 3500, -- fighters intercept enemy aircraft this close to home or our army
+	huntRange = 3500, -- gunships hunt raiding parties this close to home
+	huntNeed = 1.5, -- gunships at least this many times a party's power
+	strikeMin = 800, -- strike wing metal before it goes out
+	need = 3, -- the wing at least this many times the enemy anti-air around a target
+	aaRadius = 900, -- anti-air counted around a target
+	aaBonus = 3, -- their anti-air the wing can destroy outright is worth this much more (it opens the way)
+	retreat = 0.45, -- planes below this health fly home to repair (back out above 0.9)
+	reroute = 30 * 20, -- a new strike target at most this often unless the old one is gone
+	t2Income = 70, -- from this income the Air Force asks for a tier 2 constructor (a T2 air plant)
+}
+
 -- autonomy levels: what a sub-commander does on its own
 D.autonomy = {
 	levels = { "light", "balanced", "full" },

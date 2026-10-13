@@ -71,13 +71,14 @@ local MAX_THINKS_PER_PASS = 8
 -- Roles and postures
 --------------------------------------------------------------------------------
 
-local ROLES = { "economy", "defense", "airdefense", "army", "intelligence" }
+local ROLES = { "economy", "defense", "airdefense", "army", "intelligence", "air" }
 local ROLE_INFO = {
 	economy = { label = "Economy", short = "ECO" },
 	defense = { label = "Defense", short = "DEF" },
 	airdefense = { label = "Air Defense", short = "AA" },
 	army = { label = "Army", short = "ARMY" },
 	intelligence = { label = "Intelligence", short = "INTEL" },
+	air = { label = "Air Force", short = "AIR" },
 }
 
 -- minM/minE: don't start new spending below this fraction of storage
@@ -130,6 +131,7 @@ do
 	Engine.terr = include("sc_territory")({ mapX = Game.mapSizeX, mapZ = Game.mapSizeZ, cell = 256, reach = 700 })
 	Engine.team = include("sc_team")({ doctrine = Engine.D })
 	Engine.com = include("sc_commander")({ doctrine = Engine.D })
+	Engine.air = include("sc_air")({ doctrine = Engine.D })
 	Engine.comMode, Engine.comPersonality = "auto", "careful"
 end
 
@@ -1576,6 +1578,57 @@ function Engine.haveFactoryNamed(pattern)
 	return false
 end
 
+-- the Air Force's aircraft plant: one of its own (any tier its constructor makes), and a tier 2 one once
+-- it has a tier 2 constructor and the income (doctrine.air.t2Income). Behind home, away from the enemy.
+function Jobs.airPlant(sub, unitID, d, ux, uz)
+	if not Engine.homeX or d.commander then
+		return false
+	end
+	local have, haveT2 = 0, false
+	for u in pairs(sub.units) do
+		local ud = unitDef(u)
+		if ud and ud.factory and makesAircraft(ud) then
+			have, haveT2 = have + 1, haveT2 or (ud.tech or 1) >= 2
+		end
+	end
+	for _, p in pairs(planned) do
+		if defs[p.defID].factory then
+			return false -- one factory at a time
+		end
+	end
+	local wantTier = (have == 0 and 1) or ((not haveT2 and max(econ.mInc, 0) >= Engine.D.air.t2Income) and 2) or nil
+	if not wantTier then
+		return false
+	end
+	local o
+	for _, opt in ipairs(d.options) do
+		local od = defs[opt]
+		if od and od.factory and makesAircraft(od) and (od.tech or 1) >= wantTier and not (od.name or ""):find("sy$") and (not o or (od.tech or 1) > (defs[o].tech or 1)) then
+			o = opt
+		end
+	end
+	if not o or not canSpend(sub, defs[o]) or econ.m < defs[o].cost * 0.25 then
+		return false
+	end
+	local dx, dz = (Engine.enemyX or MAP_X / 2) - Engine.homeX, (Engine.enemyZ or MAP_Z / 2) - Engine.homeZ
+	local len = max(sqrt(dx * dx + dz * dz), 1)
+	local ax, az = clampToMap(Engine.homeX - dx / len * 500, Engine.homeZ - dz / len * 500)
+	local x, z = findBuildSpot(sub, o, ax, az, { gap = 48, rings = 12, anywhere = true })
+	if x and issueBuild(sub, unitID, o, x, z, facingToward(x, z, Engine.enemyX or MAP_X / 2, Engine.enemyZ or MAP_Z / 2), wantTier >= 2 and "tier 2 aircraft plant" or "our aircraft plant") then
+		getState(unitID).rebuildFor, getState(unitID).newFactory = sub.id, true
+		return true
+	end
+	return false
+end
+
+function Engine.subOfRole(role)
+	for _, s in ipairs(subs) do
+		if s.role == role and not s.paused then
+			return s
+		end
+	end
+end
+
 function Engine.haveAirPlant()
 	for _, u in ipairs(Spring.GetTeamUnits(myTeam) or {}) do
 		local ud = unitDef(u)
@@ -1783,8 +1836,10 @@ function Jobs.newFactory(sub, unitID, d, ux, uz)
 	-- (Intelligence: scout planes, then gunships); after that more of what we have
 	local o
 	-- with a big economy a second one for the Army: air raids (doctrine.escalation)
-	local armyAir = have > 0 and income >= Engine.D.escalation.airRaidIncome and Engine.haveAirPlant() and not Engine.armyHasAirPlant()
-	local wantAir = (have > 0 and income >= E.airPlantIncome and not Engine.haveAirPlant()) or armyAir
+	-- (an Air Force sub-commander builds its own)
+	local airForce = Engine.subOfRole("air")
+	local armyAir = not airForce and have > 0 and income >= Engine.D.escalation.airRaidIncome and Engine.haveAirPlant() and not Engine.armyHasAirPlant()
+	local wantAir = not airForce and ((have > 0 and income >= E.airPlantIncome and not Engine.haveAirPlant()) or armyAir)
 	local wantVehicles = have > 0 and not wantAir and not Engine.haveFactoryNamed("vp$")
 	local function rank(opt)
 		local name = UnitDefs[opt].name or ""
@@ -2357,6 +2412,17 @@ local BUILDER_PLANS = {
 			or Jobs.reclaim(sub, u, d, x, z)
 			or Jobs.goToZone(sub, u, d, x, z)
 	end,
+	-- the Air Force: its air plant (tier 2 later), then radar for its planes to see by
+	air = function(sub, u, d, x, z)
+		return Jobs.removeMarked(sub, u, d, x, z)
+			or Jobs.repair(sub, u, d, x, z)
+			or Jobs.airPlant(sub, u, d, x, z)
+			or Jobs.radarNet(sub, u, d, x, z)
+			or Jobs.helpBuild(sub, u, d, x, z)
+			or Jobs.assistFactory(sub, u, d, x, z)
+			or Jobs.reclaim(sub, u, d, x, z)
+			or Jobs.goToZone(sub, u, d, x, z)
+	end,
 	army = function(sub, u, d, x, z)
 		return Jobs.removeMarked(sub, u, d, x, z)
 			or Jobs.repair(sub, u, d, x, z)
@@ -2595,6 +2661,35 @@ function Engine.airProduction(sub, fd, cap)
 	return nil, "no aircraft to build"
 end
 
+-- the Air Force's plants: the class sc_air.lua wants next (a scout, fighters to their share, bombers
+-- and gunships), the strongest affordable of it
+function Engine.airForceProduction(sub, fd, cap)
+	local A = Engine.air
+	local have = {}
+	for u in pairs(sub.units) do
+		local c = A.class(unitDef(u))
+		if c then
+			have[c] = (have[c] or 0) + 1
+		end
+	end
+	local want = A.want(have, Enemy.share("air"))
+	for _, class in ipairs({ want, "gunship", "bomber", "fighter" }) do
+		local options = buildableBy(fd, function(od)
+			return A.class(od) == class and od.cost <= cap
+		end)
+		tsort(options, function(a, b)
+			if class == "scout" then
+				return (defs[a].radarRange or 0) > (defs[b].radarRange or 0)
+			end
+			return defs[a].cost > defs[b].cost
+		end)
+		if options[1] then
+			return options[1], class
+		end
+	end
+	return nil, "no aircraft to build"
+end
+
 -- an Army's own labs: the income tier's mix, moved toward what counters the enemy (sc_production.lua)
 function Engine.armyProduction(sub, fd, cap)
 	if makesAircraft(fd) then
@@ -2653,6 +2748,8 @@ local function pickProduction(sub, facID, fd)
 		return Engine.economyProduction(sub, facID, fd, cap)
 	elseif sub.role == "army" then
 		return Engine.armyProduction(sub, fd, cap)
+	elseif sub.role == "air" and counts.builders >= 1 then
+		return Engine.airForceProduction(sub, fd, cap)
 	elseif counts.builders < 1 then
 		wantBuilder = true
 	end
@@ -3457,6 +3554,200 @@ function Tactics.raid(sub)
 	end
 end
 
+-- the Air Force (sc_air.lua), each combat pass: one order per wing (fighters, gunships, strike), read by
+-- each plane in Tactics.airUnit
+function Tactics.air(sub)
+	if sub.role ~= "air" or not Engine.homeX then
+		return
+	end
+	local A, P, tm = Engine.air, Engine.D.air, Engine.tm
+	local hx, hz = Engine.homeX, Engine.homeZ
+	local wings = { fighter = { power = 0, n = 0, x = 0, z = 0 }, gunship = { power = 0, n = 0, x = 0, z = 0 }, bomber = { power = 0, n = 0, x = 0, z = 0 } }
+	for u in pairs(sub.units) do
+		local d = unitDef(u)
+		local c = A.class(d)
+		local st = ustate[u]
+		if wings[c] and not spGetUnitIsBeingBuilt(u) and not (st and (st.airRepair or st.manual)) then
+			local x, _, z = spGetUnitPosition(u)
+			if x then
+				local w = wings[c]
+				w.power, w.n, w.x, w.z = w.power + d.cost, w.n + 1, w.x + x, w.z + z
+			end
+		end
+	end
+	for _, w in pairs(wings) do
+		if w.n > 0 then
+			w.x, w.z = w.x / w.n, w.z / w.n
+		end
+	end
+	local function aaAt(x, z)
+		return tm.enemyPower(x, z, P.aaRadius, frame, { air = true, aaOnly = true })
+	end
+	local prevs = sub.airOrders or {}
+	local orders = {}
+	local function set(key, o)
+		local p = prevs[key]
+		if p and p.action == o.action and p.id == o.id then
+			o.seq, o.frame, o.route = p.seq, p.frame, p.route
+		else
+			o.seq, o.frame = ((p and p.seq) or 0) + 1, frame
+			if o.action ~= "cover" and o.action ~= "home" then
+				log(sub, sformat("%s: %s at %d,%d", key, o.text, o.x, o.z))
+			end
+		end
+		orders[key] = o
+	end
+	-- the army's centre: what the fighters cover besides home
+	local army = Engine.anyArmy()
+	local ax, az = hx, hz
+	if army and army.squad and army.squad.x then
+		ax, az = army.squad.x, army.squad.z
+	end
+	-- gunships: the biggest raiding party near home they beat, out of their anti-air
+	local gw = wings.gunship
+	local hunt
+	if gw.n > 0 then
+		local groups = {}
+		for _, g in ipairs(tm.groups(frame, 10)) do
+			if g.static < g.power * 0.3 and (g.lastSeenSec or 0) < 20 and (sqrt(dist2(g.x, g.z, hx, hz)) < P.huntRange or Engine.inBase(g.x, g.z)) then
+				groups[#groups + 1] = { x = g.x, z = g.z, power = g.power - g.static }
+			end
+		end
+		hunt = A.hunt(groups, aaAt, gw.power)
+		if hunt then
+			set("gunship", { action = "hunt", id = "hunt:" .. floor(hunt.x / 512) .. ":" .. floor(hunt.z / 512), x = hunt.x, z = hunt.z, power = gw.power, text = sformat("hunting a raiding party (%d metal)", hunt.power) })
+		end
+	end
+	-- strike: bombers, and gunships with nothing to hunt
+	local sw = { power = wings.bomber.power, n = wings.bomber.n, x = wings.bomber.x * wings.bomber.n, z = wings.bomber.z * wings.bomber.n }
+	if not hunt and gw.n > 0 then
+		sw.power, sw.n, sw.x, sw.z = sw.power + gw.power, sw.n + gw.n, sw.x + gw.x * gw.n, sw.z + gw.z * gw.n
+	end
+	sub.strikeWithGunships = not hunt
+	if sw.n > 0 then
+		sw.x, sw.z = sw.x / sw.n, sw.z / sw.n
+	end
+	local prev = prevs.strike
+	local strike
+	if sw.n > 0 and (sw.power >= P.strikeMin or (prev and prev.action == "strike")) then
+		if prev and prev.action == "strike" and sw.power >= prev.power * 0.5 and Enemy.units[prev.id] and frame - prev.frame < P.reroute * 3 then
+			strike = prev
+		elseif not (prev and prev.action == "strike" and sw.power < prev.power * 0.5) and sw.power >= P.strikeMin then
+			local cands = Engine.raidCandidates()
+			for u, e in pairs(Enemy.units) do
+				local ed = defs[e.defID]
+				if ed and ed.aaOnly and frame - e.last < 30 * 120 then
+					cands[#cands + 1] = { id = u, x = e.x, z = e.z, value = max(ed.cost, 30), kind = "anti-air", name = ed.human, aa = true }
+				end
+			end
+			local t = A.strike(cands, aaAt, sw)
+			if t then
+				strike = { action = "strike", id = t.id, x = t.x, z = t.z, power = sw.power, text = sformat("strike on %s %s", t.aa and "their anti-air," or ("enemy " .. t.kind), t.name or "") }
+			end
+		end
+	end
+	if strike then
+		set("strike", strike)
+		if not orders.strike.route then
+			orders.strike.route = Engine.path.route(sw.x, sw.z, strike.x, strike.z, { layer = "air", avoid = 8 })
+		end
+	else
+		local sx, sz = tm.safePoint(hx, hz, hx, hz, "air")
+		set("strike", { action = "home", id = "home", x = sx or hx, z = sz or hz, text = "home" })
+	end
+	if not hunt then
+		orders.gunship = nil
+	end
+	-- fighters: enemy aircraft near home or the army first, else escort a strike, else cover the army
+	local fw = wings.fighter
+	if fw.n > 0 then
+		local best, bestD
+		for u, e in pairs(Enemy.units) do
+			local ed = defs[e.defID]
+			if ed and ed.air and frame - e.last < 30 * 10 then
+				local dd = min(sqrt(dist2(e.x, e.z, hx, hz)), sqrt(dist2(e.x, e.z, ax, az)))
+				if dd < P.coverRange and (not bestD or dd < bestD) then
+					best, bestD = { id = u, x = e.x, z = e.z, name = ed.human }, dd
+				end
+			end
+		end
+		if best then
+			set("fighter", { action = "intercept", id = "air:" .. floor(best.x / 512) .. ":" .. floor(best.z / 512), x = best.x, z = best.z, text = "intercepting " .. best.name })
+		elseif strike then
+			set("fighter", { action = "escort", id = "escort:" .. tostring(strike.id), x = strike.x, z = strike.z, text = "escorting the strike" })
+		else
+			set("fighter", { action = "cover", id = "cover", x = (hx + ax) * 0.5, z = (hz + az) * 0.5, text = "covering the base and army" })
+		end
+	end
+	sub.airOrders = orders
+end
+
+-- one plane of the Air Force: home to repair when hurt, scouts look at the enemy's side, the others follow
+-- their wing's order (Tactics.air)
+function Tactics.airUnit(sub, unitID, d, st)
+	local x, _, z = spGetUnitPosition(unitID)
+	if not x or not Engine.homeX then
+		return
+	end
+	local P = Engine.D.air
+	local busy = (spGetUnitCommandCount(unitID) or 0) > 0
+	local hp, maxHp = Spring.GetUnitHealth(unitID)
+	local f = (hp and maxHp and maxHp > 0) and hp / maxHp or 1
+	if st.airRepair and f > 0.9 then
+		st.airRepair = nil
+	elseif not st.airRepair and f < P.retreat then
+		st.airRepair = true
+		local sx, sz = Engine.tm.safePoint(Engine.homeX, Engine.homeZ, Engine.homeX, Engine.homeZ, "air")
+		order(unitID, CMD.MOVE, { sx or Engine.homeX, 0, sz or Engine.homeZ })
+		st.airSeq = nil
+		setTask(unitID, "repair", "flying home to repair", true)
+		return
+	end
+	if st.airRepair then
+		return
+	end
+	local class = Engine.air.class(d)
+	if class == "scout" then
+		if not busy then
+			local sp = Engine.explorePoint(x, z)
+			if sp then
+				local route = Engine.path.route(x, z, sp.x, sp.z, { layer = "air", avoid = 8 })
+				for i, w in ipairs(route) do
+					order(unitID, CMD.MOVE, { w.x, 0, w.z }, i > 1 and { "shift" } or nil)
+				end
+				setTask(unitID, "scout", "scouting the enemy's side", true)
+			end
+		end
+		return
+	end
+	local key = (class == "gunship" and sub.strikeWithGunships) and "strike" or (class == "bomber" and "strike" or class)
+	local o = sub.airOrders and sub.airOrders[key]
+	if not o then
+		return
+	end
+	if st.airSeq == o.seq and busy then
+		return
+	end
+	st.airSeq = o.seq
+	if o.action == "cover" then
+		order(unitID, CMD.PATROL, { o.x, spGetGroundHeight(o.x, o.z), o.z })
+		setTask(unitID, "cover", "covering the base and army", true)
+		return
+	end
+	if o.action == "home" then
+		order(unitID, CMD.MOVE, { o.x, 0, o.z })
+		setTask(unitID, "home", "waiting at home", true)
+		return
+	end
+	local route = o.route or { { x = o.x, z = o.z } }
+	for i = 1, #route - 1 do
+		order(unitID, CMD.MOVE, { route[i].x, 0, route[i].z }, i > 1 and { "shift" } or nil)
+	end
+	local last = route[#route]
+	order(unitID, CMD.FIGHT, { last.x, spGetGroundHeight(last.x, last.z), last.z }, #route > 1 and { "shift" } or nil)
+	setTask(unitID, o.action, o.text or o.action, true)
+end
+
 -- air raids (doctrine.airRaid): the Army's bombers and gunships gather at home as one wing, then strike
 -- what the enemy left without anti-air (extractors, generators, constructors, factories), and come home
 -- when the wing is down to half
@@ -3636,11 +3927,12 @@ function Engine.refreshTeam()
 		end
 		-- a defending sub-commander without constructors asks for one (after the opening); with a big
 		-- economy for a tier 2 one (harder turrets, doctrine.escalation)
-		if (sub.role == "defense" or sub.role == "airdefense") and not sub.paused then
+		if (sub.role == "defense" or sub.role == "airdefense" or sub.role == "air") and not sub.paused then
 			local X = Engine.D.escalation
+			local t2 = (sub.role == "defense" and X.t2DefenseIncome) or (sub.role == "air" and Engine.D.air.t2Income) or X.t2AirDefenseIncome
 			if sub.counts.builders == 0 and Engine.minute() >= 4 then
 				team.post({ kind = "constructor", from = sub.id, need = 1, note = sub.name .. " has no constructors" }, frame)
-			elseif income >= (sub.role == "defense" and X.t2DefenseIncome or X.t2AirDefenseIncome) and not Engine.hasT2Builder(sub) then
+			elseif income >= t2 and not Engine.hasT2Builder(sub) then
 				team.post({ kind = "constructor", from = sub.id, tier = 2, need = 1, note = sub.name .. " wants tier 2 defences" }, frame)
 			end
 		end
@@ -4643,7 +4935,9 @@ local function runSub(sub, budget, combatPass)
 					end
 				elseif d.combat or (d.mobile and not d.builder and not d.commander) then
 					if combatPass then
-						if sub.role == "intelligence" then
+						if sub.role == "air" then
+							Tactics.airUnit(sub, unitID, d, st)
+						elseif sub.role == "intelligence" then
 							Intel.thinkUnit(sub, unitID, d, st, sub.threats)
 						elseif d.combat then
 							thinkCombat(sub, unitID, d, st, sub.threats)
@@ -4774,6 +5068,13 @@ local function summarize(sub)
 		-- an army without a factory gets its units from the economy's (strong players run one lab)
 		fedBy = Engine.fedByName(sub),
 		raid = sub.raidOrder and { action = sub.raidOrder.action, target = { x = floor(sub.raidOrder.x), z = floor(sub.raidOrder.z) } } or nil,
+		airForce = sub.airOrders and (function()
+			local out = {}
+			for k, o in pairs(sub.airOrders) do
+				out[k] = { action = o.action, x = floor(o.x), z = floor(o.z), power = o.power and floor(o.power) or nil }
+			end
+			return out
+		end)() or nil,
 		airWing = sub.airOrder and { action = sub.airOrder.action, power = floor(sub.airOrder.power), target = { x = floor(sub.airOrder.x), z = floor(sub.airOrder.z) } } or nil,
 		response = sub.responseOrder and { action = sub.responseOrder.action, power = sub.respSquad and floor(sub.respSquad.together) or 0 } or nil,
 		squad = sub.squadOrder and { action = sub.squadOrder.action, ratio = floor(sub.squadOrder.ratio * 10) / 10, target = { x = floor(sub.squadOrder.x), z = floor(sub.squadOrder.z) } } or nil,
@@ -6826,6 +7127,7 @@ function widget:GameFrame(n)
 			Tactics.updatePush(sub)
 			Tactics.raid(sub)
 			Tactics.airRaid(sub)
+			Tactics.air(sub)
 			Tactics.responders(sub)
 			Tactics.squad(sub)
 		end

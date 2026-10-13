@@ -43,7 +43,7 @@ local announcedOffline = false
 -- decision model behind the bridge (optional): requests waiting for an answer
 local decider = { enabled = false, nextID = 0, pending = {} }
 
-local ROLE_OK = { economy = true, defense = true, airdefense = true, army = true, intelligence = true }
+local ROLE_OK = { economy = true, defense = true, airdefense = true, army = true, intelligence = true, air = true }
 local POSTURE_OK = { conserve = true, balanced = true, spend = true }
 
 local function now()
@@ -218,7 +218,7 @@ local function apply(msg)
 		end
 	elseif op == "set_role" then
 		if not ROLE_OK[args.role] then
-			return nil, "role must be economy, defense, airdefense, army or intelligence"
+			return nil, "role must be economy, defense, airdefense, army, intelligence or air"
 		end
 		sc.setRole(sub.id, args.role)
 	elseif op == "set_focus" then
