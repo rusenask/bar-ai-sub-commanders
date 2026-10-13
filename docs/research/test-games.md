@@ -292,3 +292,13 @@ code (v16 mostly never reached the hand-off: its lab built Infestors). Re-measur
   the base: most of our constructor losses are within 1500 of home) and don't recover; at minute 20
   Cortex has 5.5 constructors and 15 wind turbines a game to Legion's 7.6 and 51 (it builds advanced
   solars and converters instead). Next: why Cortex/Armada pick that energy, and why Legion holds.
+
+## Sandboxes: v25 (constructors flee early, radius scaled by speed) — reverted
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261014-0335-sbx-v25-legion | 12 | 2 win, 5 timeout, 5 loss | 0 | 236.8k | 224 / 887 | 0.73 | 16.7 | 12 / 16.5 | 3.9k |
+| 20261014-0335-sbx-v25-armada | 12 | 1 timeout, 11 loss | 0 | 86.8k | 83 / 509 | 0.82 | 21.5 | 14 / 8 | 4.9k |
+| 20261014-0335-sbx-v25-cortex | 12 | 4 timeout, 8 loss | 1 | 152.3k | 132 / 876 | 0.57 | 31.1 | 12.5 / 13.5 | 4.4k |
+
+- Worse (Armada 11 losses from 6, extractors at 20 min 8 from 12); constructors still died as often.

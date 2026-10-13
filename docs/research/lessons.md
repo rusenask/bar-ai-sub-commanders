@@ -70,6 +70,11 @@ out wrong.
   from 0.7-0.8 of their range, only long-range ones kite, artillery stays with its group, damaged units
   aren't pulled out more than healthy ones. Measure before writing doctrine (docs/research/pro-micro.md).
 
+- Fleeing earlier doesn't save constructors (v25: an early-warning radius scaled by speed): they stopped
+  building, expansion fell (Armada 12 -> 8 extractors at minute 20, 11 losses of 12) and they died as
+  often. Our constructors die inside the base to BARbarian's main pushes, not on the road: the fix is
+  holding the base against Hammers and Rockos, not running.
+
 ## Engine and widget traps
 
 - Widgets get no attacker in `UnitDamaged` (they do in `UnitDestroyed`); use `Spring.GetUnitExperience`
