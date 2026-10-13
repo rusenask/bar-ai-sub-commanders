@@ -947,7 +947,11 @@ function Jobs.mex(sub, unitID, d, ux, uz)
 					end
 				end
 				if pos then
-					return issueBuild(sub, unitID, bestMex, pos.x, pos.z, 0, "new metal spot")
+					local ok = issueBuild(sub, unitID, bestMex, pos.x, pos.z, 0, "new metal spot")
+					if ok then
+						Jobs.escortTurret(sub, unitID, d, pos.x, pos.z)
+					end
+					return ok
 				end
 			end
 		end
@@ -1605,6 +1609,56 @@ function Engine.radarNearHome()
 	return false
 end
 
+-- an extractor going up with no turret near it: the same constructor queues a cheap light turret next to
+-- it (from about minute 2, within the turret budget). Undefended extractors die to the first raid, also
+-- at the back of the base (corner-first expansion lost its extractors to early raids).
+function Jobs.escortTurret(sub, unitID, d, x, z)
+	if sub.role ~= "economy" or d.commander or frame < 30 * 120 then
+		return false
+	end
+	local r = Engine.D.turrets.extractorCoverRadius
+	for _, u in ipairs(spGetUnitsInCylinder(x, z, r)) do
+		local ud = unitDef(u)
+		if ud and ud.staticDef and not ud.aaOnly and spGetUnitTeam(u) == myTeam then
+			return false
+		end
+	end
+	Engine.queuedTurrets = Engine.queuedTurrets or {}
+	for i = #Engine.queuedTurrets, 1, -1 do
+		local q = Engine.queuedTurrets[i]
+		if frame - q.frame > 30 * 90 then
+			tremove(Engine.queuedTurrets, i)
+		elseif dist2(q.x, q.z, x, z) < r * r then
+			return false
+		end
+	end
+	local options = buildableBy(d, function(od)
+		return od.staticDef and not od.aaOnly
+	end)
+	if #options == 0 then
+		return false
+	end
+	tsort(options, function(a, b)
+		return defs[a].cost < defs[b].cost
+	end)
+	local o = options[1]
+	if not Engine.turretBudget(defs[o].cost) then
+		return false
+	end
+	-- on the extractor's side toward the enemy
+	local ex, ez = enemyDirectionRef(x, z)
+	local dx, dz = ex - x, ez - z
+	local len = max(sqrt(dx * dx + dz * dz), 1)
+	local tx, tz = findBuildSpot(sub, o, x + dx / len * 110, z + dz / len * 110, { gap = 16, rings = 4, underFire = true, anywhere = true })
+	if not tx then
+		return false
+	end
+	order(unitID, -o, { tx, spGetGroundHeight(tx, tz), tz, facingToward(tx, tz, ex, ez) }, { "shift" })
+	tinsert(Engine.queuedTurrets, { x = x, z = z, frame = frame })
+	log(sub, sformat("%s with the new extractor", defs[o].human))
+	return true
+end
+
 -- full autonomy: factories as income grows (strong players run one lab until about 25 metal/s, then add
 -- about one per 22); the first one if there's none. A new lab goes to an Army without one.
 function Jobs.newFactory(sub, unitID, d, ux, uz)
@@ -1709,6 +1763,10 @@ function Jobs.extractorCover(sub, unitID, d, ux, uz)
 		end
 	end
 	for _, m in ipairs(Engine.zones.exposed({ Engine.homeX, Engine.homeZ }, { Engine.enemyX, Engine.enemyZ }, Engine.extractors, 3)) do
+		exposed[#exposed + 1] = m
+	end
+	-- and every other cluster of our extractors, the rear ones too (raids go around)
+	for _, m in ipairs(Engine.zones.clusters(Engine.extractors, 500, 2)) do
 		exposed[#exposed + 1] = m
 	end
 	-- and our generator clusters (wind farms: cheap, many, what raids hit most)
