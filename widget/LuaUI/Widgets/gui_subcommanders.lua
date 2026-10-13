@@ -2539,7 +2539,9 @@ function Engine.economyProduction(sub, facID, fd, cap)
 		st.openingPending = defID ~= nil
 	end
 	if not defID then
-		local raider = feed and counts.builders >= 2 and Engine.raidNeed(feed) and "raider" or nil
+		-- raiders for the Army only once the economy has its constructors (v21b: the Army's production
+		-- request made it feed raiders from 2 constructors on; the economy never grew past 3)
+		local raider = feed and counts.builders >= target and Engine.raidNeed(feed) and "raider" or nil
 		defID, cat = Engine.prod.pick(fd.options, have, income, kinds, { cap = cap, combatOnly = counts.builders >= target or raider ~= nil, category = raider })
 	end
 	if not defID then
