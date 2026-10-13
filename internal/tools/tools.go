@@ -27,6 +27,11 @@ type postureArgs struct {
 	Posture string `json:"posture" jsonschema:"conserve | balanced | spend"`
 }
 
+type autonomyArgs struct {
+	SubID    int    `json:"sub_id" jsonschema:"your sub-commander id"`
+	Autonomy string `json:"autonomy" jsonschema:"light | balanced | full"`
+}
+
 type roleArgs struct {
 	SubID int    `json:"sub_id" jsonschema:"your sub-commander id"`
 	Role  string `json:"role" jsonschema:"economy | defense | airdefense | army | intelligence"`
@@ -249,6 +254,13 @@ func Handler(g *game.Server, guard Guard) http.Handler {
 	})
 
 	mcp.AddTool(s, &mcp.Tool{
+		Name:        "set_autonomy",
+		Description: "How much you do on your own between reviews. light: only the basics of your role in your zones (no expansion, no factories, turrets only where threats showed up, the army defends its own area). balanced: also expands safely, covers exposed extractors, helps other areas, counter-pushes when clearly stronger. full: also builds factories as income grows, keeps a turret schedule, and the army attacks and raids on its own when the threat map says it wins. The player usually chooses this; change it when their orders ask for more or less initiative.",
+	}, func(ctx context.Context, _ *mcp.CallToolRequest, in autonomyArgs) (*mcp.CallToolResult, any, error) {
+		return act(ctx, in.SubID, "set_autonomy", map[string]any{"autonomy": in.Autonomy}, "autonomy set to "+in.Autonomy), nil, nil
+	})
+
+	mcp.AddTool(s, &mcp.Tool{
 		Name:        "set_role",
 		Description: "Change what you do. Only when the player's orders call for it or the situation clearly demands it; the player chose your role.",
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in roleArgs) (*mcp.CallToolResult, any, error) {
@@ -268,7 +280,7 @@ func Handler(g *game.Server, guard Guard) http.Handler {
 
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "add_zone",
-		Description: "Add an area you build and fight in (world coordinates in elmos: x east, z south). Zones are additive; use clear_zones first to move.",
+		Description: "Add an area you build and fight in (world coordinates in elmos: x east, z south). Zones are additive; use clear_zones first to move. Without drawn zones you work in automatic zones chosen by role (economy: the base; defense: the base's front and exposed extractors; army: the safe edge toward the enemy); adding a zone switches to yours.",
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in zoneArgs) (*mcp.CallToolResult, any, error) {
 		zone := map[string]any{"kind": in.Kind}
 		switch in.Kind {
@@ -284,7 +296,7 @@ func Handler(g *game.Server, guard Guard) http.Handler {
 
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "clear_zones",
-		Description: "Remove all your zones (then add new ones; without zones you act anywhere).",
+		Description: "Remove your drawn zones and go back to automatic zones by role (or add new ones after this).",
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in subArg) (*mcp.CallToolResult, any, error) {
 		return act(ctx, in.SubID, "clear_zones", nil, "zones cleared"), nil, nil
 	})

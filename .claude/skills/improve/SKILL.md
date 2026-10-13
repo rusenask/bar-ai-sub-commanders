@@ -27,7 +27,15 @@ Take the most severe finding the code can plausibly change. Write a one-line hyp
 
 ## 3. Change
 
-Smallest change that tests the hypothesis. `make lint`, `go test ./...`, `make build`.
+Smallest change that tests the hypothesis. Where things live (design/engine.md):
+
+- numbers (retreat, engage ratios, unit mix, counters, turret budget, factory pace, autonomy): 
+  `widget/LuaUI/Include/sc_doctrine.lua`
+- world model and decisions: `sc_threatmap.lua`, `sc_squads.lua`, `sc_production.lua`, `sc_pathing.lua`,
+  `sc_autozones.lua` (plain Lua: add a test in `widget/tests/` for any new behaviour)
+- wiring and jobs: `widget/LuaUI/Widgets/gui_subcommanders.lua` (`Engine.*`, `Tactics.*`, `Jobs.*`)
+
+`make lint` (runs the module tests), `go test ./...`, `make build`.
 
 ## 4. A/B
 

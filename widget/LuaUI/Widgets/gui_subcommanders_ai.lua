@@ -181,6 +181,10 @@ local function apply(msg)
 			return nil, "posture must be conserve, balanced or spend"
 		end
 		sc.setPosture(sub.id, args.posture)
+	elseif op == "set_autonomy" then
+		if not (sc.setAutonomy and sc.setAutonomy(sub.id, args.autonomy)) then
+			return nil, "autonomy must be light, balanced or full"
+		end
 	elseif op == "set_role" then
 		if not ROLE_OK[args.role] then
 			return nil, "role must be economy, defense, airdefense, army or intelligence"

@@ -44,6 +44,11 @@ The harness log (`<n>.txt`, or `testenv/sctest_out.txt` for a single game) has `
 | `RESULT ...` then `us: metalProduced=...` | how it ended |
 | `HARNESS ERROR` | the harness itself failed: fix that first |
 
+The army's squad decisions are in its log: `engaging X (2.1x their strength)`, `regrouping`, `holding: X is
+too strong here (0.6x)`, `falling back from X (0.4x)`; constructors fleeing show as `constructor pulled back
+from enemies`. A ratio far above 1 that still loses means the threat map didn't see the enemy (radar,
+memory); repeated `holding` means the army is too small for what it faces.
+
 Useful greps:
 
 ```sh

@@ -3683,6 +3683,13 @@ local function enemyIntel()
 		intelStructures = intel,
 		defenses = defenses,
 		defenseCount = defenseCount,
+		-- the threat map (remembered enemies, fading): their armed groups, strongest first, and the safe
+		-- edge of our side toward them (the front)
+		groups = Engine.tm.groups(frame, 5),
+		front = Engine.homeX and Engine.enemyX and (function()
+			local x, z = Engine.tm.front(Engine.homeX, Engine.homeZ, Engine.enemyX, Engine.enemyZ)
+			return { x = floor(x), z = floor(z) }
+		end)() or nil,
 	}
 end
 

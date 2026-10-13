@@ -61,10 +61,30 @@ type Sub struct {
 	Composition json.RawMessage `json:"composition,omitempty"`
 	Activity    json.RawMessage `json:"activity,omitempty"`
 	ManualUnits int             `json:"manualUnits"`
+	// how much it does on its own (light / balanced / full) and whether its zones are automatic
+	Autonomy  string `json:"autonomy,omitempty"`
+	AutoZones bool   `json:"autoZones,omitempty"`
+	// an army's current decision about its target (engage / regroup / hold / fallback)
+	Squad *Squad `json:"squad,omitempty"`
 	// what the player's own constructors queue and how many of their units are in this sub's zones
 	PlayerActivity json.RawMessage `json:"playerActivity,omitempty"`
 	UnitCount      int             `json:"unitCount"`
 	Recent         []LogEntry      `json:"recent"`
+}
+
+// Squad is an army's decision about its target: our local power against theirs (ratio) decides it.
+type Squad struct {
+	Action string  `json:"action"`
+	Ratio  float64 `json:"ratio"`
+	Target struct {
+		X float64 `json:"x"`
+		Z float64 `json:"z"`
+	} `json:"target"`
+}
+
+// Fighting reports whether the army is in or near a fight.
+func (s *Squad) Fighting() bool {
+	return s != nil && (s.Action == "engage" || s.Action == "fallback" || s.Action == "hold")
 }
 
 // Economy is the team's resource state.

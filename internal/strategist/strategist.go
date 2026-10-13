@@ -32,6 +32,10 @@ type Config struct {
 	Urgent time.Duration
 	// TurnTimeout bounds one review (model + tool calls).
 	TurnTimeout time.Duration
+	// CalmFactor stretches Interval for sub-commanders with nothing going on (default 2).
+	CalmFactor float64
+	// MaxInFlight caps reviews running at once (0 = no cap).
+	MaxInFlight int
 }
 
 type subState struct {
@@ -59,6 +63,7 @@ type Strategist struct {
 	subs      map[int]*subState
 	acting    map[int]int    // sub id -> turns in flight
 	actingIn  map[int]string // sub id -> game the turn started in
+	pace      pacer          // review pacing: provider speed, game speed, reviews in flight
 }
 
 // New creates a strategist.
@@ -96,6 +101,7 @@ func (s *Strategist) Run(ctx context.Context) {
 			continue
 		}
 		s.trackGame(info, state)
+		s.pace.observe(state.Frame, time.Now())
 		for _, sub := range state.Subs {
 			if !sub.AI {
 				continue
@@ -169,12 +175,21 @@ func (s *Strategist) due(sub game.Sub, frame int) string {
 	if losses > 0 {
 		why = append(why, fmt.Sprintf("you lost %d unit(s)", losses))
 	}
+	// busy sub-commanders are reviewed as often as the provider answers, calm ones less often (pace.go)
+	busy := sub.Threats > 0 || losses > 0 || sub.Squad.Fighting()
 	elapsed := frame - ss.lastFrame
 	switch {
-	case len(why) > 0 && (ss.reports == 0 || elapsed >= seconds(s.cfg.Urgent)):
-	case elapsed >= seconds(s.cfg.Interval):
-		why = append(why, "routine check")
+	case len(why) > 0 && (ss.reports == 0 || elapsed >= s.pace.interval(s.cfg, true)):
+	case elapsed >= s.pace.interval(s.cfg, busy):
+		if busy {
+			why = append(why, "the situation is moving")
+		} else {
+			why = append(why, "routine check")
+		}
 	default:
+		return ""
+	}
+	if !s.pace.start(s.cfg) {
 		return ""
 	}
 	ss.busy = true
@@ -190,6 +205,7 @@ func (s *Strategist) review(ctx context.Context, info *game.Info, state *game.St
 	first := ss.sessionID == ""
 	s.mu.Unlock()
 	defer func() {
+		s.pace.done()
 		s.mu.Lock()
 		ss.busy = false
 		if s.acting[sub.ID]--; s.acting[sub.ID] <= 0 {
@@ -226,6 +242,7 @@ func (s *Strategist) review(ctx context.Context, info *game.Info, state *game.St
 		return
 	}
 
+	s.pace.took(time.Since(start))
 	s.mu.Lock()
 	ss.reports++
 	ss.failures, ss.retryFrame = 0, 0

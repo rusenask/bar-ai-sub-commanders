@@ -73,22 +73,29 @@ make install          # macOS Apple Silicon port; elsewhere: make install BAR_DI
 
 1. Click **+ New** in the *Sub-Commanders* panel (top right). Right-click makes a Defense one.
 2. Select units (constructors, a factory, combat units) and click **Assign sel.**
-   No zone yet? It claims a circle around those units.
-3. **+ Zone** and drag on the map to draw its area (click = circle, shift = draw several, right-click/Esc
-   to stop). **Clear zones** resets.
-4. Pick the **Role** (click to cycle, right-click backwards) and **Spend** posture.
+3. Zones are optional. Without them it works where its role calls for (**Zones: auto**: economy around the
+   base, defense at the base's front and exposed extractors, army at the safe edge toward the enemy,
+   intelligence on the approaches), recomputed as the game moves. **+ Zone** and drag on the map to draw
+   your own (click = circle, shift = draw several, right-click/Esc to stop); **Auto zones** goes back.
+4. Pick the **Role** (click to cycle, right-click backwards), **Spend** posture and **Autonomy**:
+   *Light* does the basics of its role in its zones; *Balanced* (default) also expands safely, covers
+   exposed extractors, helps other areas and counter-pushes when clearly stronger; *Full* also builds
+   factories as income grows and lets the army attack and raid on its own when it is stronger.
 
 | Role | Constructors | Factories | Combat units |
 |---|---|---|---|
 | Economy | metal extractors (+ upgrades), energy, storage when full, converters on surplus, help build, assist factory, reclaim | constructors, up to the posture cap | — |
 | Defense | repair, a radar, turrets on the zone edge facing the enemy | 1 constructor, then combat units | fight intruders, patrol zone |
 | Air Defense | repair, AA turrets next to the least-covered valuable buildings | 1 constructor, then mobile AA | engage air in zone |
-| Army | repair, help build, assist its factory | combat units | gather at the zone's front, fight intruders together, answer raids on other zones when not outnumbered |
+| Army | repair, help build, assist its factory | combat units (without a factory: the economy's factory builds them) | one squad: engages only where its local power beats the threat (turrets count), regroups first, falls back when a fight turns, waits out of reach of known enemy weapons |
 | Intelligence | radar net on high ground, cameras at the front, a jammer over the base, sonar on water | scouts, a mobile radar/jammer, then raiders | scouts sweep the map; raiders hunt known enemy radar and jammers |
 
-Economy also takes safe free metal spots just outside its zones, puts construction turrets next to busy
-factories when metal piles up, and its factory makes fighters once constructors are at the cap and metal
-overflows. Defense picks turrets against what the enemy fields and adds anti-air once enemy aircraft show up.
+Economy also takes safe free metal spots just outside its zones and puts construction turrets next to busy
+factories when metal piles up. Its factory opens with constructors and raiders, then follows a unit mix by
+income (tuned on BARbarian's hard profile and strong players), and sends combat units to an Army that has
+no factory. Defense picks turrets against what the enemy fields within a budget (strong players put their
+metal into the army) and adds anti-air once enemy aircraft show up. Constructors pull back when enemy
+firepower reaches them, and nothing is built where the enemy outguns us (the threat map remembers raids).
 
 **Spend**: *Conserve* spends only from excess, picks cheap options and lowers build priority;
 *Use all* picks the strongest affordable options and raises unit caps. Metal extractors and energy are
@@ -103,7 +110,7 @@ The selected sub-commander's zones show the lane grid faintly: structures stay o
 (white ring on the map). **Pause** stops its decisions; **Release sel.** takes units back for good.
 
 Everything also works as text commands: `/luaui sc help`, `sc new defense`, `sc assign [id]`,
-`sc release`, `sc zone [id]`, `sc role army [id]`, `sc posture spend [id]`, `sc focus`,
+`sc release`, `sc zone [id]`, `sc autozones [id]`, `sc role army [id]`, `sc posture spend [id]`, `sc autonomy full [id]`, `sc focus`,
 `sc tell [id] <orders>`, `sc ai on|off [id]`, `sc pause`, `sc resume`, `sc list`, `sc select [id]`,
 `sc delete [id]`. Sub-commanders survive `/luaui reload` within a game.
 
@@ -237,7 +244,8 @@ sending anything.
 | `get_build_options` | what its constructors and factories can build |
 | `get_map_view` | a picture of the map (terrain, grid in elmos, zones, metal, units, enemies) or a close-up of its zones |
 | `set_posture`, `set_role`, `set_focus` | the same switches as the panel |
-| `add_zone`, `clear_zones` | move or extend where it works |
+| `add_zone`, `clear_zones` | move or extend where it works (cleared = automatic zones) |
+| `set_autonomy` | light / balanced / full: how much the rules do on their own |
 | `get_structures` | its own structures with positions, flagging ones that block a factory exit |
 | `remove_structures` | its constructors reclaim those structures (never factories); red rings on the map |
 | `set_paused` | stop its automatic decisions |
@@ -317,7 +325,11 @@ tasks: `DECIDER_ROUTES=fight=http://host:8011,unit=http://host:8012,turret=http:
 | `.claude/skills/`, `docs/research/` | how we improve the AI (skills for coding agents), lessons and results |
 | `testenv/` | scripted test games |
 
-- `make lint`, `make build`.
+- `make lint` (luac, the engine modules' unit tests `make test-lua`, go vet), `make build`.
+- The executor's engine is split into plain-Lua modules in `widget/LuaUI/Include/` (design/engine.md):
+  `sc_doctrine` (tuning as data), `sc_threatmap` (world model), `sc_pathing`, `sc_squads`,
+  `sc_production`, `sc_autozones`; tests in `widget/tests/`. Tune numbers in `sc_doctrine.lua` and
+  measure with an A/B batch.
 - `make test-game SCENARIO=multi` (macOS) launches an isolated windowed skirmish: separate write dir
   `testenv/`, your BAR content read-only. `testenv/LuaUI/Widgets/zz_sctest.lua` drives the scenario
   (`eco`, `multi`, `ui`, `lanes`, `factory`, `ai`, `vsai`) and writes `testenv/sctest_out.txt` and
@@ -357,7 +369,7 @@ tasks: `DECIDER_ROUTES=fight=http://host:8011,unit=http://host:8012,turret=http:
 Other widgets can drive sub-commanders through `WG.SubCommanders`: `list()`, `get(id)`, `economy()`,
 `enemyIntel()`, `buildOptions(id)`, `structures(id, kind, blockingOnly)`,
 `removeStructures(id, unitIDs)`, `mapView(id, view)`, `create(role, name)`, `remove(id)`, `assign(id, unitIDs)`,
-`release(unitIDs)`, `setRole`, `setPosture`, `setPaused`, `addZone(id, zone)`, `clearZones`,
+`release(unitIDs)`, `setRole`, `setPosture`, `setAutonomy(id, level)`, `setPaused`, `addZone(id, zone)`, `clearZones`,
 `setFocus(id, unitDefNames)`, `setAI(id, on)`, `setDirective(id, text)`, `note(id, text)`,
 `noteAI(id, text)`, `setAIStatus(id, text)`, `ownerOf(unitID)`. Zones are
 `{ kind = "rect", x1, z1, x2, z2 }` or `{ kind = "circle", x, z, r }` in world coordinates.
@@ -369,7 +381,8 @@ Other widgets can drive sub-commanders through `WG.SubCommanders`: `list()`, `ge
 - Building placement is a heuristic search on a lane grid, not a planned base layout: lanes every 320 elmos,
   a clear lane in front of every factory exit (own and allied) and room around factories. It doesn't yet
   reason about cliffs and ramps beyond the zones the strategist picks.
-- Armies hold, gather and defend; attacking is done by the strategist moving the army's zone forward.
+- Armies attack on their own only at *Full* autonomy; otherwise the strategist (or the player) moves the
+  army's zone forward.
 - Strength, measured in fast 1v1 test games with a light-touch delegating player (details in
   [docs/research/test-games.md](docs/research/test-games.md)): against BARbarian medium, 5 of 6 games still
   standing at 25 minutes, none won; against hard, 1 of 6. Units still trade badly (about 1 kill per 4
