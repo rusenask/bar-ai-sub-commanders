@@ -42,6 +42,13 @@ return {
 		local want = P.desired(30, { heavy = 10 })
 		T.ok(want.heavy > P.desired(30, {}).heavy, "more heavy against heavies")
 		T.ok(want.raider < P.desired(30, {}).raider, "fewer raiders")
+		T.ok(P.desired(70, {})["mobile anti-air"] > 0.05, "a big army brings its own anti-air")
+		T.ok(P.desired(70, {}).artillery > P.desired(45, {}).artillery, "and more artillery for turret lines")
+		local sum = 0
+		for _, v in pairs(P.desired(70, {})) do
+			sum = sum + v
+		end
+		T.near(sum, 1, 1e-6, "shares add up")
 	end,
 	anti_air_only_against_air = function()
 		local P = prod()

@@ -1778,10 +1778,15 @@ function Jobs.techLab(sub, unitID, d)
 	return false
 end
 
+-- a tier 2 ground lab (aircraft plants don't count: the Air Force's T2 plant isn't the T2 lab)
+function Engine.groundFactory(d)
+	return d.factory and not makesAircraft(d) and not (d.name or ""):find("hp$") and not (d.name or ""):find("sy$")
+end
+
 function Engine.haveTechLab()
 	for _, u in ipairs(Spring.GetTeamUnits(myTeam) or {}) do
 		local ud = unitDef(u)
-		if ud and ud.factory and (ud.tech or 1) >= 2 then
+		if ud and ud.factory and (ud.tech or 1) >= 2 and Engine.groundFactory(ud) then
 			return true
 		end
 	end
@@ -1793,9 +1798,52 @@ function Engine.haveTechLab()
 	-- the player's own queued builds count too (a player-ordered T2 lab and ours were both built)
 	for _, p in ipairs(Player.plans or {}) do
 		local pd = defs[p.defID]
-		if pd and pd.factory and (pd.tech or 1) >= 2 then
+		if pd and pd.factory and (pd.tech or 1) >= 2 and Engine.groundFactory(pd) then
 			return true
 		end
+	end
+	return false
+end
+
+-- a tier 2 vehicle plant for the Army once the economy is big (doctrine.escalation.t2VehicleIncome) and
+-- the T2 lab stands: heavy tanks, flak and artillery next to the T2 bots
+function Jobs.techVehicles(sub, unitID, d)
+	if d.commander or max(econ.mInc, 0) < Engine.D.escalation.t2VehicleIncome or Engine.haveFactoryNamed("avp$") then
+		return false
+	end
+	local t2lab = false
+	for _, u in ipairs(Spring.GetTeamUnits(myTeam) or {}) do
+		local ud = unitDef(u)
+		if ud and ud.factory and (ud.tech or 1) >= 2 and Engine.groundFactory(ud) and not spGetUnitIsBeingBuilt(u) then
+			t2lab = true
+		end
+	end
+	if not t2lab then
+		return false
+	end
+	for _, p in pairs(planned) do
+		if defs[p.defID].factory then
+			return false
+		end
+	end
+	local o
+	for _, opt in ipairs(d.options) do
+		if (defs[opt].name or ""):find("avp$") then
+			o = opt
+		end
+	end
+	if not o or not canSpend(sub, defs[o]) or econ.m < defs[o].cost * 0.25 then
+		return false
+	end
+	local dx, dz = (Engine.enemyX or MAP_X / 2) - Engine.homeX, (Engine.enemyZ or MAP_Z / 2) - Engine.homeZ
+	local len = max(sqrt(dx * dx + dz * dz), 1)
+	-- behind home like the T2 lab, off to one side of it
+	local ax, az = clampToMap(Engine.homeX - dx / len * 600 - dz / len * 500, Engine.homeZ - dz / len * 600 + dx / len * 500)
+	local x, z = findBuildSpot(sub, o, ax, az, { gap = 48, rings = 14, anywhere = true })
+	if x and issueBuild(sub, unitID, o, x, z, facingToward(x, z, Engine.enemyX or MAP_X / 2, Engine.enemyZ or MAP_Z / 2), "tier 2 vehicle plant for the Army") then
+		local army = Engine.anyArmy()
+		getState(unitID).rebuildFor, getState(unitID).newFactory = (army or sub).id, true
+		return true
 	end
 	return false
 end
@@ -1806,7 +1854,7 @@ function Jobs.newFactory(sub, unitID, d, ux, uz)
 	if not Engine.auto(sub).factories or not Engine.homeX then
 		return false
 	end
-	if Jobs.techLab(sub, unitID, d) then
+	if Jobs.techLab(sub, unitID, d) or Jobs.techVehicles(sub, unitID, d) then
 		return true
 	end
 	local E = Engine.D.economy

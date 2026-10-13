@@ -99,7 +99,10 @@ D.production = {
 		-- 500 Goblins lost after minute 12); BARb hard's Legion mix drops them after its first tiers
 		{ income = 12, constructor = 0.2, raider = 0.15, assault = 0.5, skirmisher = 0.15 },
 		{ income = 25, constructor = 0.15, raider = 0.05, assault = 0.4, skirmisher = 0.2, heavy = 0.2 },
-		{ income = 40, constructor = 0.15, raider = 0.0, assault = 0.3, skirmisher = 0.2, heavy = 0.3, artillery = 0.05 },
+		-- from 40 a few mobile anti-air with the army (v21c armies had none: one bomber wing would have
+		-- walked over them), and more artillery later for their turret lines (76 turrets killed after 35 min)
+		{ income = 40, constructor = 0.15, raider = 0.0, assault = 0.25, skirmisher = 0.2, heavy = 0.3, artillery = 0.05, ["mobile anti-air"] = 0.05 },
+		{ income = 60, constructor = 0.12, raider = 0.0, assault = 0.18, skirmisher = 0.2, heavy = 0.3, artillery = 0.1, ["mobile anti-air"] = 0.1 },
 	},
 	-- the first lab's opening: constructors and raiders in this order before the tier mix takes over
 	opening = { "constructor", "constructor", "raider", "raider", "constructor" },
@@ -175,6 +178,8 @@ D.escalation = {
 	t2AirDefenseIncome = 90, -- Air Defense too (flak) from this income
 	airRaidIncome = 50, -- the Army gets an aircraft plant of its own (air raids) from this income
 	overkill = 8, -- in a push, the main army leaves intruders it outweighs this much to the response squad
+	t2VehicleIncome = 80, -- a tier 2 vehicle plant for the Army (heavy tanks, flak, artillery) from here;
+	-- v21c's T2 was bots only (railgun skirmishers), no heavy armour
 }
 
 -- air raids (Tactics.airRaid): the Army's bombers and gunships as one wing
