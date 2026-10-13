@@ -73,3 +73,13 @@ still standing at 25 minutes (BARbarian wasn't beaten in any game yet). Averages
 | H | D, against BARbarian **hard** | 6 | 1 / 5 | 29.7k | 50 / 214 | 0.44 |
 
 - H: hard is out of reach for a light-touch delegating player so far (losses between 14 and 24 minutes).
+
+## Decision model arms (8 fast rules-only games each, medium; design/decision-models.md)
+
+| Arm | Games | Lost | Metal | Kills / losses | Damage dealt / taken |
+|---|---|---|---|---|---|
+| rules only | 16 | 3 | 32.1k | 39 / 156 | 0.61 |
+| our Kev models, all tasks | 8 | 4 | 38.9k | 48 / 273 | 0.47 |
+| gradient boosting, all tasks | 8 | 5 | 32.1k | 40 / 275 | 0.47 |
+| our Kev fight + turret | 16 | 7 | 35.7k | 50 / 183 | 0.65 |
+| fight + turret + lookahead production | 8 | 5 | 18.4k | 31 / 162 | 0.55 |

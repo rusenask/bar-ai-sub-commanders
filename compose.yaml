@@ -13,6 +13,8 @@ services:
       # optional decision model for the widget's fast choices (Kev / Clef on a GPU host), e.g. http://100.108.100.25:8009
       SCBRIDGE_DECIDER_URL: ${DECIDER_URL:-}
       SCBRIDGE_DECIDER_MODEL: ${DECIDER_MODEL:-kev-latest}
+      # our own per-task models (design/decision-models.md), e.g. fight=http://host:8011,unit=http://host:8012,turret=http://host:8013
+      SCBRIDGE_DECIDER_ROUTES: ${DECIDER_ROUTES:-}
     secrets:
       - llm_api_key
     volumes:

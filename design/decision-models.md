@@ -1,6 +1,6 @@
 # Design: our own decision models (combat, production, defense)
 
-Status: in progress. Results are filled in at the end as the phases complete.
+Status: done (v2 models serving on `force`, optional and off by default). Results and conclusions below.
 
 ## Goal
 
@@ -174,3 +174,69 @@ candidate will most likely pay for itself?", it picks the cheapest units (K buil
 Goblins, the rules mostly Karkinos and Ballista). Cheap units clear that bar individually more often, but
 an army of them loses: the label can't see that heavier units protect the rest. The unit task as designed
 is a bad policy target.
+
+Follow-ups:
+
+| Arm | Games | Lost | Metal | Kills | Losses | Damage dealt / taken |
+|---|---|---|---|---|---|---|
+| F: Kev fight + turret models, rules production | 8 | 4 | 31.5k | 41 | 184 | 0.59 |
+| L: F + production by combat-model lookahead | 8 | 5 | 18.4k | 31 | 162 | 0.55 |
+| R (16 games, two batches) | 16 | **3** | 32.1k | 39 | 156 | 0.61 |
+| F (16 games, two batches) | 16 | 7 | 35.7k | 50 | 183 | **0.65** |
+
+- Production by lookahead (add a metal budget of each candidate to our army, ask the fight model whether
+  that army would come out ahead against the enemy army seen, build the best) gives sensible armies
+  (Karkinos, Toxotai anti-air when air is seen, Ballista) instead of only the cheapest unit.
+- With the fight and turret models the army fights more and a little better (more kills, better damage
+  ratio) but the team loses more games: 7 of 16 against 3 of 16 (not significant, p ~ 0.25, but no sign of
+  improvement). The fight model judges the *local* fight well; "we'd win this fight" then sends the army to
+  other zones and on pushes, and the base pays for it. That is a policy problem, not a prediction problem.
+
+### v2 (74 games of logger v2, 3 epochs for fight)
+
+| Task (v2 test) | Kev-0.8B as released | Our v2 fine-tune | Gradient boosting | Logistic regression |
+|---|---|---|---|---|
+| fight (1,131) | AUC 0.62, Brier 0.241 | AUC 0.81, Brier 0.176, acc 0.72 | AUC 0.82, Brier 0.172, acc 0.73 | AUC 0.75, Brier 0.205 |
+| turret (468) | AUC 0.47, Brier 0.235 | AUC 0.74, Brier 0.137, acc 0.81 | AUC 0.78, Brier 0.134 | AUC 0.75, Brier 0.140 |
+| unit (1,709) | AUC 0.53, Brier 0.229 | AUC 0.62, Brier 0.188 | AUC 0.63, Brier 0.184 | AUC 0.59, Brier 0.190 |
+
+More data closed the gap: the fine-tuned Kev-0.8B is now level with gradient-boosted trees on every task
+(within ~0.01 AUC / 0.004 Brier), and far ahead of the released model and of today's rule. The v2 models
+are what `force` serves (`decider.sh start bar v2`).
+
+## Conclusions
+
+1. **We can train our own BAR decision models, and they predict well.** Outcome labels from spectated
+   BARbarian games are cheap (two minutes per game at 15x) and honest. A fine-tuned Kev-0.8B predicts fight
+   outcomes at AUC 0.81 (today's rule: 0.57-0.62), turret value at 0.74; unit value is hard (0.62).
+2. **Kev-style fine-tunes match gradient-boosted trees** once there's enough data, at ~30 ms per decision
+   on a 4090; the trees are cheaper but need the numbers, the Kev models also take free text. Both are
+   servable behind the same API (`kev.serve`, `serve_gbt.py`), routed per task by the bridge.
+3. **Better predictions didn't win more games.** "Will this unit pay for itself?" is a bad production
+   target (cheap units); "will we win this fight?" is a good prediction but a bad policy on its own
+   (local wins pull the army away from home). What decides games is the policy that uses the predictions.
+4. So the models stay **optional and off by default**; the rules remain the default policy.
+
+## What would likely help next
+
+- Decide *where the army should be*, not only whether a fight is winnable: e.g. engage only fights inside
+  or next to our zones, or weigh "away from base" against the win probability.
+- A label about the team, not the unit: "does adding this unit raise the chance our army wins its next
+  fight" (the lookahead is a first step), or game-level value (win/loss) with many more games.
+- Learn from our own team's games (the logger works as a player too), so the models see our rules' units
+  and positioning, not only BARbarian's.
+- More data for turrets and units, and BARbarian vs BARbarian on more maps.
+
+## Reproduce
+
+```sh
+testenv/collect.sh 60                                     # BARbarian vs BARbarian, logged (2 min / game)
+go run ./cmd/decidedata -in testenv/data/raw -out testenv/data/sets
+uv run --with scikit-learn python deploy/decider/baselines.py testenv/data/sets
+lightning studio start --name bar-decider-train --create --machine L40S
+scp -r testenv/data/sets bar-decider-train:bar-sets; scp deploy/decider/*.{sh,py} bar-decider-train:bar-deploy/
+ssh bar-decider-train bar-deploy/train_bar.sh v2           # fine-tune, calibrate, score vs Kev-0.8B
+# copy ~/kev/runs/bar-<task>-v2 to the GPU host's ~/bar-decider/runs/, then
+ssh gpu-host sh bar-decider/deploy/decider.sh start bar v2   # fight :8011, unit :8012, turret :8013
+# bridge: SCBRIDGE_DECIDER_ROUTES=fight=http://gpu-host:8011,unit=http://gpu-host:8012,turret=http://gpu-host:8013
+```

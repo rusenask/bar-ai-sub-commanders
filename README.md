@@ -256,6 +256,17 @@ In practice: in 6 + 6 fast rules-only games against BARbarian medium, with and w
 were the same within the (large) game-to-game variance. The model's picks are sensible, but the rules
 already choose reasonably, so treat it as an experiment rather than a strength upgrade.
 
+### Our own models
+
+We also trained our own decision models on BAR outcomes ([design/decision-models.md](design/decision-models.md)):
+BARbarian vs BARbarian games watched by a logging widget, labels from what actually happened (did the fight
+go our way, did the turret or unit pay for itself), Kev-0.8B fine-tuned on a Lightning studio. They predict
+far better than the released models or today's rules (fight outcome AUC 0.81 vs 0.57-0.62), and match
+gradient-boosted trees. In game they made the army fight more but didn't win more games yet, so they're off
+by default. To try them, serve them on a GPU host (`deploy/decider/decider.sh start bar v2`) and route the
+tasks: `DECIDER_ROUTES=fight=http://host:8011,unit=http://host:8012,turret=http://host:8013` in `.env`
+(passed to the bridge as `SCBRIDGE_DECIDER_ROUTES`), then `make up`.
+
 ### Troubleshooting
 
 | Symptom | Fix |
