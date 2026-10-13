@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/rusenask/bar-ai-sub-commanders/internal/analysis"
 	"github.com/rusenask/bar-ai-sub-commanders/internal/game"
 	"github.com/rusenask/bar-ai-sub-commanders/internal/opencode"
 )
@@ -322,6 +323,7 @@ func report(info *game.Info, state *game.State, sub game.Sub, ss *subState, reas
 	self.AIStatus = ""
 	writeJSON(&b, "You", self)
 	writeJSON(&b, "Team economy", state.Economy)
+	b.WriteString(paceLine(state.Frame, state.Economy))
 
 	var others []brief
 	for _, o := range state.Subs {
@@ -351,6 +353,23 @@ func report(info *game.Info, state *game.State, sub game.Sub, ss *subState, reas
 	}
 	b.WriteString("\nChange something with tools only if it clearly helps (often nothing should change). Then reply with one short sentence for the player: what you decided and why.\n")
 	return b.String()
+}
+
+// strong players' 1v1 economies by minute (cmd/gamereport -bench-from, built into the binary)
+var proPace = analysis.ProDuel()
+
+// paceLine compares the team's income with strong players' at the same minute of their 1v1s.
+func paceLine(frame int, e game.Economy) string {
+	minute := frame / framesPerSecond / 60
+	for m := minute; m >= 2; m-- { // the latest minute the benchmark covers
+		mi, ok := proPace.Band(m, "metalIncome")
+		ei, ok2 := proPace.Band(m, "energyIncome")
+		if ok && ok2 {
+			return fmt.Sprintf("Pace: metal income %.1f/s, energy %.0f/s at %d min; strong players' 1v1s at %d min: metal %g-%g/s, energy %g-%g/s (a guide, maps and plans differ).\n",
+				e.MetalIncome, e.EnergyIncome, minute, m, mi.P25, mi.P75, ei.P25, ei.P75)
+		}
+	}
+	return ""
 }
 
 func writeJSON(b *strings.Builder, label string, v any) {

@@ -1,0 +1,140 @@
+// Command gamereport analyses test games: economy pace against strong players, losses, stalls, the
+// sub-commanders' recurring problems, and a ranked list of findings to work on.
+//
+//	gamereport testenv/batch/latest              # one batch (a directory of harness logs) or single logs
+//	gamereport -compare batch/A batch/B          # A/B arms side by side, one directory per arm
+//	gamereport -bench-from testenv/data/pro      # rebuild the strong players' benchmark from replay logs
+package main
+
+import (
+	"encoding/json"
+	"flag"
+	"fmt"
+	"log"
+	"os"
+	"path/filepath"
+	"sort"
+	"strings"
+
+	"github.com/rusenask/bar-ai-sub-commanders/internal/analysis"
+)
+
+func main() {
+	title := flag.String("title", "", "report title (default: the inputs)")
+	compare := flag.Bool("compare", false, "each argument is a directory of games (an arm): compare them")
+	benchFile := flag.String("bench", "", "benchmark JSON (default: the strong players' benchmark built into the binary)")
+	benchFrom := flag.String("bench-from", "", "build a benchmark from the data logger's JSONL files in this directory")
+	benchOut := flag.String("bench-out", "internal/analysis/benchmarks/pro-duel.json", "where -bench-from writes the benchmark")
+	benchDesc := flag.String("bench-desc", "strong players' 1v1s (both rated 30+, BAR replays)", "benchmark description")
+	flag.Parse()
+
+	if *benchFrom != "" {
+		buildBenchmark(*benchFrom, *benchOut, *benchDesc)
+		return
+	}
+	if flag.NArg() == 0 {
+		flag.Usage()
+		os.Exit(2)
+	}
+	bench := analysis.ProDuel()
+	if *benchFile != "" {
+		data, err := os.ReadFile(*benchFile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		bench = &analysis.Benchmark{}
+		if err := json.Unmarshal(data, bench); err != nil {
+			log.Fatal(err)
+		}
+	}
+	if *compare {
+		var arms []analysis.Arm
+		for _, dir := range flag.Args() {
+			arms = append(arms, analysis.Arm{Label: filepath.Base(dir), Games: load([]string{dir})})
+		}
+		analysis.Compare(os.Stdout, arms)
+		return
+	}
+	games := load(flag.Args())
+	if len(games) == 0 {
+		log.Fatal("no games found")
+	}
+	if *title == "" {
+		*title = "Games: " + strings.Join(flag.Args(), ", ")
+	}
+	analysis.Report(os.Stdout, *title, games, bench)
+}
+
+// load reads harness logs: files, or every *.txt in directories.
+func load(args []string) []*analysis.Game {
+	var files []string
+	for _, a := range args {
+		st, err := os.Stat(a)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if st.IsDir() {
+			m, _ := filepath.Glob(filepath.Join(a, "*.txt"))
+			sort.Slice(m, func(i, j int) bool { return natural(m[i]) < natural(m[j]) })
+			files = append(files, m...)
+		} else {
+			files = append(files, a)
+		}
+	}
+	var games []*analysis.Game
+	for _, f := range files {
+		r, err := os.Open(f)
+		if err != nil {
+			log.Fatal(err)
+		}
+		g, err := analysis.ParseGame(strings.TrimSuffix(filepath.Base(f), ".txt"), r)
+		r.Close()
+		if err != nil {
+			log.Fatalf("%s: %v", f, err)
+		}
+		games = append(games, g)
+	}
+	return games
+}
+
+// natural sorts "2.txt" before "10.txt".
+func natural(path string) string {
+	base := strings.TrimSuffix(filepath.Base(path), ".txt")
+	return fmt.Sprintf("%s/%08s", filepath.Dir(path), base)
+}
+
+func buildBenchmark(dir, out, desc string) {
+	files, _ := filepath.Glob(filepath.Join(dir, "*.jsonl"))
+	var recs []*analysis.Recorded
+	for _, f := range files {
+		r, err := os.Open(f)
+		if err != nil {
+			log.Fatal(err)
+		}
+		rec, err := analysis.ParseDatalog(filepath.Base(f), r)
+		r.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+		recs = append(recs, rec)
+	}
+	b := analysis.BuildBenchmark(desc, recs)
+	data, _ := json.MarshalIndent(b, "", " ")
+	if err := os.WriteFile(out, append(data, '\n'), 0o644); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("%s: %d games, %d players\n\n| Minute | metal income | extractors | factories | constructors | army value |\n|---|---|---|---|---|---|\n", out, b.Games, b.Players)
+	for _, minute := range analysis.PaceMinutes {
+		var row strings.Builder
+		fmt.Fprintf(&row, "| %d |", minute)
+		for _, m := range []string{"metalIncome", "mex", "factories", "builders", "army"} {
+			band, ok := b.Band(minute, m)
+			if !ok {
+				row.WriteString(" - |")
+				continue
+			}
+			fmt.Fprintf(&row, " %g (%g-%g) |", band.P50, band.P25, band.P75)
+		}
+		fmt.Println(row.String())
+	}
+}

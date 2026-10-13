@@ -288,6 +288,8 @@ tasks: `DECIDER_ROUTES=fight=http://host:8011,unit=http://host:8012,turret=http:
 | `deploy/decider/`, `cmd/decidereval` | decision model server scripts (Clef / Kev) and its BAR benchmark |
 | `Dockerfile`, `compose.yaml`, `docker/opencode.json` | container image (official opencode image + scbridge) |
 | `cmd/fakegame` | scripted stand-in for the game, to work on the bridge without BAR |
+| `cmd/gamereport`, `internal/analysis` | game analysis: reports, A/B comparison, strong players' benchmark |
+| `.claude/skills/`, `docs/research/` | how we improve the AI (skills for coding agents), lessons and results |
 | `testenv/` | scripted test games |
 
 - `make lint`, `make build`.
@@ -304,10 +306,27 @@ tasks: `DECIDER_ROUTES=fight=http://host:8011,unit=http://host:8012,turret=http:
 - Faster: `SPEED=15` runs any scenario at up to 15x (a 25-minute duel takes about two minutes here);
   `LOCKSTEP=1` pauses the game while the strategist thinks, so it sees the game as often as at normal
   speed; `MAP="Altair_Crossing_V4.1"` picks another map (names as in BAR's archive cache).
-- `make test-batch GAMES=5 BATCH_SCENARIO=duelrules AI_PROFILE=hard` plays several fast games and prints a
-  line per game and a summary; `WIDGET_SRC=/path/to/Widgets testenv/batch.sh ...` runs another version of
-  the widgets, for A/B comparisons. Results so far: [docs/research/test-games.md](docs/research/test-games.md).
+- `make test-batch GAMES=8 LABEL=my-change` plays several fast games (`BATCH_SCENARIO`, `AI_PROFILE`, `MAP`
+  as above) and keeps them in `testenv/batch/<date>-<label>/` with `meta.txt` (commit, settings) and
+  `report.md`; `WIDGET_SRC=/path/to/Widgets testenv/batch.sh ...` runs another version of the widgets, for
+  A/B comparisons. Results so far: [docs/research/test-games.md](docs/research/test-games.md).
 - `bin/fakegame` exercises the bridge and the model without starting BAR.
+
+### Analysing games and improving
+
+- `make report` (the latest batch; `BATCH=<dir or log>` for others) runs `cmd/gamereport`: results, economy
+  pace against strong players' 1v1s (quartiles per minute), losses by kind, the sub-commanders' recurring
+  problems and a ranked list of findings. `make compare ARMS="<dir A> <dir B>"` puts A/B arms side by side.
+- The harness logs per-minute `eco` lines and every unit `lost` / `killed` in the same terms as the replay
+  data logger, so our games and strong players' games compare directly.
+- Strong players' games: `testenv/pro_replays.py` downloads rated 1v1 replays from BAR's public archive and
+  `testenv/replays.sh` plays them with the data logger; `make benchmarks` rebuilds
+  `internal/analysis/benchmarks/pro-duel.json`, which the reports and the strategist's "Pace" line use.
+  See [design/pro-replays.md](design/pro-replays.md).
+- The improvement process (measure, pick the top finding, change, A/B, record) is written down as skills
+  in `.claude/skills/` (`improve`, `analyze-games`, `ab-test`, `pro-replays`, `decision-models`) and its
+  memory is [docs/research/lessons.md](docs/research/lessons.md) plus
+  [docs/research/test-games.md](docs/research/test-games.md).
 - `make ref` checks out BAR's Lua source at the installed version into `ref/` for API lookups.
 
 Other widgets can drive sub-commanders through `WG.SubCommanders`: `list()`, `get(id)`, `economy()`,

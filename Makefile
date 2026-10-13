@@ -2,11 +2,12 @@ BAR_DIR ?= $(HOME)/Library/Application Support/Beyond-All-Reason-mac
 MODEL ?= lightning/deepseek-v4.1-flash
 BAR_REF ?= 8247b61
 
-.PHONY: build install run up down restart logs test-game test-batch test-bridge decider-deploy decider-eval ref lint
+.PHONY: build install run up down restart logs test-game test-batch test-bridge report compare benchmarks decider-deploy decider-eval ref lint
 
 build:
 	go build -o bin/scbridge ./cmd/scbridge
 	go build -o bin/fakegame ./cmd/fakegame
+	go build -o bin/gamereport ./cmd/gamereport
 
 # copy the widgets into your BAR install (picked up next game, or /luaui reload)
 install:
@@ -41,10 +42,23 @@ test-game:
 	AI_PROFILE=$(AI_PROFILE) MAP="$(MAP)" SPEED=$(SPEED) LOCKSTEP=$(LOCKSTEP) testenv/run.sh "$(CURDIR)/testenv/$(SCRIPT)" $(TIMEOUT) $(SCENARIO)
 	@cat testenv/sctest_out.txt
 
-# several fast games against BARbarian with a summary: make test-batch GAMES=5 BATCH_SCENARIO=duel AI_PROFILE=hard
+# several fast games against BARbarian with a summary and a report (testenv/batch/<date>-<label>/report.md):
+# make test-batch GAMES=5 BATCH_SCENARIO=duel AI_PROFILE=hard LABEL=my-change
 GAMES ?= 3
 test-batch:
-	AI_PROFILE=$(or $(AI_PROFILE),medium) MAP="$(MAP)" SPEED=$(or $(SPEED),15) LOCKSTEP=$(LOCKSTEP) testenv/batch.sh $(GAMES) $(or $(BATCH_SCENARIO),duelrules) script_vsai.txt
+	LABEL="$(LABEL)" AI_PROFILE=$(or $(AI_PROFILE),medium) MAP="$(MAP)" SPEED=$(or $(SPEED),15) LOCKSTEP=$(LOCKSTEP) testenv/batch.sh $(GAMES) $(or $(BATCH_SCENARIO),duelrules) script_vsai.txt
+
+# analyse games: make report (the latest batch), make report BATCH=testenv/batch/<dir>, or a single log
+report:
+	go run ./cmd/gamereport $(or $(BATCH),testenv/batch/latest/)
+
+# A/B arms side by side: make compare ARMS="testenv/batch/<A> testenv/batch/<B>"
+compare:
+	go run ./cmd/gamereport -compare $(ARMS)
+
+# rebuild the strong players' benchmark from logged replays (testenv/pro_replays.py, testenv/replays.sh)
+benchmarks:
+	go run ./cmd/gamereport -bench-from testenv/data/pro
 
 # bridge for test games (port 17878, opencode on 14517), separate from the one real games use
 test-bridge:

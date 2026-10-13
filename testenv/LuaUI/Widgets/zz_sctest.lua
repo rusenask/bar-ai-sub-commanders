@@ -8,6 +8,7 @@ local scenario = (VFS.LoadFile("sctest_scenario.txt", VFS.RAW) or "eco"):gsub("%
 local speedOverride, lockstep = (VFS.LoadFile("sctest_speed.txt", VFS.RAW) or ""):match("^(%d*)%s*(%d*)")
 speedOverride, lockstep = tonumber(speedOverride), lockstep == "1"
 local myTeam = Spring.GetMyTeamID()
+local startOffset -- frame our commander appeared (scenario time 0)
 local SC
 local ids = {}
 local byName = {}
@@ -75,6 +76,63 @@ local function give(n, name, team, x, z)
 end
 
 local cx, cz
+
+-- analysis lines for cmd/gamereport (duels): "eco" every minute in the data logger's terms (zz_datalog.lua,
+-- so our games compare with strong players' replays), and "lost" / "killed" for every unit that dies
+local kinds = VFS.Include("LuaUI/Include/sc_unitkinds.lua", nil, VFS.RAW_FIRST)
+local stall = { energy = 0, overflow = 0 } -- seconds with energy empty / metal full
+
+local function ecoLine(n)
+	local m = { mex = 0, gen = 0, factories = 0, builders = 0, army = 0, turrets = 0 }
+	for _, u in ipairs(Spring.GetTeamUnits(myTeam) or {}) do
+		local d = kinds[Spring.GetUnitDefID(u) or -1]
+		if d and not Spring.GetUnitIsBeingBuilt(u) then
+			if d.mex > 0 then
+				m.mex = m.mex + 1
+			elseif d.energy > 0 then
+				m.gen = m.gen + 1
+			elseif d.factory then
+				m.factories = m.factories + 1
+			elseif d.builder then
+				m.builders = m.builders + 1
+			end
+			if d.mobile and d.armed and not d.builder and not d.commander then
+				m.army = m.army + d.cost
+			elseif d.staticDef then
+				m.turrets = m.turrets + d.cost
+			end
+		end
+	end
+	local _, _, _, mInc = Spring.GetTeamResources(myTeam, "metal")
+	local _, _, _, eInc = Spring.GetTeamResources(myTeam, "energy")
+	out(string.format("eco minute=%d metalIncome=%.1f energyIncome=%.0f mex=%d generators=%d factories=%d builders=%d army=%.0f turrets=%.0f energyStalled=%d metalOverflow=%d",
+		n / 1800, mInc or 0, eInc or 0, m.mex, m.gen, m.factories, m.builders, m.army, m.turrets, stall.energy, stall.overflow))
+end
+
+local function sampleStalls()
+	local m, mS = Spring.GetTeamResources(myTeam, "metal")
+	local e, eS = Spring.GetTeamResources(myTeam, "energy")
+	if e and eS and eS > 0 and e < 0.03 * eS then
+		stall.energy = stall.energy + 1
+	end
+	if m and mS and mS > 0 and m > 0.97 * mS then
+		stall.overflow = stall.overflow + 1
+	end
+end
+
+function widget:UnitDestroyed(unitID, unitDefID, unitTeam, attackerID, attackerDefID, attackerTeam)
+	if not (scenario == "duel" or scenario == "duelrules") or not startOffset then
+		return
+	end
+	local d = kinds[unitDefID]
+	local mine = unitTeam == myTeam
+	if not d or (not mine and not (attackerTeam == myTeam)) then
+		return
+	end
+	local x, _, z = Spring.GetUnitPosition(unitID)
+	out(string.format("%s minute=%d kind=%s name=%s cost=%d x=%d z=%d", mine and "lost" or "killed",
+		(Spring.GetGameFrame() - startOffset) / 1800, ((d.kind or "?"):gsub(" ", "_")), UnitDefs[unitDefID].name, d.cost, x or -1, z or -1))
+end
 
 function widget:UnitFinished(unitID, unitDefID, unitTeam)
 	if unitTeam == myTeam then
@@ -349,8 +407,14 @@ local function duel(n)
 			duelState.labOrdered = nil
 		end
 	end
+	if n % 30 == 0 then
+		sampleStalls()
+	end
 	if n % (30 * 60) == 0 then
 		out(string.format("value: army us=%.0f  units us=%d", armyValue(myTeam), #Spring.GetTeamUnits(myTeam)))
+		if n > 0 then
+			ecoLine(n)
+		end
 	end
 	-- commanders can spawn a few frames in: only a team that had units can have lost them
 	local count = #Spring.GetTeamUnits(myTeam)
@@ -879,7 +943,6 @@ local function gameFrame(n)
 	end
 end
 
-local startOffset
 
 -- lockstep: the game waits for the strategist (Update runs while paused, GameFrame doesn't)
 local lockPaused, lockChecked = false, 0

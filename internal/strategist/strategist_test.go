@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io"
 	"log/slog"
+	"strings"
 	"testing"
 	"time"
 
@@ -40,5 +41,15 @@ func TestFailedReviewsBackOff(t *testing.T) {
 	}
 	if why := s.due(sub, frame+seconds(2*time.Minute)); why == "" {
 		t.Fatal("backoff should be capped at 2 minutes")
+	}
+}
+
+func TestPaceLine(t *testing.T) {
+	line := paceLine(8*60*framesPerSecond, game.Economy{MetalIncome: 20, EnergyIncome: 300})
+	if !strings.Contains(line, "Pace: metal income 20.0/s, energy 300/s at 8 min; strong players' 1v1s at 8 min: metal ") {
+		t.Errorf("pace line %q", line)
+	}
+	if paceLine(60*framesPerSecond, game.Economy{}) != "" {
+		t.Error("no pace in the first two minutes")
 	}
 }
