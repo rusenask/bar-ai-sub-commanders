@@ -26,3 +26,5 @@ play/*
 !play/vs.sh
 !testenv/arm.sh
 !testenv/worker.sh
+!testenv/force-batch.sh
+!testenv/force/

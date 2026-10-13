@@ -23,6 +23,17 @@ description: Run and judge A/B test batches of BAR games for a sub-commander cha
 
 ## Running
 
+On the force host (default: headless, 6 at a time, 16 games of 60 minutes in about half an hour; the
+harness is copied at the start, so local edits don't leak):
+
+```sh
+WIDGET_SRC=$(testenv/arm.sh mine) LABEL=force-my-change testenv/force-batch.sh 16
+WIDGET_SRC=$(testenv/arm.sh base <commit>) LABEL=force-baseline testenv/force-batch.sh 16
+```
+
+Compare force arms with force arms (100x headless vs 15x windowed may differ). Locally, when you want
+to watch:
+
 ```sh
 make test-batch GAMES=8 LABEL=baseline                     # rules only (duelrules), vs medium, 15x
 WIDGET_SRC=/tmp/armB/Widgets LABEL=my-change testenv/batch.sh 8

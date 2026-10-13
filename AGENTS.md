@@ -31,6 +31,10 @@ widget reconnects by itself within a few seconds. Sub-commanders survive `/luaui
 
 ## Testing without disturbing a running game
 
+- Batches run on the `force` host by default now (`testenv/force-batch.sh`, headless, 6 games at a time at
+  up to 100x: [testenv/force/README.md](testenv/force/README.md)); the laptop stays free. Local batches
+  (`testenv/batch.sh`) are for watching games.
+
 - Test games connect to a separate test bridge on port 17878 (`make test-bridge`), not the Docker bridge on
   7878 that a real game uses. To exercise the bridge without BAR, use `bin/fakegame -addr 127.0.0.1:<port>`
   against a separate bridge container.
