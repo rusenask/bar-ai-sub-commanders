@@ -264,3 +264,14 @@ code (v16 mostly never reached the hand-off: its lab built Infestors). Re-measur
   (1 / 9 / 6 of 16); at 6 games with a 660 s limit it didn't (7 wins in 9).
 - No arm is clearly better at 12 games; most games end undecided at 60 minutes. Bigger samples come from
   the sandboxes (testenv/sandbox/).
+
+## Sandboxes: v23 by faction (12 games each, 60 min, vs medium)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261014-0117-sbx-v23-legion | 12 | 8 timeout, 4 loss | 1 | 198.2k | 174 / 852 | 0.75 | 23.2 | 12 | 3.6k |
+| 20261014-0117-sbx-v23-armada (vs Cortex) | 12 | 5 timeout, 7 loss | 2 | 176.0k | 206 / 737 | 0.84 | 22.7 | 13.5 | 4.5k |
+| 20261014-0117-sbx-v23-cortex (vs Armada) | 12 | 5 timeout, 7 loss | 1 | 175.4k | 178 / 955 | 0.62 | 36.4 | 12.5 | 3.7k |
+
+- 36 games of 60 minutes in 13-16 minutes on 9 cpu-16 sandboxes. Armada and Cortex lose more than Legion;
+  Cortex loses 36 constructors a game.
