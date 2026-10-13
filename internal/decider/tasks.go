@@ -19,6 +19,10 @@ const (
 	TaskFight  = "fight"  // combat: does our group come out ahead of this fight?
 	TaskUnit   = "unit"   // production: would this unit pay for itself?
 	TaskTurret = "turret" // defense: would this turret pay for itself?
+
+	// imitation of strong players (pro replays): what would they build from these options?
+	TaskProduce    = "produce"    // a factory's next combat unit
+	TaskTurretPick = "turretpick" // a constructor's next turret
 )
 
 // Group is a set of units summarised: counts by kind, total metal value, average health %, aircraft.
@@ -262,6 +266,27 @@ func ValueQuestions(task string, f ValueFeatures) map[string]Question {
 	return qs
 }
 
+// ChoiceState renders the imitation tasks' state: the same situation as the value tasks.
+func ChoiceState(task string, f ValueFeatures) string {
+	if task == TaskTurretPick {
+		return ValueState(TaskTurret, f)
+	}
+	return ValueState(TaskUnit, f)
+}
+
+// ChoiceQuestions asks which candidate a strong player would build, as one choice question.
+func ChoiceQuestions(task string, f ValueFeatures) map[string]Question {
+	criteria := map[string]string{}
+	for _, c := range f.Candidates {
+		criteria[c.Name] = unitText(c)
+	}
+	instr := "Which unit would a strong player have this factory build next?"
+	if task == TaskTurretPick {
+		instr = "Which turret would a strong player build next?"
+	}
+	return map[string]Question{"pick": {Type: "choice", Instructions: instr, Criteria: criteria}}
+}
+
 // Render turns a task's features (as the widget sends them) into state and questions.
 func Render(task string, features json.RawMessage) (string, map[string]Question, error) {
 	switch task {
@@ -280,6 +305,15 @@ func Render(task string, features json.RawMessage) (string, map[string]Question,
 			return "", nil, fmt.Errorf("%s: no candidates", task)
 		}
 		return ValueState(task, f), ValueQuestions(task, f), nil
+	case TaskProduce, TaskTurretPick:
+		var f ValueFeatures
+		if err := json.Unmarshal(features, &f); err != nil {
+			return "", nil, fmt.Errorf("%s features: %w", task, err)
+		}
+		if len(f.Candidates) < 2 {
+			return "", nil, fmt.Errorf("%s: need at least two candidates", task)
+		}
+		return ChoiceState(task, f), ChoiceQuestions(task, f), nil
 	}
 	return "", nil, fmt.Errorf("unknown task %q", task)
 }
@@ -342,7 +376,7 @@ func Flat(task string, features json.RawMessage) (map[string]map[string]float64,
 		}
 		flat := FlatFight(f)
 		return map[string]map[string]float64{"ahead": flat, "outcome": flat}, nil
-	case TaskUnit, TaskTurret:
+	case TaskUnit, TaskTurret, TaskProduce, TaskTurretPick:
 		var v ValueFeatures
 		if err := json.Unmarshal(features, &v); err != nil {
 			return nil, err

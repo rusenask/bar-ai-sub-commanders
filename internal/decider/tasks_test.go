@@ -75,6 +75,26 @@ func TestValueRendering(t *testing.T) {
 	}
 }
 
+func TestChoiceRendering(t *testing.T) {
+	f := `{"situation":{"own":{"kinds":{"assault":3},"value":400,"health":90,"count":3},"metalIncome":12.5},
+"candidates":[{"name":"corak","human":"A.K.","kind":"raider","cost":45},{"name":"corthud","human":"Thud","kind":"assault","cost":150}]}`
+	state, qs, err := Render(TaskProduce, json.RawMessage(f))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(state, "factory is choosing a unit") {
+		t.Errorf("state:\n%s", state)
+	}
+	q := qs["pick"]
+	crit, _ := q.Criteria.(map[string]string)
+	if len(qs) != 1 || q.Type != "choice" || len(crit) != 2 || !strings.Contains(crit["corthud"], "Thud") {
+		t.Errorf("questions %+v", qs)
+	}
+	if _, _, err := Render(TaskTurretPick, json.RawMessage(`{"candidates":[{"name":"a"}]}`)); err == nil {
+		t.Error("one candidate should fail")
+	}
+}
+
 func TestRouterRoutesTasks(t *testing.T) {
 	var gotState string
 	fight := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

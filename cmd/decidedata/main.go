@@ -36,12 +36,14 @@ type sample struct {
 	OwnLost   int `json:"ownLost"`
 	EnemyLost int `json:"enemyLost"`
 
-	Unit      decider.UnitTraits `json:"unit"`
-	Situation decider.Situation  `json:"situation"`
-	Place     *decider.Place     `json:"place"`
-	Dealt     int                `json:"dealt"`
-	Died      bool               `json:"died"`
-	Lived     int                `json:"lived"`
+	Unit      decider.UnitTraits   `json:"unit"`
+	Situation decider.Situation    `json:"situation"`
+	Place     *decider.Place       `json:"place"`
+	Dealt     int                  `json:"dealt"`
+	Chosen    string               `json:"chosen"`  // build / turretbuild: what the player started
+	Options   []decider.UnitTraits `json:"options"` // ... and what it could have built
+	Died      bool                 `json:"died"`
+	Lived     int                  `json:"lived"`
 }
 
 type record struct {
@@ -100,6 +102,26 @@ func valueExample(task string, s sample) (example, bool) {
 	return example{label: paid, rec: record{State: decider.ValueState(task, vf), Questions: qs}, feat: f}, true
 }
 
+// choiceExample: what a (strong) player chose to build, from the options it had (imitation).
+func choiceExample(task string, s sample) (example, bool) {
+	found := false
+	for _, o := range s.Options {
+		found = found || o.Name == s.Chosen
+	}
+	if !found || len(s.Options) < 2 {
+		return example{}, false
+	}
+	vf := decider.ValueFeatures{Minute: s.Frame / 1800, Situation: s.Situation, Place: s.Place, Candidates: s.Options}
+	qs := decider.ChoiceQuestions(task, vf)
+	q := qs["pick"]
+	q.Label = s.Chosen
+	qs["pick"] = q
+	// flat features for the baselines: the situation, with the choice as a class label
+	f := decider.FlatValue(vf, decider.UnitTraits{})
+	f["choice."+s.Chosen] = 1
+	return example{label: true, rec: record{State: decider.ChoiceState(task, vf), Questions: qs}, feat: f}, true
+}
+
 func main() {
 	in := flag.String("in", "testenv/data/raw", "directory of logged games (*.jsonl)")
 	out := flag.String("out", "testenv/data/sets", "output directory")
@@ -140,11 +162,22 @@ func main() {
 				ex, ok = fightExample(s)
 			case "unit", "turret":
 				ex, ok = valueExample(s.Type, s)
+			case "build":
+				ex, ok = choiceExample(decider.TaskProduce, s)
+			case "turretbuild":
+				ex, ok = choiceExample(decider.TaskTurretPick, s)
 			}
 			if ok {
 				games[s.Game] = true
 				ex.split = splitOf(s.Game)
-				byTask[s.Type] = append(byTask[s.Type], ex)
+				task := s.Type
+				switch s.Type {
+				case "build":
+					task = decider.TaskProduce
+				case "turretbuild":
+					task = decider.TaskTurretPick
+				}
+				byTask[task] = append(byTask[task], ex)
 			}
 		}
 		if err := sc.Err(); err != nil {
