@@ -50,6 +50,7 @@ func run() error {
 		urgent      = flag.Duration("urgent", 8*time.Second, "minimum game time between reviews when something happens")
 		calm        = flag.Float64("calm-factor", 2, "calm sub-commanders are reviewed every calm-factor x interval")
 		maxReviews  = flag.Int("max-reviews", 4, "most strategist reviews running at once (0 = no cap)")
+		record      = flag.String("record", os.Getenv("SCBRIDGE_RECORD"), "append every strategist review (report, reply, tools) to this JSONL file")
 		turnTimeout = flag.Duration("turn-timeout", 3*time.Minute, "limit for one review")
 		host        = flag.String("opencode-host", "127.0.0.1", "interface for the opencode server scbridge starts (0.0.0.0 in a container)")
 		deciderURL  = flag.String("decider-url", os.Getenv("SCBRIDGE_DECIDER_URL"), "optional System One decision model (Kev, Clef: /v1/systemone) for the widget's fast choices, e.g. http://100.108.100.25:8009")
@@ -132,6 +133,7 @@ func run() error {
 		TurnTimeout: *turnTimeout,
 		CalmFactor:  *calm,
 		MaxInFlight: *maxReviews,
+		Record:      *record,
 	}, g, oc, log)
 	log.Info("strategist ready", "model", *model, "interval", *interval)
 

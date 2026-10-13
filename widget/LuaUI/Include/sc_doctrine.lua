@@ -97,7 +97,6 @@ D.economy = {
 	nanosPerLab = 5, -- a lab with this many turrets around it is saturated
 	builderBonus = 0, -- added to the constructor target (tunable by the strategist)
 	maxStorage = 4000, -- metal storage beyond this hides waste instead of fixing it: spend instead
-	armyCap = 150, -- most combat units per army (metal is the real limit; a count cap of 48 idled the lab)
 	airPlantIncome = 35, -- full autonomy: past this income (and a saturated lab) the next factory is aircraft
 	radarFrom = 30 * 90, -- the economy puts up a radar toward the enemy from about minute 1.5
 }

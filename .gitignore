@@ -25,3 +25,4 @@ luac.out
 play/*
 !play/vs.sh
 !testenv/arm.sh
+!testenv/worker.sh

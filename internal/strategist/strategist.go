@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
 	"slices"
 	"strings"
 	"sync"
@@ -36,6 +37,9 @@ type Config struct {
 	CalmFactor float64
 	// MaxInFlight caps reviews running at once (0 = no cap).
 	MaxInFlight int
+	// Record, when set, is a file each review is appended to as a JSON line (report, reply, tools, time):
+	// the data for grading prompt or model changes offline.
+	Record string
 }
 
 type subState struct {
@@ -257,6 +261,7 @@ func (s *Strategist) review(ctx context.Context, info *game.Info, state *game.St
 	for _, t := range reply.Tools {
 		used = append(used, strings.TrimPrefix(t.Tool, "bar_")+"="+t.Status)
 	}
+	s.record(info, state, sub, reason, prompt, reply, time.Since(start))
 	s.log.Info("review", "sub", sub.Name, "why", reason, "took", time.Since(start).Round(100*time.Millisecond),
 		"tools", strings.Join(used, ","), "in", int(reply.Tokens.Input), "cached", int(reply.Tokens.Cache.Read), "out", int(reply.Tokens.Output))
 
@@ -269,6 +274,34 @@ func (s *Strategist) review(ctx context.Context, info *game.Info, state *game.St
 		note = "no changes"
 	}
 	s.game.Tell(sub.ID, "note", map[string]any{"text": note})
+}
+
+// record appends one review to Config.Record (if set) as a JSON line.
+func (s *Strategist) record(info *game.Info, state *game.State, sub game.Sub, reason, prompt string, reply *opencode.Reply, took time.Duration) {
+	if s.cfg.Record == "" {
+		return
+	}
+	var tools []string
+	for _, t := range reply.Tools {
+		tools = append(tools, strings.TrimPrefix(t.Tool, "bar_")+"="+t.Status)
+	}
+	line, err := json.Marshal(map[string]any{
+		"at": time.Now().UTC().Format(time.RFC3339), "game": gameKey(info), "frame": state.Frame,
+		"sub": sub.ID, "name": sub.Name, "role": sub.Role, "why": reason,
+		"report": prompt, "reply": reply.Text, "tools": tools, "tookMs": took.Milliseconds(),
+	})
+	if err != nil {
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	f, err := os.OpenFile(s.cfg.Record, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
+	if err != nil {
+		s.log.Warn("recording review", "err", err)
+		return
+	}
+	defer f.Close()
+	_, _ = f.Write(append(line, '\n'))
 }
 
 // fail reports a failed review and backs off: 5 s of game time, doubling up to 2 minutes.

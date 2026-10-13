@@ -2258,10 +2258,7 @@ end
 
 -- an Army's own labs: the income tier's mix, moved toward what counters the enemy (sc_production.lua)
 function Engine.armyProduction(sub, fd, cap)
-	local p = POSTURE_INFO[sub.posture]
-	if sub.counts.combat >= Engine.D.economy.armyCap then
-		return nil, "at unit cap"
-	end
+	-- no unit-count cap: metal limits production (a count cap only idled the lab while metal piled up)
 	local defID = Engine.prod.pick(fd.options, sub.counts.cats or {}, max(econ.mInc, 0), Enemy.mix().kinds,
 		{ cap = cap, combatOnly = true, category = Engine.raidNeed(sub) and "raider" or nil })
 	if not defID then

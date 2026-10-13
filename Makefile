@@ -67,11 +67,13 @@ benchmarks:
 
 # bridge for test games (port 17878, opencode on 14517), separate from the one real games use
 test-bridge:
+	mkdir -p testenv/records
 	docker build -q -t bar-scbridge:test .
 	-docker rm -f scbridge-test
 	docker run -d --name scbridge-test -p 127.0.0.1:17878:7878 -p 127.0.0.1:14517:4517 \
 		-v "$(CURDIR)/strategist:/app/strategist:ro" -v "$$(sed -n 's/^LLM_API_KEY_FILE=//p' .env):/run/secrets/llm_api_key:ro" \
 		-e SCBRIDGE_MODEL=$${MODEL:-$$(sed -n 's/^MODEL=//p' .env)} -e SCBRIDGE_DECIDER_URL=$(DECIDER_URL) \
+		-v "$(CURDIR)/testenv/records:/app/records" -e SCBRIDGE_RECORD=/app/records/reviews.jsonl \
 		$(TEST_BRIDGE_ARGS) bar-scbridge:test
 
 lint: test-lua
