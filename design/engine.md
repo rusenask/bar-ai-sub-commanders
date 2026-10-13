@@ -125,6 +125,20 @@ personality), the D-gun at the most expensive armed enemy in reach above the per
 frontline following the army's main body 350 behind it within the personality's range of home, and
 retreat at the personality's health (`guardCommander`).
 
+## Spending a big economy (doctrine.escalation)
+
+v19's games reached 150-240 metal/s by minute 35 with metal at the storage cap, T1 turrets only and 130
+guards idling at home. Escalation by income:
+
+| From | What |
+|---|---|
+| any income | heavy and long-range turrets per area: base mix x (1 + income / 50), at most 4x (`P.mixScale`) |
+| 50 metal/s | the Army's own aircraft plant; bombers and gunships (fighters if the enemy flies) raid as one wing (`Tactics.airRaid`: targets from `raidCandidates`, enemy anti-air within 900 at most a third of the wing, home at half strength) |
+| 60 metal/s | Defense posts a tier 2 `constructor` request; any economy or army lab that makes one answers (the T2 lab) |
+| 90 metal/s | Air Defense too |
+| metal piling up | the Economy's lab sends units beyond its guards to the Army |
+| push plan | intruders the main army outweighs 8x are left to the response squad and turrets |
+
 ## Zones are optional
 
 A sub-commander without player-drawn zones gets **auto zones** recomputed by role: economy around our

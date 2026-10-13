@@ -169,15 +169,25 @@ return function(ctx)
 		return d.cost < Tt.lightCost and "light" or "heavy"
 	end
 
+	-- how many times the base mix an area wants of a turret role at this income (doctrine.escalation):
+	-- heavy and long-range grow with the economy, light (against raiders) doesn't
+	function P.mixScale(role, income)
+		local X = D.escalation
+		if role == "light" or not X then
+			return 1
+		end
+		return math.min(X.mixMax, 1 + math.max(income or 0, 0) / X.mixPerIncome)
+	end
+
 	-- which turret role an area needs next: the one furthest below its share of the mix.
 	-- have: role -> count in the area; density: the posture's multiplier; frame: game frame (long-range
-	-- turrets come later); available: role -> true for roles the constructor can build. Returns the role,
-	-- or nil when the area has its full mix.
-	function P.turretNeed(have, density, frame, available)
+	-- turrets come later); available: role -> true for roles the constructor can build; income: metal/s
+	-- (the mix grows with it). Returns the role, or nil when the area has its full mix.
+	function P.turretNeed(have, density, frame, available, income)
 		local Tt = D.turrets
 		local best, bestGap
 		for _, role in ipairs({ "light", "heavy", "long" }) do
-			local want = Tt.mix[role] * (density or 1)
+			local want = Tt.mix[role] * (density or 1) * P.mixScale(role, income)
 			if role == "long" and frame < Tt.longFrom then
 				want = 0
 			end

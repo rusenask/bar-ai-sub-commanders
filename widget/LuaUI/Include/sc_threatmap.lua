@@ -183,12 +183,14 @@ return function(ctx)
 	end
 
 	-- metal value of armed enemies remembered within r of (x, z), weighted by how fresh they are.
-	-- opts: mobileOnly, air (count anti-air too), fresh (only those seen in the last doctrine.threat.fresh)
+	-- opts: mobileOnly, air (count anti-air too), aaOnly (only anti-air), fresh (only those seen in the
+	-- last doctrine.threat.fresh)
 	function tm.enemyPower(x, z, r, frame, opts)
 		local r2, p = r * r, 0
 		for _, e in pairs(tm.enemies) do
 			local d = defOf(e)
 			if d.armed and not (opts and opts.mobileOnly and e.static) and not (d.aaOnly and not (opts and opts.air))
+				and not (opts and opts.aaOnly and not d.aaOnly)
 				and not (opts and opts.fresh and frame - e.last > T.fresh) then
 				local dx, dz = e.x - x, e.z - z
 				if dx * dx + dz * dz <= r2 then

@@ -60,6 +60,7 @@ return {
 		tm.see(4, 3, 1000, 1100, 0)
 		T.eq(tm.enemyPower(1000, 1000, 500, 0), 350, "raider + artillery, not the AA turret")
 		T.eq(tm.enemyPower(1000, 1000, 500, 0, { air = true }), 550, "with anti-air")
+		T.eq(tm.enemyPower(1000, 1000, 500, 0, { air = true, aaOnly = true }), 200, "only the anti-air (air raids)")
 		T.eq(tm.enemyPower(3000, 3000, 500, 0, { mobileOnly = true }), 0, "mobile only")
 	end,
 	safe_point_falls_back_toward_home = function()

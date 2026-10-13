@@ -163,6 +163,26 @@ D.turrets = {
 	lightCost = 150,
 }
 
+-- spending a big economy (v19: 150-240 metal/s by minute 35, metal at the storage cap, T1 turrets only,
+-- 130 idle guards): the defences grow and harden, Defense gets tier 2, the Army gets an air wing
+D.escalation = {
+	mixPerIncome = 50, -- each area's heavy and long-range turret shares grow by one per this much income
+	mixMax = 4, -- at most this many times the base mix
+	t2DefenseIncome = 60, -- Defense asks for a tier 2 constructor (harder turrets) from this income
+	t2AirDefenseIncome = 90, -- Air Defense too (flak) from this income
+	airRaidIncome = 50, -- the Army gets an aircraft plant of its own (air raids) from this income
+	overkill = 8, -- in a push, the main army leaves intruders it outweighs this much to the response squad
+}
+
+-- air raids (Tactics.airRaid): the Army's bombers and gunships as one wing
+D.airRaid = {
+	min = 800, -- wing metal before it goes out
+	need = 3, -- wing power at least this many times the enemy anti-air near a target
+	aaRadius = 900, -- anti-air counted around a target
+	retreat = 0.5, -- planes below this health go home to repair
+	reroute = 30 * 20, -- pick a new target at most this often unless the old one is gone
+}
+
 -- autonomy levels: what a sub-commander does on its own
 D.autonomy = {
 	levels = { "light", "balanced", "full" },
