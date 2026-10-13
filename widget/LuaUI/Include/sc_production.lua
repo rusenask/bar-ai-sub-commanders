@@ -148,6 +148,11 @@ return function(ctx)
 			-- the strongest that fits the budget
 			return da.cost > db.cost
 		end)
+		-- variety among the strongest two of a fighting category (BARb mixes, e.g. Ballista and Centaur)
+		if cat ~= "raider" and cat ~= "constructor" and #list > 1 then
+			P.turn = (P.turn or 0) + 1
+			return list[(P.turn % 2) + 1], cat
+		end
 		return list[1], cat
 	end
 

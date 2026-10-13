@@ -324,6 +324,22 @@ local function duel(n)
 		end
 	elseif duelState.stage == 0 then
 		local lab = (byName.leglab or {})[1]
+		-- like a player who notices the lab never started: order it again, a bit elsewhere
+		duelState.lab1Since = duelState.lab1Since or n
+		if not lab and n - duelState.lab1Since > 30 * 60 then
+			local started = false
+			for _, u in ipairs(Spring.GetTeamUnits(myTeam)) do
+				started = started or (UnitDefs[Spring.GetUnitDefID(u)].name == "leglab")
+			end
+			if not started then
+				duelState.lab1Tries = (duelState.lab1Tries or 0) + 1
+				local _, dx, dz = towardEnemy(0.1, 0)
+				local a = duelState.lab1Tries * 2.1
+				playerBuild(ids.com, "leglab", cx + dx * 150 + math.cos(a) * 300, cz + dz * 150 + math.sin(a) * 300, dx, dz)
+				out("player: first lab never started, ordered again")
+			end
+			duelState.lab1Since = n
+		end
 		if lab and not Spring.GetUnitIsBeingBuilt(lab) then
 			duelState.stage = 1
 			-- the first lab makes constructors for the economy

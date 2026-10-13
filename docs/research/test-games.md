@@ -120,3 +120,18 @@ Reports in `testenv/batch/<dir>/report.md` (gamereport: pace against 26 strong p
   labs lost per game), and metal overflows ~9 min per game with one lab.
 - Hard: lost 3 of 8 instead of 5; trades 0.46 instead of 0.38; army at 12 min 4.9k (strong players'
   median). Fights after minute 12 still trade about 1:5.
+
+## Engine v2 (army defends factories first; turret cover for labs, exposed extractors, wind farms; overflow factory at balanced; constructors route around threats)
+
+| Arm | Games | Results | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|
+| 20261013-1330-engine-v2 | 7 | 5 timeout, 2 loss | 29.6k | 51 / 185 | 0.74 | 4.7 | 9 | 3.8k |
+| 20261013-1343-engine-v2-hard | 8 | 6 timeout, 2 loss | 47.2k | 53 / 264 | 0.57 | 9.8 | 16 | 5.6k |
+
+- Trades improved against both (medium 0.74 vs 0.57, hard 0.57 vs 0.46), constructor losses fell again
+  (4.7 / 9.8 per game), against hard metal produced 47k and the army 5.6k at 12 min (best so far); losses
+  2/7 and 2/8 (noise against v1's 1/8 and 3/8).
+- One medium game never got a lab: the scripted player's first lab order didn't start (spot taken) and
+  the harness never re-ordered it. The harness now retries the first lab like the later ones.
+- Late fights: cheap raiders (Goblins) were most of the late losses (500 after minute 12 in v1 hard);
+  v3 cuts raiders after the opening and mixes the two strongest units of a category.

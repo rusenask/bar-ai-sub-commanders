@@ -45,9 +45,11 @@ D.threat = {
 D.production = {
 	tiers = {
 		{ income = 0, constructor = 0.25, raider = 0.45, assault = 0.30 },
-		{ income = 12, constructor = 0.2, raider = 0.25, assault = 0.4, skirmisher = 0.15 },
-		{ income = 25, constructor = 0.15, raider = 0.1, assault = 0.35, skirmisher = 0.2, heavy = 0.2 },
-		{ income = 40, constructor = 0.15, raider = 0.05, assault = 0.25, skirmisher = 0.2, heavy = 0.3, artillery = 0.05 },
+		-- past the opening raiders are a small share: cheap ones feed the enemy kills (engine-v1 vs hard:
+		-- 500 Goblins lost after minute 12); BARb hard's Legion mix drops them after its first tiers
+		{ income = 12, constructor = 0.2, raider = 0.15, assault = 0.5, skirmisher = 0.15 },
+		{ income = 25, constructor = 0.15, raider = 0.05, assault = 0.4, skirmisher = 0.2, heavy = 0.2 },
+		{ income = 40, constructor = 0.15, raider = 0.0, assault = 0.3, skirmisher = 0.2, heavy = 0.3, artillery = 0.05 },
 	},
 	-- the first lab's opening: constructors and raiders in this order before the tier mix takes over
 	opening = { "constructor", "constructor", "raider", "raider", "constructor" },
@@ -58,7 +60,7 @@ D.production = {
 -- counter-response (BARb hard response.json): our kind -> enemy kinds it answers, with weights, and the
 -- most of our army it may make up
 D.response = {
-	raider = { vs = { scout = 2.0, raider = 1.0, artillery = 0.5 }, max = 0.6 },
+	raider = { vs = { scout = 2.0, raider = 0.5, artillery = 0.5 }, max = 0.3 },
 	assault = { vs = { raider = 0.9, skirmisher = 0.4, turret = 0.3 }, max = 0.8 },
 	skirmisher = { vs = { assault = 0.8, heavy = 0.5, skirmisher = 0.7 }, max = 0.8 },
 	heavy = { vs = { assault = 0.5, skirmisher = 0.7, heavy = 1.5, turret = 0.3 }, max = 0.6 },

@@ -1,6 +1,7 @@
 # Sub-commander engine: world model, doctrine, squads, autonomy
 
-Status: in progress (phases below). Owner: the improvement loop (`.claude/skills/improve`).
+Status: phases 1-6 built (2026-10-13); tuning by A/B batches continues. Owner: the improvement loop
+(`.claude/skills/improve`). Results: docs/research/test-games.md ("Engine v1" and later).
 
 ## Why
 
@@ -39,7 +40,8 @@ widget/LuaUI/Include/
                       (ground / air), our influence, queries (threat at, safe point, front, hotspots)
   sc_pathing.lua      threat-aware A* over the threat grid (waypoints around danger)
   sc_squads.lua       army as squads: cohesion, engage / hold / retreat by local power vs threat
-  sc_autozones.lua    areas per role when the player drew no zones
+  sc_production.lua   what a factory builds: tier mix + counter matrix (pure)
+  sc_autozones.lua    areas per role when the player drew no zones; clusters (wind farms)
 widget/tests/         plain-Lua unit tests of the modules (make test-lua; stubs for Spring)
 ```
 
@@ -67,7 +69,9 @@ The strategist reviews each AI-enabled sub-commander. Pacing adapts:
 - **calm**: every 2 x `-interval`;
 - a cap on reviews in flight, so a slow provider isn't flooded.
 
-The widget exports a short threat summary (front, hotspots) so the strategist sees the world model too.
+The widget exports the threat map's view in the enemy intel (`groups`: their armed groups with power and
+static share; `front`: the last safe point toward them) and each army's `squad` decision, so the
+strategist sees the world model too.
 
 ## Doctrine (from BARbarian hard and strong players)
 
@@ -114,3 +118,17 @@ on the approaches. Drawing a zone switches to manual zones; clearing them goes b
 Phases 2-4 are measured with 8+ game batches against medium and hard versus the baselines of 2026-10-13
 (`testenv/batch/20261013-1153-baseline-rules`, `-1208-baseline-rules-hard`). Results go to
 docs/research/test-games.md, lessons to docs/research/lessons.md.
+
+## Results so far
+
+| Arm | vs | Lost | Dealt / taken | Constructors lost | Extractors at 8 min |
+|---|---|---|---|---|---|
+| rules baseline | medium | 5 / 8 | 0.56 | 18.8 | 5.5 |
+| engine v1 | medium | 1 / 8 | 0.57 | 8.5 | 12 |
+| rules baseline | hard | 5 / 8 | 0.38 | 22.4 | 16 |
+| engine v1 | hard | 3 / 8 | 0.46 | 12.2 | 13 |
+
+Open problems (from the reports): raid groups hit wind farms and labs while the army fights elsewhere
+(answered in v2 by turret cover and factory-first army priority); metal overflows with one lab (v2: an
+overflow factory at balanced); late fights against hard still trade ~1:5 (v3: fewer cheap raiders, more
+varied mid-weight units).
