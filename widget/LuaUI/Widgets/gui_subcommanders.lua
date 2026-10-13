@@ -1556,6 +1556,21 @@ function Jobs.defense(sub, unitID, d, ux, uz)
 	return x and issueBuild(sub, unitID, o, x, z, facingToward(x, z, ex, ez), (Engine.prod.turretRole(defs[o]) or "") .. " defense toward the enemy") or false
 end
 
+function Engine.haveFactoryNamed(pattern)
+	for _, u in ipairs(Spring.GetTeamUnits(myTeam) or {}) do
+		local ud = unitDef(u)
+		if ud and ud.factory and (ud.name or ""):find(pattern) then
+			return true
+		end
+	end
+	for _, p in pairs(planned) do
+		if defs[p.defID].factory and (defs[p.defID].name or ""):find(pattern) then
+			return true
+		end
+	end
+	return false
+end
+
 function Engine.haveAirPlant()
 	for _, u in ipairs(Spring.GetTeamUnits(myTeam) or {}) do
 		local ud = unitDef(u)
@@ -1696,20 +1711,33 @@ function Jobs.newFactory(sub, unitID, d, ux, uz)
 			return false
 		end
 	end
-	-- the lab type we already have, else a bot lab, else any ground factory it can build; past
-	-- doctrine.economy.airPlantIncome an aircraft plant (scouting planes for Intelligence) if we have none
+	-- which kind: the first a bot lab; the second a vehicle plant (different units in parallel: strong
+	-- players field about half vehicles); past doctrine.economy.airPlantIncome an aircraft plant
+	-- (Intelligence: scout planes, then gunships); after that more of what we have
 	local o
 	local wantAir = have > 0 and income >= E.airPlantIncome and not Engine.haveAirPlant()
+	local wantVehicles = have > 0 and not wantAir and not Engine.haveFactoryNamed("vp$")
+	local function rank(opt)
+		local name = UnitDefs[opt].name or ""
+		if wantAir then
+			return makesAircraft(defs[opt]) and 3 or 0
+		end
+		if makesAircraft(defs[opt]) or name:find("hp$") or name:find("sy$") then
+			return 0 -- no hovers or shipyards from this rule
+		end
+		if wantVehicles and name:find("vp$") then
+			return 3
+		end
+		if opt == Engine.labDef then
+			return 2
+		end
+		return name:find("lab$") and 1 or 0.5
+	end
+	local best = 0
 	for _, opt in ipairs(d.options) do
 		local od = defs[opt]
-		if od and od.factory and makesAircraft(od) == wantAir then
-			if opt == Engine.labDef or wantAir then
-				o = opt
-				break
-			end
-			if not o or (UnitDefs[opt].name or ""):find("lab$") then
-				o = opt
-			end
+		if od and od.factory and rank(opt) > best then
+			o, best = opt, rank(opt)
 		end
 	end
 	if not o or (have > 0 and not canSpend(sub, defs[o])) or econ.m < defs[o].cost * 0.25 then
@@ -1722,6 +1750,12 @@ function Jobs.newFactory(sub, unitID, d, ux, uz)
 	local x, z = findBuildSpot(sub, o, ax, az, { gap = 48, rings = 10 })
 	if x and issueBuild(sub, unitID, o, x, z, facingToward(x, z, Engine.enemyX or MAP_X / 2, Engine.enemyZ or MAP_Z / 2), have == 0 and "our first factory" or "another factory: income allows it") then
 		local owner_ = Engine.armyToFeed() or sub
+		-- a second kind of factory builds the army's units in parallel: it goes to the Army
+		for _, s in ipairs(subs) do
+			if s.role == "army" and not s.paused and owner_ == sub then
+				owner_ = s
+			end
+		end
 		if wantAir then
 			for _, s in ipairs(subs) do
 				if s.role == "intelligence" then
@@ -2440,14 +2474,16 @@ local function pickProduction(sub, facID, fd)
 		if counts.combat - counts.scouts >= max(2, floor(p.army / 3)) then
 			return nil, "enough raiders"
 		end
+		-- fast hunters for enemy intel and economy: ground raiders, or gunships from an aircraft plant
+		local airPlant = makesAircraft(fd)
 		local options = buildableBy(fd, function(od)
-			return od.combat and not od.aaOnly and not od.air and not od.scout and od.cost <= cap
+			return od.combat and not od.aaOnly and not od.scout and (not od.air or airPlant) and od.cost <= cap
 		end)
 		tsort(options, function(a, b)
 			return defs[a].speed > defs[b].speed
 		end)
 		if options[1] then
-			return options[1], "raider"
+			return options[1], airPlant and "gunship" or "raider"
 		end
 		return nil, "nothing to build"
 	end
