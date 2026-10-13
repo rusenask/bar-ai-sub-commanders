@@ -23,7 +23,9 @@ ssh "$HOST" "rm -rf bar-sim/replay-template && mkdir -p bar-sim/prodata bar-sim/
 rsync -a "$STAGE/" "$HOST:bar-sim/replay-template/"
 scp -q "$T/force/run_replay.sh" "$HOST:bar-sim/run_replay.sh"
 rm -rf "$STAGE"
-ssh -n "$HOST" "ls \$HOME/bar-sim/demos/*.sdfz | xargs -P $PARALLEL -I{} bash \$HOME/bar-sim/run_replay.sh \$HOME/bar-sim/replay-template {} \$HOME/bar-sim/prodata 1800"
+# only replays in the manifest: their game version and map were fetched (other .sdfz files are
+# leftovers of failed fetches)
+ssh -n "$HOST" "python3 -c 'import json,os; d=os.path.expanduser(\"~/bar-sim/demos\"); [print(d + \"/\" + v[\"file\"]) for v in json.load(open(d + \"/manifest.json\")).values()]' | xargs -P $PARALLEL -I{} bash \$HOME/bar-sim/run_replay.sh \$HOME/bar-sim/replay-template {} \$HOME/bar-sim/prodata 1800"
 rsync -a "$HOST:bar-sim/prodata/" "$OUT/"
 rsync -a "$HOST:bar-sim/demos/manifest.json" "$T/demos/pro/manifest.json"
 echo "$(ls "$OUT"/*.jsonl | wc -l | tr -d ' ') replays logged in $OUT"
