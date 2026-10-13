@@ -103,7 +103,31 @@ func TestBenchmarkAndFindings(t *testing.T) {
 	}
 	var buf bytes.Buffer
 	Report(&buf, "test", []*Game{g}, b)
-	if !strings.Contains(buf.String(), "| anti-air turret | 1.0 | 200 |") || !strings.Contains(buf.String(), "1.0× gave up on Radar Tower") {
+	if !strings.Contains(buf.String(), "| opening, 0-6 min | 330 | 100 | 0.30 |") || !strings.Contains(buf.String(), "1.0× gave up on Radar Tower") {
 		t.Errorf("report:\n%s", buf.String())
+	}
+	if !strings.Contains(buf.String(), "| anti-air turret | 1.0 | 200 |") {
+		t.Errorf("report losses by kind:\n%s", buf.String())
+	}
+}
+
+func TestPlaybook(t *testing.T) {
+	log := datalog + `{"type":"build","team":0,"frame":1900,"chosen":"corak","options":[{"name":"corak","human":"Grunt","kind":"raider","cost":57,"tech":1},{"name":"corthud","human":"Thug","kind":"assault","cost":159,"tech":1}]}
+{"type":"turretbuild","team":1,"frame":5500,"chosen":"corllt","options":[{"name":"corllt","human":"Guard","kind":"turret","cost":102,"tech":1}]}
+`
+	rec, err := ParseDatalog("g.jsonl", strings.NewReader(log))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rec.Builds) != 2 || rec.Builds[0].Human != "Grunt" || rec.Builds[0].Minute != 1 || !rec.Builds[1].Turret || rec.Builds[1].Minute != 3 {
+		t.Fatalf("builds %+v", rec.Builds)
+	}
+	recs := []*Recorded{rec, rec, rec, rec}
+	var buf bytes.Buffer
+	Playbook(&buf, recs, BuildBenchmark("test", recs))
+	for _, want := range []string{"Most built: Grunt 100%", "Turrets: Guard 100%", "first turret: minute 3 (4 of 8 players)", "| 2 | 9 (8-10) |"} {
+		if !strings.Contains(buf.String(), want) {
+			t.Errorf("playbook missing %q:\n%s", want, buf.String())
+		}
 	}
 }

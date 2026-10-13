@@ -294,6 +294,34 @@ func Report(w io.Writer, title string, games []*Game, b *Benchmark) {
 		}
 	}
 
+	if len(byKind) > 0 {
+		fmt.Fprintln(w, "\n## Trades by phase (metal per game)")
+		fmt.Fprintln(w)
+		fmt.Fprintln(w, "| Phase | Lost | Killed | Killed / lost |")
+		fmt.Fprintln(w, "|---|---|---|---|")
+		n := float64(len(games))
+		for _, ph := range phases {
+			var lost, killed float64
+			for _, g := range games {
+				for _, d := range g.Lost {
+					if d.Minute >= ph.from && d.Minute < ph.to {
+						lost += float64(d.Cost)
+					}
+				}
+				for _, d := range g.Killed {
+					if d.Minute >= ph.from && d.Minute < ph.to {
+						killed += float64(d.Cost)
+					}
+				}
+			}
+			ratio := "-"
+			if lost > 0 {
+				ratio = fmt.Sprintf("%.2f", killed/lost)
+			}
+			fmt.Fprintf(w, "| %s | %s | %s | %s |\n", ph.label, fmtNum(lost/n), fmtNum(killed/n), ratio)
+		}
+	}
+
 	if ps := problems(games, 10); len(ps) > 0 {
 		fmt.Fprintln(w, "\n## Sub-commanders' recurring problems (per game)")
 		fmt.Fprintln(w)

@@ -84,7 +84,7 @@ func ParseGame(source string, r io.Reader) (*Game, error) {
 	sc := bufio.NewScanner(r)
 	sc.Buffer(make([]byte, 1<<20), 1<<20)
 	ecoLines := false
-	var incomes []Eco                   // from the 30 s status lines, for logs without eco lines
+	var incomes []Eco                        // from the 30 s status lines, for logs without eco lines
 	prevLogs := map[string]map[string]bool{} // sub -> messages in its previous snapshot
 	curLogs := map[string]map[string]bool{}
 	sub := ""
@@ -163,11 +163,26 @@ func normalize(msg string) string {
 	return reDigits.ReplaceAllString(msg, "#")
 }
 
-// Recorded is a game from the data logger (zz_datalog.lua): one economy series per team.
+// Recorded is a game from the data logger (zz_datalog.lua): one economy series per team, and what each
+// team's factories and constructors started (combat units and turrets).
 type Recorded struct {
 	Source string
 	Map    string
 	Teams  map[int][]Eco
+	Builds []Build
+}
+
+// Build is a combat unit or turret a team started.
+type Build struct {
+	Team   int
+	Minute int
+	Turret bool
+	Name   string  `json:"name"`
+	Human  string  `json:"human"`
+	Kind   string  `json:"kind"`
+	Cost   float64 `json:"cost"`
+	Tech   int     `json:"tech"`
+	Air    bool    `json:"air"`
 }
 
 // ParseDatalog reads the data logger's JSONL (testenv/data/pro/<id>.jsonl).
@@ -177,9 +192,12 @@ func ParseDatalog(source string, r io.Reader) (*Recorded, error) {
 	sc.Buffer(make([]byte, 4<<20), 4<<20)
 	for sc.Scan() {
 		var head struct {
-			Type string `json:"type"`
-			Team int    `json:"team"`
-			Map  string `json:"map"`
+			Type    string  `json:"type"`
+			Team    int     `json:"team"`
+			Map     string  `json:"map"`
+			Frame   int     `json:"frame"`
+			Chosen  string  `json:"chosen"`
+			Options []Build `json:"options"`
 		}
 		if json.Unmarshal(sc.Bytes(), &head) != nil {
 			continue
@@ -193,6 +211,13 @@ func ParseDatalog(source string, r io.Reader) (*Recorded, error) {
 				return nil, fmt.Errorf("%s: %w", source, err)
 			}
 			rec.Teams[head.Team] = append(rec.Teams[head.Team], e)
+		case "build", "turretbuild":
+			for _, o := range head.Options {
+				if o.Name == head.Chosen {
+					o.Team, o.Minute, o.Turret = head.Team, head.Frame/1800, head.Type == "turretbuild"
+					rec.Builds = append(rec.Builds, o)
+				}
+			}
 		}
 	}
 	for t, s := range rec.Teams {

@@ -26,10 +26,11 @@ func main() {
 	benchFrom := flag.String("bench-from", "", "build a benchmark from the data logger's JSONL files in this directory")
 	benchOut := flag.String("bench-out", "internal/analysis/benchmarks/pro-duel.json", "where -bench-from writes the benchmark")
 	benchDesc := flag.String("bench-desc", "strong players' 1v1s (both rated 30+, BAR replays)", "benchmark description")
+	playbookOut := flag.String("playbook-out", "docs/research/pro-playbook.md", "with -bench-from: where to write what strong players build and when")
 	flag.Parse()
 
 	if *benchFrom != "" {
-		buildBenchmark(*benchFrom, *benchOut, *benchDesc)
+		buildBenchmark(*benchFrom, *benchOut, *benchDesc, *playbookOut)
 		return
 	}
 	if flag.NArg() == 0 {
@@ -103,7 +104,7 @@ func natural(path string) string {
 	return fmt.Sprintf("%s/%08s", filepath.Dir(path), base)
 }
 
-func buildBenchmark(dir, out, desc string) {
+func buildBenchmark(dir, out, desc, playbookOut string) {
 	files, _ := filepath.Glob(filepath.Join(dir, "*.jsonl"))
 	var recs []*analysis.Recorded
 	for _, f := range files {
@@ -122,6 +123,17 @@ func buildBenchmark(dir, out, desc string) {
 	data, _ := json.MarshalIndent(b, "", " ")
 	if err := os.WriteFile(out, append(data, '\n'), 0o644); err != nil {
 		log.Fatal(err)
+	}
+	if playbookOut != "" {
+		f, err := os.Create(playbookOut)
+		if err != nil {
+			log.Fatal(err)
+		}
+		analysis.Playbook(f, recs, b)
+		if err := f.Close(); err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println("playbook:", playbookOut)
 	}
 	fmt.Printf("%s: %d games, %d players\n\n| Minute | metal income | extractors | factories | constructors | army value |\n|---|---|---|---|---|---|\n", out, b.Games, b.Players)
 	for _, minute := range analysis.PaceMinutes {
