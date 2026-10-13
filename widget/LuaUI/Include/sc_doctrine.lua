@@ -14,8 +14,6 @@ D.retreat = {
 	minCost = 60, -- cheaper units fight on
 	back = 0.9, -- health at which a retreated unit returns
 	maxFrames = 30 * 45, -- give up waiting for repairs after this
-	builderWarn = 900, -- constructors leave when fresh enemies that outgun the spot come within this ...
-	builderWarnSpeed = 40, -- ... at this speed; slower constructors look further (radius x 40 / speed)
 }
 
 -- squad decisions, as ratios of our local power to the enemy's local threat (metal value; our turrets

@@ -5053,23 +5053,14 @@ function Tactics.builderSafety(sub, unitID, d, st)
 		return false
 	end
 	local tm = Engine.tm
-	local R = Engine.D.retreat
 	local threat = tm.threat(x, z)
-	-- early warning: fresh enemy units within a radius that grows as the constructor gets slower (Cortex's
-	-- 34.5-speed constructors died far more than Legion's 39-speed ones: inside weapon range is too late
-	-- to outrun raiders), when they outgun what protects this spot
-	local warnR = R.builderWarn * R.builderWarnSpeed / max(d.speed or R.builderWarnSpeed, 20)
-	local coming = tm.enemyPower(x, z, warnR, frame, { mobileOnly = true, fresh = true })
-	local early = coming > 0 and coming > tm.influence(x, z) * 0.8
-	if not early then
-		if threat <= 0 or threat <= tm.influence(x, z) then
-			return false
-		end
-		local hp, maxHp = Spring.GetUnitHealth(unitID)
-		local hurt = hp and maxHp and hp < maxHp * R.builder
-		if not hurt and tm.enemyPower(x, z, 700, frame) <= 0 then
-			return false
-		end
+	if threat <= 0 or threat <= tm.influence(x, z) then
+		return false
+	end
+	local hp, maxHp = Spring.GetUnitHealth(unitID)
+	local hurt = hp and maxHp and hp < maxHp * Engine.D.retreat.builder
+	if not hurt and tm.enemyPower(x, z, 700, frame) <= 0 then
+		return false
 	end
 	local sx, sz = tm.safePoint(x, z, Engine.homeX, Engine.homeZ)
 	if not sx then
