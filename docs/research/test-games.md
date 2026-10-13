@@ -251,3 +251,16 @@ code (v16 mostly never reached the hand-off: its lab built Infestors). Re-measur
 - First wins against BARbarian medium (minutes 40 and 43), both with the Air Force at tier 2 hunting raids
   and striking their economy. Stopped at 9 games: games still being decided at 45 minutes, so batches
   now run 60 minutes (v21c-60, same code).
+
+## force host, 4 at a time, 60 minutes: v21c baseline, v22 (army mix + styles), v23 (pro micro doctrine)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261014-0027-force4-v21c | 12 | 2 win, 6 timeout, 4 loss | 1 | 263.2k | 267 / 814 | 0.82 | 16.7 | 13 | 4.5k |
+| 20261014-0047-force4-v22-mix-styles | 12 | 3 win, 7 timeout, 2 loss | 1 | 199.2k | 179 / 709 | 0.71 | 16.1 | 12 | 4.5k |
+| 20261014-0105-force4-v23-pro-micro | 12 | 1 win, 8 timeout, 3 loss | 0 | 299.0k | 282 / 1095 | 0.75 | 19.8 | 11 | 3.4k |
+
+- Calibration: at 4 games on 12 cores the force baseline (2 / 6 / 4) matches the Mac's 60-minute batch
+  (1 / 9 / 6 of 16); at 6 games with a 660 s limit it didn't (7 wins in 9).
+- No arm is clearly better at 12 games; most games end undecided at 60 minutes. Bigger samples come from
+  the sandboxes (testenv/sandbox/).
