@@ -45,6 +45,11 @@ cp "$ROOT"/widget/LuaUI/Include/sc_*.lua "$BOTDIR/LuaUI/Include/"
 # (a new connection replaces the old one, so two games can't share a bridge)
 BOT_BRIDGE="${BOT_BRIDGE:-127.0.0.1:$([ -n "$SCENARIO" ] && echo 17879 || echo 7879)}"
 sed -i '' "s/^SubCommandersBridge = .*/SubCommandersBridge = $BOT_BRIDGE/" "$BOTDIR/springsettings.cfg"
+# the bot's window stays small and windowed (BAR rewrites the file and can drop these)
+for kv in "Fullscreen 0" "WindowBorderless 0" "WindowState 0" "XResolutionWindowed 640" "YResolutionWindowed 400"; do
+	set -- $kv
+	if grep -q "^$1 = " "$BOTDIR/springsettings.cfg"; then sed -i '' "s/^$1 = .*/$1 = $2/" "$BOTDIR/springsettings.cfg"; else echo "$1 = $2" >> "$BOTDIR/springsettings.cfg"; fi
+done
 [ "${BOT_AI:-1}" = 1 ] && echo ai > "$BOTDIR/autopilot.txt" || echo rules > "$BOTDIR/autopilot.txt"
 rm -f "$BOTDIR/LuaUI/Config/BYAR.lua" # fresh widget state: no saved sub-commanders
 

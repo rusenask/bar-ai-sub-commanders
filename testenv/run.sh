@@ -9,6 +9,17 @@ export EGL_PLATFORM=surfaceless VK_ICD_FILENAMES="$ICD" VK_DRIVER_FILES="$ICD" G
        MESA_LOADER_DRIVER_OVERRIDE=zink MESA_GL_VERSION_OVERRIDE=4.6 DYLD_FALLBACK_LIBRARY_PATH="$APP/Frameworks"
 rm -f "$T/infolog.txt"
 [ -f "$T/springsettings.cfg" ] || cp "$T/springsettings.template.cfg" "$T/springsettings.cfg"
+# a small window, never fullscreen: BAR rewrites springsettings.cfg and can drop these, so set them each run
+setcfg() { # setcfg <key> <value>
+  if grep -q "^$1 = " "$T/springsettings.cfg"; then sed -i '' "s/^$1 = .*/$1 = $2/" "$T/springsettings.cfg"; else echo "$1 = $2" >> "$T/springsettings.cfg"; fi
+}
+setcfg Fullscreen 0
+setcfg WindowBorderless 0
+setcfg WindowState 0
+setcfg XResolutionWindowed "${WINDOW_W:-800}"
+setcfg YResolutionWindowed "${WINDOW_H:-500}"
+setcfg WindowPosX 40
+setcfg WindowPosY 40
 # test games talk to the test bridge (make test-bridge), never to the one a real game uses
 grep -q '^SubCommandersBridge' "$T/springsettings.cfg" || echo "SubCommandersBridge = 127.0.0.1:17878" >> "$T/springsettings.cfg"
 # AI_PROFILE=easy|medium|hard|hard_aggressive overrides the BARbarian profile in the script

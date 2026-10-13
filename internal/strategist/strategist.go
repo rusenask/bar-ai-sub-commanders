@@ -341,6 +341,9 @@ func report(info *game.Info, state *game.State, sub game.Sub, ss *subState, reas
 	writeJSON(&b, "You", self)
 	writeJSON(&b, "Team economy", state.Economy)
 	b.WriteString(paceLine(state.Frame, state.Economy))
+	if len(state.Team) > 0 && string(state.Team) != "null" {
+		fmt.Fprintf(&b, "Rules engine (tunable rules, audit warnings, built in the last 3 min): %s\n", state.Team)
+	}
 
 	var others []brief
 	for _, o := range state.Subs {

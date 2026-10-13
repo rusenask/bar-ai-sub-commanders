@@ -76,6 +76,8 @@ out wrong.
 - Widgets (and the harness) are copied at each game's start: editing them during a batch leaks into the
   remaining games. Freeze arms with `WIDGET_SRC` (ab-test skill).
 - One game environment at a time: batches, `collect.sh` and `replays.sh` share `testenv/` and port 17878.
+- BAR rewrites springsettings.cfg and can drop `Fullscreen = 0`: test windows opened fullscreen. run.sh
+  now sets the window keys on every launch (800x500).
 - macOS system Python has no CA certificates: `uv run --with certifi`.
 - pr-downloader only finds BAR game versions with BAR's CDN env (`PRD_RAPID_REPO_MASTER`,
   `PRD_HTTP_SEARCH_URL`).
@@ -84,4 +86,5 @@ out wrong.
 - A stale base-model eval (from a smoke run) once got reused: check evals ran on the current test set.
 - `pgrep -f "replays.sh"` inside a shell loop matches the loop's own command line and never ends: use
   `pgrep -f "[r]eplays.sh"`.
-- Don't edit a shell script while it runs: bash reads it as it goes and fails mid-run.
+- Don't edit a shell script while it runs: bash reads it as it goes and fails mid-run. testenv/run.sh runs
+  once per game of a batch, so it counts as running for the whole batch.

@@ -37,6 +37,12 @@ type raidsArgs struct {
 	On    bool `json:"on" jsonschema:"true: fast units scout and raid; false: they stay with the army"`
 }
 
+type tuneArgs struct {
+	SubID int     `json:"sub_id" jsonschema:"your sub-commander id"`
+	Key   string  `json:"key" jsonschema:"a rule from 'rules' in the Rules engine line of your report, e.g. max_factories"`
+	Value float64 `json:"value" jsonschema:"new value (clamped to the rule's bounds)"`
+}
+
 type roleArgs struct {
 	SubID int    `json:"sub_id" jsonschema:"your sub-commander id"`
 	Role  string `json:"role" jsonschema:"economy | defense | airdefense | army | intelligence"`
@@ -263,6 +269,13 @@ func Handler(g *game.Server, guard Guard) http.Handler {
 		Description: "How much you do on your own between reviews. light: only the basics of your role in your zones (no expansion, no factories, turrets only where threats showed up, the army defends its own area). balanced: also expands safely, covers exposed extractors, helps other areas, counter-pushes when clearly stronger. full: also builds factories as income grows, keeps a turret schedule, and the army attacks and raids on its own when the threat map says it wins. The player usually chooses this; change it when their orders ask for more or less initiative.",
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in autonomyArgs) (*mcp.CallToolResult, any, error) {
 		return act(ctx, in.SubID, "set_autonomy", map[string]any{"autonomy": in.Autonomy}, "autonomy set to "+in.Autonomy), nil, nil
+	})
+
+	mcp.AddTool(s, &mcp.Tool{
+		Name:        "tune_rules",
+		Description: "Tune the rules engine's fast loops for the whole team (they run several times a second; you review every so often). Rules and their current values are in the 'Rules engine' line of your report: max_factories (lower it to stop new labs; cancels unstarted ones), nanos_per_lab, nano_per_income, second_factory_income, builder_bonus, turret_budget_scale, raid_share, raid_need, engage_attack, engage_hold, engage_defend, chase_distance, retreat_fighter, retreat_builder, response_weight. Change one thing at a time for a clear reason (an audit warning, what you see in the game), and say why in your reply. Values are clamped to safe bounds.",
+	}, func(ctx context.Context, _ *mcp.CallToolRequest, in tuneArgs) (*mcp.CallToolResult, any, error) {
+		return act(ctx, in.SubID, "tune_rules", map[string]any{"key": in.Key, "value": in.Value}, "tuned"), nil, nil
 	})
 
 	mcp.AddTool(s, &mcp.Tool{

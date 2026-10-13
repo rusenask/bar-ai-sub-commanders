@@ -25,6 +25,7 @@ D.engage = {
 	radius = 700, -- "local": around the target / the squad
 	cohesion = 650, -- units farther than this from the squad centre regroup first
 	minAttack = 1200, -- metal value of the smallest squad that attacks on its own (BARb quota.attack)
+	chase = 2600, -- an army chases intruders it drove off this far from home (if it still beats them)
 	raid = { 250, 900 }, -- [min, max] metal value of a raid squad (BARb quota.raid)
 }
 
@@ -84,7 +85,7 @@ D.responseWeight = 0.6 -- how much the counter matrix moves the tier mix (0 = ti
 D.economy = {
 	secondFactoryIncome = 25, -- strong players run one lab until about minute 8-10
 	factoryPerIncome = 22, -- then about one more lab per this much metal income
-	maxFactories = 5,
+	maxFactories = 5, -- tunable by the strategist (e.g. 1 to stop new labs)
 	builders = function(income) -- constructor target (BARb buildpower 1.2; strong players 5-8)
 		return math.min(12, math.floor(3 + income / 10))
 	end,
@@ -94,6 +95,7 @@ D.economy = {
 	nanoFrom = 10, -- metal income the first lab uses on its own
 	nanoPerIncome = 8, -- one construction turret per this much metal income above that
 	nanosPerLab = 5, -- a lab with this many turrets around it is saturated
+	builderBonus = 0, -- added to the constructor target (tunable by the strategist)
 }
 
 -- turrets: a budget instead of filling zones (strong players: ~5 turrets by minute 6, ~1.7k metal at 12)
@@ -103,6 +105,7 @@ D.turrets = {
 	end,
 	extractorCoverFrom = 30 * 150, -- first turret at exposed extractors from about minute 2.5
 	extractorCoverRadius = 450,
+	scale = 1, -- multiplies the budget (tunable by the strategist)
 }
 
 -- autonomy levels: what a sub-commander does on its own
@@ -112,6 +115,26 @@ D.autonomy = {
 	light = { expand = false, factories = false, help = false, push = false, attack = false, proactiveTurrets = false, extractorCover = false },
 	balanced = { expand = true, factories = "overflow", help = true, push = true, attack = false, proactiveTurrets = false, extractorCover = true },
 	full = { expand = true, factories = true, help = true, push = true, attack = true, proactiveTurrets = true, extractorCover = true },
+}
+
+-- what the AI strategist may tune (tool tune_rules): key -> table and field, bounds, what it does.
+-- Team-wide: the doctrine is shared by every sub-commander.
+D.tunable = {
+	max_factories = { D.economy, "maxFactories", 1, 5, "most factories the economy builds on its own" },
+	nanos_per_lab = { D.economy, "nanosPerLab", 0, 10, "construction turrets per lab before another lab pays off" },
+	nano_per_income = { D.economy, "nanoPerIncome", 4, 30, "metal income per construction turret (lower = more turrets)" },
+	second_factory_income = { D.economy, "secondFactoryIncome", 10, 100, "metal income before a second lab (full autonomy)" },
+	builder_bonus = { D.economy, "builderBonus", -3, 6, "constructors above (or below) the income-based target" },
+	turret_budget_scale = { D.turrets, "scale", 0, 3, "multiplies the turret budget (0.5 = half the turrets)" },
+	raid_share = { D.raid, "share", 0, 0.6, "share of an army's units that are raiders while Raids is on" },
+	raid_need = { D.raid, "need", 1, 4, "how much stronger a raid must be than what guards a target" },
+	engage_attack = { D.engage, "attack", 0.8, 3, "strength ratio an army needs to start a fight away from home" },
+	engage_hold = { D.engage, "hold", 0.4, 2, "strength ratio below which an army breaks off a fight" },
+	engage_defend = { D.engage, "defend", 0.3, 1.5, "strength ratio an army defends the base down to" },
+	chase_distance = { D.engage, "chase", 0, 5000, "how far from home an army chases intruders it drove off" },
+	retreat_fighter = { D.retreat, "fighter", 0.2, 0.8, "health at which a fighting unit leaves the fight" },
+	retreat_builder = { D.retreat, "builder", 0.3, 1, "health at which a constructor under fire leaves" },
+	response_weight = { D, "responseWeight", 0, 1, "how much production follows counters to what the enemy fields" },
 }
 
 return D

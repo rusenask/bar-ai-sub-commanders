@@ -121,6 +121,7 @@ local function sendState()
 			economy = sc.economy(),
 			subs = compactSubs(sc.list()),
 			enemy = sc.enemyIntel and sc.enemyIntel() or nil,
+			team = sc.teamReport and sc.teamReport() or nil,
 		},
 	})
 end
@@ -181,6 +182,16 @@ local function apply(msg)
 			return nil, "posture must be conserve, balanced or spend"
 		end
 		sc.setPosture(sub.id, args.posture)
+	elseif op == "tune_rules" then
+		if not sc.tune then
+			return nil, "rule tuning isn't available in this widget version"
+		end
+		local v, err = sc.tune(args.key, args.value)
+		if not v then
+			return nil, err
+		end
+		sc.noteAI(sub.id, string.format("tuned %s = %s", tostring(args.key), tostring(v)))
+		return { key = args.key, value = v }
 	elseif op == "set_raids" then
 		if not sc.setRaids then
 			return nil, "raids aren't available in this widget version"

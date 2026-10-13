@@ -2128,7 +2128,7 @@ function Engine.economyProduction(sub, facID, fd, cap)
 	st.handOff, st.handOffCombat, st.openingPending = nil, nil, nil
 	local counts = sub.counts
 	local income = max(econ.mInc, 0)
-	local target = Engine.D.economy.builders(income)
+	local target = Engine.D.economy.builders(income) + (Engine.D.economy.builderBonus or 0)
 	if (sub.autonomy or "balanced") == "light" then
 		target = min(target, 3)
 	end
@@ -2846,6 +2846,11 @@ function Tactics.rallyPoint(sub)
 		rx, rz = Zone.edgeToward(zone, ex, ez, 250)
 	else
 		rx, rz = Engine.squads.rally(hx, hz, Engine.enemyX or MAP_X / 2, Engine.enemyZ or MAP_Z / 2)
+		-- raids keep coming from one side: wait on that approach, at the base's edge
+		local ax, az = Engine.approachDir()
+		if ax then
+			rx, rz = (rx + hx + ax * 1100) * 0.5, (rz + hz + az * 1100) * 0.5
+		end
 	end
 	local tm = Engine.tm
 	if tm.threat(rx, rz) > tm.influence(rx, rz) then
@@ -3090,6 +3095,20 @@ function Tactics.squad(sub)
 	consider(sub.threats, attacking)
 	if not target and auto.help then
 		consider(baseThreats, true)
+	end
+	-- pursue: intruders we drove off that are still near home and weaker than us, before they come back
+	-- from another angle
+	if not target and auto.help and Engine.homeX and Engine.D.engage.chase > 0 then
+		local bestD
+		for _, g in ipairs(Engine.tm.groups(frame, 6)) do
+			local dh = sqrt(dist2(g.x, g.z, Engine.homeX, Engine.homeZ))
+			if g.static < g.power * 0.3 and dh < Engine.D.engage.chase then
+				local dd = dist2(sq.x, sq.z, g.x, g.z)
+				if (not bestD or dd < bestD) and S.decide(sq, g.x, g.z, frame, {}) == "engage" then
+					target, bestD = { id = "chase:" .. floor(g.x / 512) .. ":" .. floor(g.z / 512), x = g.x, z = g.z, name = "retreating intruders" }, dd
+				end
+			end
+		end
 	end
 	local home = target and Engine.inBase(target.x, target.z)
 	if not target and auto.push and sub.pushTarget then
@@ -3437,9 +3456,14 @@ function Engine.updateAutoZones(sub)
 	if sub.role == "army" and sub.rallyX then
 		rally = { sub.rallyX, sub.rallyZ }
 	end
+	local ex, ez = Engine.enemyX or MAP_X / 2, Engine.enemyZ or MAP_Z / 2
+	local ax, az = Engine.approachDir()
+	if ax and sub.role == "defense" then
+		ex, ez = Engine.homeX + ax * 2000, Engine.homeZ + az * 2000
+	end
 	sub.zones = Engine.zones.forRole(sub.role, {
 		home = { Engine.homeX, Engine.homeZ },
-		enemy = { Engine.enemyX or MAP_X / 2, Engine.enemyZ or MAP_Z / 2 },
+		enemy = { ex, ez },
 		extractors = Engine.extractors,
 		rally = rally,
 	})
@@ -4090,8 +4114,8 @@ function Api.markRemovals(sub, unitIDs)
 		local x, _, z = spGetUnitPosition(u)
 		if not d or not x or owner[u] ~= sub then
 			rejected[#rejected + 1] = { id = u, reason = "not one of your structures" }
-		elseif d.mobile or d.factory then
-			rejected[#rejected + 1] = { id = u, reason = "only structures other than factories can be removed" }
+		elseif d.mobile or (d.factory and not spGetUnitIsBeingBuilt(u)) then
+			rejected[#rejected + 1] = { id = u, reason = "only structures other than finished factories can be removed" }
 		elseif not sub.removals[u] then
 			sub.removals[u] = true
 			marked = marked + 1
@@ -4282,6 +4306,12 @@ local function exportAPI()
 		setAutonomy = function(id, level)
 			local sub = findSub(id)
 			return sub and Engine.setAutonomy(sub, level) or false
+		end,
+		teamReport = function()
+			return Engine.teamReport()
+		end,
+		tune = function(key, value)
+			return Engine.tune(key, value)
 		end,
 		setRaids = function(id, on)
 			local sub = findSub(id)
@@ -5192,6 +5222,9 @@ function widget:UnitCreated(unitID, unitDefID, unitTeam, builderID)
 	if unitTeam ~= myTeam or not builderID then
 		return
 	end
+	if defs[unitDefID] then
+		Engine.noteBuilt(unitDefID)
+	end
 	local sub = owner[builderID]
 	if not sub then
 		return
@@ -5493,6 +5526,190 @@ function Engine.refreshHome()
 	Engine.factoryCount, Engine.labDef = factories, labDef or Engine.labDef
 end
 
+function Engine.turretBudgetValue()
+	return Engine.D.turrets.budget(Engine.minute(), Engine.armyValue or 0) * (Engine.D.turrets.scale or 1)
+end
+
+-- the strategist tunes the fast loops' doctrine (sc_doctrine.lua D.tunable): team-wide, within bounds
+function Engine.tune(key, value)
+	local t = Engine.D.tunable[key]
+	value = tonumber(value)
+	if not t then
+		return nil, "unknown rule '" .. tostring(key) .. "'"
+	end
+	if not value then
+		return nil, "value must be a number"
+	end
+	value = max(t[3], min(t[4], value))
+	local old = t[1][t[2]]
+	t[1][t[2]] = value
+	-- a lower factory cap also cancels factory builds that haven't started
+	if key == "max_factories" then
+		for builder, p in pairs(planned) do
+			if defs[p.defID].factory and (Engine.factoryCount or 0) >= value then
+				order(builder, CMD.STOP)
+				planned[builder] = nil
+			end
+		end
+	end
+	Engine.tuneLog = Engine.tuneLog or {}
+	tinsert(Engine.tuneLog, 1, { key = key, from = old, to = value, frame = frame })
+	return value
+end
+
+function Engine.rules()
+	local out = {}
+	for key, t in pairs(Engine.D.tunable) do
+		out[key] = t[1][t[2]]
+	end
+	return out
+end
+
+-- what got built lately (units and structures we started): Engine.built ring, summarized
+function Engine.noteBuilt(defID)
+	Engine.built = Engine.built or {}
+	tinsert(Engine.built, { defID = defID, frame = frame })
+	if #Engine.built > 300 then
+		tremove(Engine.built, 1)
+	end
+end
+
+function Engine.builtSince(frames)
+	local structures, units = {}, {}
+	for _, b in ipairs(Engine.built or {}) do
+		if frame - b.frame <= frames then
+			local d = defs[b.defID]
+			local list = d.mobile and units or structures
+			list[d.human] = (list[d.human] or 0) + 1
+		end
+	end
+	return structures, units
+end
+
+-- things the rules are doing that a good player wouldn't (for the strategist and the panel)
+function Engine.audit()
+	local out = {}
+	local labs = Engine.factoryCount or 0
+	local nanos = Engine.nanoCount()
+	if labs > 1 and not Engine.labsSaturated() then
+		out[#out + 1] = sformat("%d factories but only %d construction turrets: scale one lab with turrets before adding labs (cap with tune_rules max_factories)", labs, nanos)
+	end
+	if labs > 1 and econ.mInc < Engine.D.economy.secondFactoryIncome then
+		out[#out + 1] = sformat("%d factories on +%.0f metal/s: more labs than the income feeds", labs, econ.mInc)
+	end
+	if nanos < Engine.nanoTarget() - 1 then
+		out[#out + 1] = sformat("%d construction turrets, income supports %d", nanos, Engine.nanoTarget())
+	end
+	if econ.mFrac > 0.9 then
+		out[#out + 1] = "metal storage full: income is being wasted (more construction turrets, units, or spend posture)"
+	end
+	if econ.eFrac < 0.05 then
+		out[#out + 1] = "energy empty: everything builds slower (more generators)"
+	end
+	local budget = Engine.turretBudgetValue()
+	if (Engine.turretValue or 0) > budget * 1.2 then
+		out[#out + 1] = sformat("turrets worth %d metal, budget %d: the metal belongs in the army", Engine.turretValue, budget)
+	end
+	local idle, raiders, combat = 0, 0, 0
+	for _, sub in ipairs(subs) do
+		for u in pairs(sub.units) do
+			local d = unitDef(u)
+			local st = ustate[u]
+			if d and d.builder and not d.commander and st and st.task and st.task.kind == "idle" then
+				idle = idle + 1
+			end
+		end
+		if sub.role == "army" then
+			raiders = raiders + ((sub.counts.cats or {}).raider or 0)
+			combat = combat + sub.counts.combat
+		end
+	end
+	if idle >= 2 then
+		out[#out + 1] = sformat("%d constructors idle", idle)
+	end
+	if Engine.minute() > 8 and combat >= 8 and raiders > combat * 0.5 then
+		out[#out + 1] = sformat("the army is %d%% raiders: cheap units feed their kills (raid_share)", floor(raiders / combat * 100))
+	end
+	return out
+end
+
+function Engine.teamReport()
+	local structures, units = Engine.builtSince(30 * 180)
+	return {
+		rules = Engine.rules(),
+		audit = Engine.audit(),
+		builtLast3Min = { structures = structures, units = units },
+		factories = Engine.factoryCount or 0,
+		constructionTurrets = Engine.nanoCount(),
+		constructionTurretTarget = Engine.nanoTarget(),
+		turretValue = floor(Engine.turretValue or 0),
+		turretBudget = floor(Engine.turretBudgetValue()),
+		armyValue = floor(Engine.armyValue or 0),
+		approach = Engine.approachText and Engine.approachText() or nil,
+	}
+end
+
+-- where intruders come from: the direction (8 sectors around home) of each new intruder in our areas,
+-- fading by half every 5 minutes. The army waits on, and Defense builds toward, the busiest approach.
+local SECTOR_NAMES = { "west", "north-west", "north", "north-east", "east", "south-east", "south", "south-west" }
+
+function Engine.noteApproaches(threats)
+	if not Engine.homeX then
+		return
+	end
+	local A = Engine.approach
+	if not A then
+		A = { sectors = { 0, 0, 0, 0, 0, 0, 0, 0 }, seen = {}, frame = frame }
+		Engine.approach = A
+	end
+	local f = 0.5 ^ ((frame - A.frame) / (30 * 300))
+	for i = 1, 8 do
+		A.sectors[i] = A.sectors[i] * f
+	end
+	A.frame = frame
+	for _, t in ipairs(threats) do
+		if not t.air and not A.seen[t.id] then
+			A.seen[t.id] = frame
+			local a = atan2(t.z - Engine.homeZ, t.x - Engine.homeX)
+			local s = floor((a + pi) / (2 * pi) * 8 + 0.5) % 8 + 1
+			A.sectors[s] = A.sectors[s] + 1
+		end
+	end
+	for id, fr in pairs(A.seen) do
+		if frame - fr > 30 * 600 then
+			A.seen[id] = nil
+		end
+	end
+end
+
+-- the busiest approach (unit vector from home), when at least 3 intruders came that way lately
+function Engine.approachDir()
+	local A = Engine.approach
+	if not A then
+		return nil
+	end
+	local best, bestN = nil, 3
+	for i = 1, 8 do
+		if A.sectors[i] >= bestN then
+			best, bestN = i, A.sectors[i]
+		end
+	end
+	if not best then
+		return nil
+	end
+	local a = (best - 1) / 8 * 2 * pi - pi
+	return cos(a), sin(a), bestN, best
+end
+
+function Engine.approachText()
+	local dx, dz, n, s = Engine.approachDir()
+	if not dx then
+		return nil
+	end
+	-- map z grows south: screen-north is -z
+	return sformat("most intruders lately came from the %s of our base (%.0f)", SECTOR_NAMES[s], n)
+end
+
 -- is (x, z) close to something we can't afford to lose (a factory, the commander)?
 function Engine.nearVital(x, z)
 	for _, v in ipairs(Engine.vitals or {}) do
@@ -5512,7 +5729,7 @@ function Engine.turretBudget(extra)
 			planned_ = planned_ + defs[p.defID].cost
 		end
 	end
-	return (Engine.turretValue or 0) + planned_ + (extra or 0) <= Engine.D.turrets.budget(Engine.minute(), Engine.armyValue or 0)
+	return (Engine.turretValue or 0) + planned_ + (extra or 0) <= Engine.turretBudgetValue()
 end
 
 function Engine.minute()
@@ -5582,6 +5799,7 @@ function widget:GameFrame(n)
 				baseThreats[#baseThreats + 1] = t
 			end
 		end
+		Engine.noteApproaches(baseThreats)
 	end
 	if combatPass then
 		for _, sub in ipairs(subs) do

@@ -28,4 +28,12 @@ return {
 			T.ok(D.autonomy.labels[level], level .. " label")
 		end
 	end,
+	tunables_point_at_values_within_bounds = function()
+		for key, t in pairs(D.tunable) do
+			local v = t[1][t[2]]
+			T.ok(type(v) == "number", key .. " is a number")
+			T.ok(v >= t[3] and v <= t[4], key .. " default within bounds")
+			T.ok(type(t[5]) == "string" and #t[5] > 10, key .. " described")
+		end
+	end,
 }
