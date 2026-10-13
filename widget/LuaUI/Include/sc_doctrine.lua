@@ -92,7 +92,7 @@ D.autonomy = {
 	levels = { "light", "balanced", "full" },
 	labels = { light = "Light", balanced = "Balanced", full = "Full" },
 	light = { expand = false, factories = false, help = false, push = false, attack = false, proactiveTurrets = false, extractorCover = false },
-	balanced = { expand = true, factories = false, help = true, push = true, attack = false, proactiveTurrets = false, extractorCover = true },
+	balanced = { expand = true, factories = "overflow", help = true, push = true, attack = false, proactiveTurrets = false, extractorCover = true },
 	full = { expand = true, factories = true, help = true, push = true, attack = true, proactiveTurrets = true, extractorCover = true },
 }
 

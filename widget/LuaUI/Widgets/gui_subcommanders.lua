@@ -769,12 +769,30 @@ end
 
 local function issueBuild(sub, unitID, defID, x, z, facing, why)
 	local d = defs[defID]
-	if not order(unitID, -defID, { x, spGetGroundHeight(x, z), z, facing or 0 }) then
+	-- a long walk through enemy reach: take the threat-aware route (sc_pathing), or don't go at all
+	local route
+	local ux, _, uz = spGetUnitPosition(unitID)
+	if ux and dist2(ux, uz, x, z) > 1000 * 1000 and Engine.path.lineDanger(ux, uz, x, z) > 0 then
+		local danger
+		route, danger = Engine.path.route(ux, uz, x, z, { avoid = 6 })
+		if not route or danger > 0 then
+			return false
+		end
+	end
+	local opts
+	if route and #route > 1 then
+		for i = 1, #route - 1 do
+			order(unitID, CMD.MOVE, { route[i].x, spGetGroundHeight(route[i].x, route[i].z), route[i].z }, i > 1 and { "shift" } or nil)
+		end
+		opts = { "shift" }
+	end
+	if not order(unitID, -defID, { x, spGetGroundHeight(x, z), z, facing or 0 }, opts) then
 		return false
 	end
 	planned[unitID] = { sub = sub, defID = defID, x = x, z = z, facing = facing or 0, frame = frame }
 	setTask(unitID, "build", d.human, false, x, z)
 	getState(unitID).task.started = false
+	getState(unitID).task.routed = opts ~= nil
 	log(sub, sformat("%s (%s)", d.human, why))
 	return true
 end
@@ -1475,11 +1493,16 @@ function Jobs.newFactory(sub, unitID, d, ux, uz)
 	end
 	local income = max(econ.mInc, 0)
 	local want = 1
-	if income >= E.secondFactoryIncome then
-		want = 2 + floor((income - E.secondFactoryIncome) / E.factoryPerIncome)
-	end
-	if econ.mFrac > 0.85 and have > 0 then
-		want = want + 1
+	if Engine.auto(sub).factories == "overflow" then
+		-- balanced: only when metal piles up (and never the first: that's the player's)
+		want = (econ.mFrac > 0.85 and have > 0) and have + 1 or have
+	else
+		if income >= E.secondFactoryIncome then
+			want = 2 + floor((income - E.secondFactoryIncome) / E.factoryPerIncome)
+		end
+		if econ.mFrac > 0.85 and have > 0 then
+			want = want + 1
+		end
 	end
 	if have >= min(want, E.maxFactories) then
 		return false
@@ -1539,7 +1562,22 @@ function Jobs.extractorCover(sub, unitID, d, ux, uz)
 	if not canSpend(sub, defs[o], "essential") or not Engine.turretBudget(defs[o].cost) then
 		return false
 	end
-	local exposed = Engine.zones.exposed({ Engine.homeX, Engine.homeZ }, { Engine.enemyX, Engine.enemyZ }, Engine.extractors, 3)
+	-- our factories first (raiders go for them), then the exposed extractor clusters
+	local exposed = {}
+	for _, v in ipairs(Engine.vitals or {}) do
+		if v.factory then
+			exposed[#exposed + 1] = v
+		end
+	end
+	for _, m in ipairs(Engine.zones.exposed({ Engine.homeX, Engine.homeZ }, { Engine.enemyX, Engine.enemyZ }, Engine.extractors, 3)) do
+		exposed[#exposed + 1] = m
+	end
+	-- and our generator clusters (wind farms: cheap, many, what raids hit most)
+	for i, f in ipairs(Engine.farms or {}) do
+		if i <= 2 then
+			exposed[#exposed + 1] = f
+		end
+	end
 	local r = T.extractorCoverRadius
 	for _, m in ipairs(exposed) do
 		local covered = false
@@ -1562,7 +1600,7 @@ function Jobs.extractorCover(sub, unitID, d, ux, uz)
 					x, z = bx, bz
 				end
 			end
-			if x and issueBuild(sub, unitID, o, x, z, facingToward(x, z, ex, ez), "covering an exposed extractor") then
+			if x and issueBuild(sub, unitID, o, x, z, facingToward(x, z, ex, ez), m.factory and "covering a factory" or "covering an exposed extractor") then
 				return true
 			end
 		end
@@ -2821,8 +2859,12 @@ function Tactics.squad(sub)
 		for _, t in ipairs(list) do
 			-- helping elsewhere: not where our turrets and guards already outgun the intruders
 			if not t.air and not (helping and Engine.tm.influence(t.x, t.z) >= 1.5 * Engine.tm.enemyPower(t.x, t.z, 700, frame)) then
-				local dd = dist2(sq.x, sq.z, t.x, t.z)
-				if dd < 4000 * 4000 and (not targetD or dd < targetD) then
+				local dd = sqrt(dist2(sq.x, sq.z, t.x, t.z))
+				-- what they threaten counts more than how close they are: factories and the commander first
+				if Engine.nearVital(t.x, t.z) then
+					dd = dd - 2500
+				end
+				if dd < 4000 and (not targetD or dd < targetD) then
 					target, targetD = { id = t.id, x = t.x, z = t.z, name = "intruders" }, dd
 				end
 			end
@@ -3292,7 +3334,7 @@ local function builderNeedsThink(unitID, st)
 		return false
 	end
 	if (spGetUnitCommandCount(unitID) or 0) == 0 then
-		if st.task and st.task.kind == "build" and not st.task.started and frame - st.task.frame < 30 * 45 and st.task.x then
+		if st.task and st.task.kind == "build" and not st.task.started and frame - st.task.frame < 30 * (st.task.routed and 90 or 45) and st.task.x then
 			-- the build order vanished without anything being started: avoid that spot for a while
 			badSpots[#badSpots + 1] = { x = st.task.x, z = st.task.z, untilFrame = frame + 30 * 120 }
 		end
@@ -3305,7 +3347,7 @@ local function builderNeedsThink(unitID, st)
 		setTask(unitID, "unknown", "busy", true)
 		return false
 	end
-	if task.kind == "build" and not task.started and frame - task.frame > 30 * 45 then
+	if task.kind == "build" and not task.started and frame - task.frame > 30 * (task.routed and 90 or 45) then
 		if task.x then
 			badSpots[#badSpots + 1] = { x = task.x, z = task.z, untilFrame = frame + 30 * 120 }
 		end
@@ -5141,7 +5183,7 @@ end
 -- home: the centre of our factories (else the commander, else our start); the enemy: where they come from
 function Engine.refreshHome()
 	local sx, sz, n, cx, cz = 0, 0, 0, nil, nil
-	local extractors = {}
+	local extractors, vitals, generators = {}, {}, {}
 	local factories, labDef = 0, nil
 	for _, u in ipairs(Spring.GetTeamUnits(myTeam) or {}) do
 		local d, defID = unitDef(u)
@@ -5149,10 +5191,17 @@ function Engine.refreshHome()
 			factories = factories + 1
 			labDef = labDef or defID
 		end
-		if d and d.mex > 0 and not spGetUnitIsBeingBuilt(u) then
+		if d and (d.factory or d.commander) and not spGetUnitIsBeingBuilt(u) then
 			local x, _, z = spGetUnitPosition(u)
 			if x then
-				extractors[#extractors + 1] = { x = x, z = z }
+				vitals[#vitals + 1] = { x = x, z = z, factory = d.factory }
+			end
+		end
+		if d and (d.mex > 0 or d.energy > 0) and not spGetUnitIsBeingBuilt(u) then
+			local x, _, z = spGetUnitPosition(u)
+			if x then
+				local list = d.mex > 0 and extractors or generators
+				list[#list + 1] = { x = x, z = z }
 			end
 		end
 		if d and (d.factory or d.commander) then
@@ -5175,8 +5224,19 @@ function Engine.refreshHome()
 		Engine.homeX, Engine.homeZ = x or MAP_X / 2, z or MAP_Z / 2
 	end
 	Engine.enemyX, Engine.enemyZ = enemyDirectionRef(Engine.homeX, Engine.homeZ)
-	Engine.extractors = extractors
+	Engine.extractors, Engine.vitals = extractors, vitals
+	Engine.farms = Engine.zones.clusters(generators, 450, 4)
 	Engine.factoryCount, Engine.labDef = factories, labDef or Engine.labDef
+end
+
+-- is (x, z) close to something we can't afford to lose (a factory, the commander)?
+function Engine.nearVital(x, z)
+	for _, v in ipairs(Engine.vitals or {}) do
+		if dist2(x, z, v.x, v.z) < 700 * 700 then
+			return true
+		end
+	end
+	return false
 end
 
 -- turrets have a budget (strong players put their metal into the army): metal of turrets we have plus

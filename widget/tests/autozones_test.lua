@@ -27,4 +27,16 @@ return {
 		local z = zones().forRole("intelligence", { home = { 8100, 8100 }, enemy = { 9000, 9000 } })
 		T.ok(z[1].x <= 8192 - 64 and z[1].z <= 8192 - 64)
 	end,
+	clusters_find_wind_farms = function()
+		local pts = {}
+		for i = 1, 6 do
+			pts[#pts + 1] = { x = 1000 + i * 60, z = 1000 }
+		end
+		pts[#pts + 1] = { x = 3000, z = 3000 }
+		pts[#pts + 1] = { x = 3050, z = 3000 }
+		local c = zones().clusters(pts, 500, 3)
+		T.eq(#c, 1, "only the farm has 3+")
+		T.eq(c[1].count, 6)
+		T.near(c[1].x, 1210, 1e-6)
+	end,
 }

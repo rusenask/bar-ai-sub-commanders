@@ -104,3 +104,19 @@ Reports in `testenv/batch/<dir>/report.md` (gamereport: pace against 26 strong p
   into the army.
 - Rules-only lost 5/8 against medium here, where earlier arms lost 3/16 (no code path differs without the
   models; variance or a cause not found yet).
+
+## Engine v1 (design/engine.md: threat map, squads, doctrine, one lab + army feed, turret budget)
+
+| Arm | Games | Results | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|
+| 20261013-1153-baseline-rules | 8 | 3 timeout, 5 loss | 24.5k | 42 / 171 | 0.56 | 18.8 | 5.5 | 2.7k |
+| 20261013-1257-engine-v1 | 8 | 7 timeout, 1 loss | 26.8k | 36 / 195 | 0.57 | 8.5 | 12 | 3.8k |
+| 20261013-1208-baseline-rules-hard | 8 | 3 timeout, 5 loss | 38.6k | 31 / 263 | 0.38 | 22.4 | 16 | 4.4k |
+| 20261013-1314-engine-v1-hard | 8 | 5 timeout, 3 loss | 33.3k | 35 / 270 | 0.46 | 12.2 | 13 | 4.9k |
+
+- Medium: lost 1 of 8 instead of 5; constructors lost halved (8.5 vs 18.8); extractors at 8 min doubled
+  (12 vs 5.5); the economy is on strong players' pace until minute 8. What's left: BARbarian's raid groups
+  hit the wind farms and the lab in the base while the army fights elsewhere (110 economy buildings and 3
+  labs lost per game), and metal overflows ~9 min per game with one lab.
+- Hard: lost 3 of 8 instead of 5; trades 0.46 instead of 0.38; army at 12 min 4.9k (strong players'
+  median). Fights after minute 12 still trade about 1:5.

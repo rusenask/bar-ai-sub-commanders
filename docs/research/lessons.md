@@ -26,6 +26,13 @@ out wrong.
   minute 11 its concentrated army with artillery and rockets trades 7:1 against us. Against medium the
   early raids are: no combat units before minute 3, no turret by the extractors. (baseline batches
   20261013-1153 / -1208)
+- A threat map with memory (constructors flee enemy reach, nothing built where we're outgunned), one lab
+  feeding the army, and squads that only fight when stronger cut losses against medium from 5/8 to 1/8 and
+  constructor losses by half. (engine-v1 vs baseline-rules)
+- One army can't cover a base against several raid groups at once: static cover at what raids hit (labs,
+  wind farms, exposed extractors) has to do it, as strong players do. (engine-v1, game 1 and 3)
+- A squad's strength ratio only knows what it has seen: the first contact with a main army reads as 1x
+  until radar contacts count too (threat map blips). (first engine test game)
 - The whole team dies with the commander (BAR's default end condition): keep it home. (game 10)
 - Letting emergency energy pick basic solar instead of wind made every average worse. (batch E)
 - The counter-push rarely triggers: the army is seldom 1.5x what it sees. (batch B)

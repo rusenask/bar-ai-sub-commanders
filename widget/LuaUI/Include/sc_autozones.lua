@@ -60,6 +60,38 @@ return function(ctx)
 		return out
 	end
 
+	-- groups of at least minCount points within radius of each other's centre (greedy), biggest first:
+	-- { x, z, count }. Used to find our wind farms and other clusters worth a turret.
+	function Z.clusters(points, radius, minCount)
+		local r2 = radius * radius
+		local groups = {}
+		for _, p in ipairs(points or {}) do
+			local g
+			for _, o in ipairs(groups) do
+				if (o.x - p.x) ^ 2 + (o.z - p.z) ^ 2 <= r2 then
+					g = o
+					break
+				end
+			end
+			if not g then
+				g = { x = p.x, z = p.z, count = 0, sx = 0, sz = 0 }
+				groups[#groups + 1] = g
+			end
+			g.count, g.sx, g.sz = g.count + 1, g.sx + p.x, g.sz + p.z
+			g.x, g.z = g.sx / g.count, g.sz / g.count
+		end
+		local out = {}
+		for _, g in ipairs(groups) do
+			if g.count >= (minCount or 1) then
+				out[#out + 1] = { x = g.x, z = g.z, count = g.count }
+			end
+		end
+		table.sort(out, function(a, b)
+			return a.count > b.count
+		end)
+		return out
+	end
+
 	-- info: { home = {x, z}, enemy = {x, z}, extractors = {{x, z}...}, rally = {x, z} (army) }
 	function Z.forRole(role, info)
 		local hx, hz = info.home[1], info.home[2]
