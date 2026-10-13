@@ -152,13 +152,14 @@ local function step(n)
 			st.stage = 3
 		end
 	elseif st.stage == 3 and t >= 30 * 60 * 4 and #cons >= 3 then
-		SC.assign(ids.def, { cons[1] })
-		st.stage = 4
-	elseif st.stage == 4 and t >= 30 * 60 * 6 and #cons >= 3 then
-		ids.aa = newSub("airdefense", { cons[1] }, nil, "keep the base and the economy safe from air")
-		st.stage = 5
-	elseif st.stage == 5 and t >= 30 * 60 * 8 and #cons >= 3 then
+		-- recon early (radar net, scouts): raids that arrive unseen cost the most
 		ids.intel = newSub("intelligence", { cons[1] }, nil, "watch the approaches to our base and take out enemy radar")
+		st.stage = 4
+	elseif st.stage == 4 and t >= 30 * 60 * 5 and #cons >= 3 then
+		SC.assign(ids.def, { cons[1] })
+		st.stage = 5
+	elseif st.stage == 5 and t >= 30 * 60 * 7 and #cons >= 3 then
+		ids.aa = newSub("airdefense", { cons[1] }, nil, "keep the base and the economy safe from air")
 		st.stage = 6
 	end
 end

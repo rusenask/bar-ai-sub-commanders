@@ -72,9 +72,9 @@ D.production = {
 -- counter-response (BARb hard response.json): our kind -> enemy kinds it answers, with weights, and the
 -- most of our army it may make up
 D.response = {
-	raider = { vs = { scout = 2.0, raider = 0.5, artillery = 0.5 }, max = 0.3 },
+	raider = { vs = { scout = 2.0, raider = 0.5, artillery = 1.2 }, max = 0.3 },
 	assault = { vs = { raider = 0.9, skirmisher = 0.4, turret = 0.3 }, max = 0.8 },
-	skirmisher = { vs = { assault = 0.8, heavy = 0.5, skirmisher = 0.7 }, max = 0.8 },
+	skirmisher = { vs = { assault = 0.8, heavy = 0.5, skirmisher = 0.7, artillery = 0.6 }, max = 0.8 },
 	heavy = { vs = { assault = 0.5, skirmisher = 0.7, heavy = 1.5, turret = 0.3 }, max = 0.6 },
 	artillery = { vs = { turret = 1.0, ["long-range artillery"] = 0.5 }, max = 0.2 },
 	["mobile anti-air"] = { vs = { gunship = 1.0, bomber = 1.0, fighter = 0.5 }, max = 0.25 },
@@ -93,9 +93,13 @@ D.economy = {
 	-- construction turrets before more labs: 200 build power for 230 metal against a lab's 150 for 470;
 	-- a lab is saturated at 4-7 turrets (unit exit time), only then does another lab pay off
 	nanoFrom = 10, -- metal income the first lab uses on its own
-	nanoPerIncome = 8, -- one construction turret per this much metal income above that
+	nanoPerIncome = 6, -- one construction turret per this much metal income above that (8 left metal piling up)
 	nanosPerLab = 5, -- a lab with this many turrets around it is saturated
 	builderBonus = 0, -- added to the constructor target (tunable by the strategist)
+	maxStorage = 4000, -- metal storage beyond this hides waste instead of fixing it: spend instead
+	armyCap = 150, -- most combat units per army (metal is the real limit; a count cap of 48 idled the lab)
+	airPlantIncome = 35, -- full autonomy: past this income (and a saturated lab) the next factory is aircraft
+	radarFrom = 30 * 90, -- the economy puts up a radar toward the enemy from about minute 1.5
 }
 
 -- turrets: a budget instead of filling zones (strong players: ~5 turrets by minute 6, ~1.7k metal at 12)

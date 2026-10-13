@@ -401,33 +401,33 @@ local function duel(n)
 			out("player: second lab to Army")
 		end
 	elseif duelState.stage == 3 and n >= 30 * 60 * 4 then
+		-- recon early (radar net, scouts): raids that arrive unseen cost the most
 		local cons = ownedBy(ids.eco, "legck")
 		if #cons >= 3 then
 			duelState.stage = 4
-			SC.assign(ids.def, { cons[1] })
-			out("player: second constructor to Defense")
+			ids.intel = SC.create("intelligence")
+			SC.assign(ids.intel, { cons[1] })
+			SC.addZone(ids.intel, (towardEnemy(0.3, 1500)))
+			SC.setAI(ids.intel, ai)
+			SC.setDirective(ids.intel, "watch the approaches to our base and take out enemy radar")
+			out("player: Intelligence created")
 		end
-	elseif duelState.stage == 4 and n >= 30 * 60 * 6 then
+	elseif duelState.stage == 4 and n >= 30 * 60 * 5 then
 		local cons = ownedBy(ids.eco, "legck")
 		if #cons >= 3 then
 			duelState.stage = 5
+			SC.assign(ids.def, { cons[1] })
+			out("player: second constructor to Defense")
+		end
+	elseif duelState.stage == 5 and n >= 30 * 60 * 7 then
+		local cons = ownedBy(ids.eco, "legck")
+		if #cons >= 3 then
+			duelState.stage = 6
 			ids.aa = SC.create("airdefense")
 			SC.assign(ids.aa, { cons[1] })
 			SC.setAI(ids.aa, ai)
 			SC.setDirective(ids.aa, "keep the base and the economy safe from air")
 			out("player: Air Defense created")
-		end
-	elseif duelState.stage == 5 and n >= 30 * 60 * 8 then
-		local cons = ownedBy(ids.eco, "legck")
-		if #cons >= 3 then
-			duelState.stage = 6
-			ids.intel = SC.create("intelligence")
-			SC.assign(ids.intel, { cons[1] })
-			SC.clearZones(ids.intel)
-			SC.addZone(ids.intel, (towardEnemy(0.3, 1500)))
-			SC.setAI(ids.intel, ai)
-			SC.setDirective(ids.intel, "watch the approaches to our base and take out enemy radar")
-			out("player: Intelligence created")
 		end
 	end
 	-- like a real player answering "need a factory": another lab for the Army when metal keeps piling up
@@ -435,9 +435,7 @@ local function duel(n)
 		local m, mS = Spring.GetTeamResources(myTeam, "metal")
 		duelState.overflow = (m > mS * 0.8) and (duelState.overflow or 0) + 1 or 0
 		local labs = #(byName.leglab or {})
-		-- construction turrets first (the economy adds them): another lab only once ours have ~5 each
-		local nanos = #(byName.legnanotc or {})
-		if duelState.overflow >= 60 and labs < 5 and nanos >= 5 * labs and not duelState.labOrdered then
+		if duelState.overflow >= 60 and labs < 5 and not duelState.labOrdered then
 			local cons = ownedBy(ids.eco, "legck")
 			if #cons >= 2 then
 				local _, dx, dz = towardEnemy(0.1, 0)

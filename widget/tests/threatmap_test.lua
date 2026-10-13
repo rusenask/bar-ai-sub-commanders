@@ -90,6 +90,9 @@ return {
 		T.eq(gs[1].power, 600, "the turrets first")
 		T.eq(gs[1].x, 1050, "centre")
 		T.eq(gs[1].static, 600, "static share")
+		tm.see(9, 4, 3600, 3500, 0) -- artillery joins the raider's group
+		local g2 = tm.groups(0, 5)
+		T.eq(g2[2].ranged, 250, "long-range share")
 		T.eq(tm.groups(0, 5, 900, "air")[1].power, 200, "air layer")
 	end,
 	radar_blips_count_until_identified = function()
@@ -103,5 +106,13 @@ return {
 		T.eq(tm.threat(1000, 1000), 300, "now the real thing")
 		tm.seeBlip(50, 1000, 1000, 9) -- radar again: keeps the identity
 		T.eq(tm.enemies[50].blip, nil)
+	end,
+	fresh_power_ignores_memories = function()
+		local tm = F.map()
+		tm.see(1, 1, 1000, 1000, 0)
+		local D = F.doctrine.threat
+		T.eq(tm.enemyPower(1000, 1000, 300, D.fresh, { fresh = true }), 100, "just seen")
+		T.eq(tm.enemyPower(1000, 1000, 300, D.fresh + 30, { fresh = true }), 0, "a memory")
+		T.ok(tm.enemyPower(1000, 1000, 300, D.fresh + 30) > 0, "still remembered otherwise")
 	end,
 }

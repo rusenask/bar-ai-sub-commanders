@@ -163,3 +163,19 @@ Reports in `testenv/batch/<dir>/report.md` (gamereport: pace against 26 strong p
 - The economy built a lab per income tier (2-4 at 20 min, three side by side in one game): strong players
   and BAR's own guidance scale one lab with construction turrets (200 BP for 230 metal vs a lab's 150 for
   470) and add labs only once one is saturated. Changed in the next arm.
+
+## Engine v4 (construction turrets before labs, raids scout their base, attacking armies commit)
+
+| Arm | Games | Results | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|
+| 20261013-1544-engine-v4 | 8 | 3 timeout, 5 loss | 24.6k | 32 / 168 | 0.49 | 9.4 | 11.5 | 3.3k |
+| 20261013-1558-autopilot-v4-40m | 7 | 4 timeout, 3 loss | 63.1k | 110 / 333 | 0.68 | 18.1 | 12 | 4.2k |
+
+- Balanced (harness) got worse: lost 5/8 (v3 2/8), trades 0.49, energy 81/s at 15 min, 3 construction
+  turrets in 8 games, no factories left by 15 min. Causes: an attacking army ignored raids in its own area
+  (wind farms wrecked, energy collapsed); turrets (3200 energy each) never affordable, and the turret-first
+  rule then blocked the lab on overflow; old threat memories kept raided bases from rebuilding.
+- Full autonomy: about even with the first raids arm (3/7 vs 4/8 lost, 63k metal vs 48k).
+- Watching a game: metal and energy overflowed with one lab all game: a 48-unit army cap idled the lab,
+  storage (10.7k) hid the waste, the turret target was too low. No radar before minute 8-9.5 (only
+  Intelligence built them, created at 8 min). Fixed in v5.

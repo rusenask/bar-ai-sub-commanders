@@ -721,8 +721,9 @@ local function areaClear(d, x, z, gap, facing)
 	return not blocksFactory(x, z, hx, hz) and not plannedConflict(d, x, z, gap, facing)
 end
 
--- Search outward from (ax, az) for a buildable spot inside the sub's zones, out of enemy reach unless our
--- own firepower covers it (threat map).
+-- Search outward from (ax, az) for a buildable spot inside the sub's zones, away from enemies seen there
+-- in the last seconds unless our own firepower covers it (threat map; older memories don't block building:
+-- in engine-v4 they kept raided bases from rebuilding energy).
 -- opts: gap, rings, facing, samples, score(x, z) -> number (higher is better), underFire (allow threat)
 local function findBuildSpot(sub, defID, ax, az, opts)
 	opts = opts or {}
@@ -743,7 +744,7 @@ local function findBuildSpot(sub, defID, ax, az, opts)
 			if x > 64 and z > 64 and x < MAP_X - 64 and z < MAP_Z - 64 and inSubZones(sub, x, z) then
 				local bx, by, bz = Spring.Pos2BuildPos(defID, x, spGetGroundHeight(x, z), z, facing)
 				if Spring.TestBuildOrder(defID, bx, by, bz, facing) > 0 and not nearMetalSpot(bx, bz, d) and not isBadSpot(bx, bz) and areaClear(d, bx, bz, gap, facing)
-					and (opts.underFire or Engine.tm.threat(bx, bz) <= Engine.tm.influence(bx, bz)) then
+					and (opts.underFire or Engine.tm.enemyPower(bx, bz, 600, frame, { fresh = true }) <= Engine.tm.influence(bx, bz)) then
 					local s = opts.score and opts.score(bx, bz) or 0
 					if not best or s > best then
 						best, bestX, bestZ = s, bx, bz
@@ -994,7 +995,7 @@ end
 
 function Jobs.storage(sub, unitID, d, ux, uz)
 	local ax, az = anchorFor(sub, ux, uz)
-	if econ.mFrac > 0.9 and econ.mS < 20000 then
+	if econ.mFrac > 0.9 and econ.mS < Engine.D.economy.maxStorage then
 		if buildCheapestUseful(sub, unitID, d, ax, az, function(od)
 			return od.mstore > 0
 		end, function(od)
@@ -1527,6 +1528,59 @@ function Jobs.defense(sub, unitID, d, ux, uz)
 	return x and issueBuild(sub, unitID, o, x, z, facingToward(x, z, ex, ez), "defense toward enemy") or false
 end
 
+function Engine.haveAirPlant()
+	for _, u in ipairs(Spring.GetTeamUnits(myTeam) or {}) do
+		local ud = unitDef(u)
+		if ud and ud.factory and makesAircraft(ud) then
+			return true
+		end
+	end
+	for _, p in pairs(planned) do
+		if defs[p.defID].factory and makesAircraft(defs[p.defID]) then
+			return true
+		end
+	end
+	return false
+end
+
+-- recon from the start: a radar toward the enemy near home from about minute 1.5 (the Intelligence
+-- sub-commander arrives later; strong players have radar up early)
+function Jobs.earlyRadar(sub, unitID, d, ux, uz)
+	if frame < Engine.D.economy.radarFrom or not Engine.homeX or frame - (sub.radarTried or -99999) < 30 * 30 then
+		return false
+	end
+	if Engine.radarNearHome() then
+		return false
+	end
+	local options = buildableBy(d, function(od)
+		return od.radar > 0
+	end)
+	if #options == 0 or not canSpend(sub, defs[options[1]], "essential") then
+		return false
+	end
+	sub.radarTried = frame
+	local dx, dz = (Engine.enemyX or MAP_X / 2) - Engine.homeX, (Engine.enemyZ or MAP_Z / 2) - Engine.homeZ
+	local len = max(sqrt(dx * dx + dz * dz), 1)
+	local x, z = findBuildSpot(sub, options[1], Engine.homeX + dx / len * 500, Engine.homeZ + dz / len * 500, { gap = 24, rings = 8 })
+	return x and issueBuild(sub, unitID, options[1], x, z, 0, "radar: see raids coming") or false
+end
+
+-- one of our radars covers home (or one is planned)?
+function Engine.radarNearHome()
+	for _, u in ipairs(spGetUnitsInCylinder(Engine.homeX, Engine.homeZ, 1600)) do
+		local ud = unitDef(u)
+		if ud and ud.radar > 0 and spGetUnitTeam(u) == myTeam then
+			return true
+		end
+	end
+	for _, p in pairs(planned) do
+		if defs[p.defID].radar > 0 and dist2(p.x, p.z, Engine.homeX, Engine.homeZ) < 1600 * 1600 then
+			return true
+		end
+	end
+	return false
+end
+
 -- full autonomy: factories as income grows (strong players run one lab until about 25 metal/s, then add
 -- about one per 22); the first one if there's none. A new lab goes to an Army without one.
 function Jobs.newFactory(sub, unitID, d, ux, uz)
@@ -1554,8 +1608,9 @@ function Jobs.newFactory(sub, unitID, d, ux, uz)
 	if have >= min(want, E.maxFactories) then
 		return false
 	end
-	-- construction turrets first: another lab only once every lab has its turrets
-	if have > 0 and not Engine.labsSaturated() then
+	-- construction turrets first: another lab only once every lab has its turrets, as long as energy can
+	-- pay for turrets (3200 energy each); short of energy, a lab is the way to spend piling metal (engine-v4)
+	if have > 0 and not Engine.labsSaturated() and econ.eFrac > 0.3 and econ.eInc > 300 then
 		return false
 	end
 	for _, p in pairs(planned) do
@@ -1563,12 +1618,14 @@ function Jobs.newFactory(sub, unitID, d, ux, uz)
 			return false
 		end
 	end
-	-- the lab type we already have, else a bot lab, else any ground factory it can build
+	-- the lab type we already have, else a bot lab, else any ground factory it can build; past
+	-- doctrine.economy.airPlantIncome an aircraft plant (scouting planes for Intelligence) if we have none
 	local o
+	local wantAir = have > 0 and income >= E.airPlantIncome and not Engine.haveAirPlant()
 	for _, opt in ipairs(d.options) do
 		local od = defs[opt]
-		if od and od.factory and not makesAircraft(od) then
-			if opt == Engine.labDef then
+		if od and od.factory and makesAircraft(od) == wantAir then
+			if opt == Engine.labDef or wantAir then
 				o = opt
 				break
 			end
@@ -1586,8 +1643,15 @@ function Jobs.newFactory(sub, unitID, d, ux, uz)
 	local ax, az = clampToMap(Engine.homeX - dx / len * 250, Engine.homeZ - dz / len * 250)
 	local x, z = findBuildSpot(sub, o, ax, az, { gap = 48, rings = 10 })
 	if x and issueBuild(sub, unitID, o, x, z, facingToward(x, z, Engine.enemyX or MAP_X / 2, Engine.enemyZ or MAP_Z / 2), have == 0 and "our first factory" or "another factory: income allows it") then
-		local army = Engine.armyToFeed()
-		getState(unitID).rebuildFor, getState(unitID).newFactory = (army or sub).id, true
+		local owner_ = Engine.armyToFeed() or sub
+		if wantAir then
+			for _, s in ipairs(subs) do
+				if s.role == "intelligence" then
+					owner_ = s
+				end
+			end
+		end
+		getState(unitID).rebuildFor, getState(unitID).newFactory = owner_.id, true
 		return true
 	end
 	return false
@@ -2051,6 +2115,7 @@ local BUILDER_PLANS = {
 			or Jobs.guardTurret(sub, u, d, x, z)
 			or Jobs.rebuildFactory(sub, u, d, x, z)
 			or Jobs.newFactory(sub, u, d, x, z)
+			or Jobs.earlyRadar(sub, u, d, x, z)
 			or Jobs.basicEconomy(sub, u, d, x, z)
 			or (energyWanted() and Jobs.energy(sub, u, d, x, z, false))
 			or Jobs.buildPower(sub, u, d, x, z)
@@ -2194,7 +2259,7 @@ end
 -- an Army's own labs: the income tier's mix, moved toward what counters the enemy (sc_production.lua)
 function Engine.armyProduction(sub, fd, cap)
 	local p = POSTURE_INFO[sub.posture]
-	if sub.counts.combat >= p.army * 3 * (econ.mFrac > 0.8 and 2 or 1) then
+	if sub.counts.combat >= Engine.D.economy.armyCap then
 		return nil, "at unit cap"
 	end
 	local defID = Engine.prod.pick(fd.options, sub.counts.cats or {}, max(econ.mInc, 0), Enemy.mix().kinds,
@@ -2265,7 +2330,7 @@ local function pickProduction(sub, facID, fd)
 		local scoutCap = sub.posture == "conserve" and 1 or (sub.posture == "spend" and 4 or 2)
 		if counts.scouts < scoutCap then
 			local options = buildableBy(fd, function(od)
-				return (od.scout or (od.air and not od.armed and not od.transport and od.radarRange > 0)) and od.cost <= cap
+				return (od.scout or (od.air and not od.armed and not od.transport)) and od.cost <= cap
 			end)
 			tsort(options, function(a, b)
 				return defs[a].cost < defs[b].cost
@@ -3090,11 +3155,21 @@ function Tactics.squad(sub)
 	end
 	-- an army out on an attack only turns back for what threatens a factory or the commander, or what
 	-- our turrets and guards can't handle there
-	local prev0 = sub.squadOrder
-	local attacking = prev0 and prev0.action ~= "hold" and not Engine.inBase(prev0.x, prev0.z)
-	consider(sub.threats, attacking)
+	-- intruders in our own area: always (v4 let an attacking army ignore them: raids wrecked the wind farms
+	-- and energy collapsed); helping elsewhere is filtered (consider's second argument)
+	consider(sub.threats)
 	if not target and auto.help then
 		consider(baseThreats, true)
+	end
+	-- their artillery outranges our turrets: dive it when it's within reach of home and we beat it there
+	if not target and auto.help and Engine.homeX then
+		for _, g in ipairs(Engine.tm.groups(frame, 6)) do
+			if (g.ranged or 0) >= g.power * 0.4 and sqrt(dist2(g.x, g.z, Engine.homeX, Engine.homeZ)) < Engine.D.engage.chase + 800
+				and S.decide(sq, g.x, g.z, frame, {}) == "engage" then
+				target = { id = "arty:" .. floor(g.x / 512) .. ":" .. floor(g.z / 512), x = g.x, z = g.z, name = "their artillery" }
+				break
+			end
+		end
 	end
 	-- pursue: intruders we drove off that are still near home and weaker than us, before they come back
 	-- from another angle
@@ -5626,6 +5701,9 @@ function Engine.audit()
 	end
 	if idle >= 2 then
 		out[#out + 1] = sformat("%d constructors idle", idle)
+	end
+	if Engine.homeX and frame > 30 * 180 and not Engine.radarNearHome() then
+		out[#out + 1] = "no radar covering the base: raids arrive unseen"
 	end
 	if Engine.minute() > 8 and combat >= 8 and raiders > combat * 0.5 then
 		out[#out + 1] = sformat("the army is %d%% raiders: cheap units feed their kills (raid_share)", floor(raiders / combat * 100))
