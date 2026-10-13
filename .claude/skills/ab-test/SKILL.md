@@ -30,7 +30,7 @@ make compare ARMS="testenv/batch/<date>-baseline testenv/batch/<date>-my-change"
 ```
 
 Each batch prints a line per game, the summary and its findings. Games run on `WORKERS` parallel write
-dirs (default 1, at lower CPU priority so the machine stays usable: 16 games of 45 minutes take about an
+dirs (default 1, at lower CPU priority so the machine stays usable: 16 games of 60 minutes take about an
 hour; `WORKERS=3` roughly doubles throughput when the machine is free, workers start 20 s apart). Older
 arms ran 25 minutes: compare them on the `Lost by 25 min` column. A game that didn't run is
 retried once; `meta.txt` says `ran: N/M`, a stalled game (no harness output for 2 minutes, or none within

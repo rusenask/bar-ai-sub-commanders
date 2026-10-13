@@ -240,3 +240,14 @@ code (v16 mostly never reached the hand-off: its lab built Infestors). Re-measur
   push. The one loss: BARbarian's Hammer push at minute 17 took both labs past a 7k army.
 - v20 spends it: turret mix grows with income, tier 2 constructors for Defense, an Army air wing,
   surplus guards to the Army, push ignores small raids.
+
+## v21c: Air Force sub-commander (first wins)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261013-2044-engine-v19-team-fixed | 7 | 6 timeout, 1 loss | 0 | 180.1k | 194 / 471 | 0.83 | 12.0 | 11 | 5.3k |
+| 20261013-2132-engine-v21c-airforce | 9 | 2 win, 6 timeout, 1 loss | 0 | 143.6k | 205 / 436 | 0.85 | 11.2 | 14 | 4.3k |
+
+- First wins against BARbarian medium (minutes 40 and 43), both with the Air Force at tier 2 hunting raids
+  and striking their economy. Stopped at 9 games: games still being decided at 45 minutes, so batches
+  now run 60 minutes (v21c-60, same code).

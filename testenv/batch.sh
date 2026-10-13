@@ -1,5 +1,5 @@
 #!/bin/bash
-# usage: [LABEL=name] [WORKERS=3] [AI_PROFILE=medium] [MAP="..."] [SPEED=15] [LOCKSTEP=1] [DUEL_MINUTES=25]
+# usage: [LABEL=name] [WORKERS=3] [AI_PROFILE=medium] [MAP="..."] [SPEED=15] [LOCKSTEP=1] [DUEL_MINUTES=60]
 #        [WIDGET_SRC=dir] batch.sh <games> [scenario] [script]
 # Plays several test games and prints one line per game plus a summary. Games run in parallel on WORKERS
 # separate write dirs (testenv/workers/<n>, default 3; 1 for the duel scenario, whose strategist needs
@@ -12,8 +12,8 @@ T="$(cd "$(dirname "$0")" && pwd)"
 N="${1:-3}"
 SCENARIO="${2:-duelrules}"
 SCRIPT="${3:-script_vsai.txt}"
-# 45 game minutes by default: at 25 most games were still going (nobody can win that fast)
-export AI_PROFILE="${AI_PROFILE:-medium}" SPEED="${SPEED:-15}" LOCKSTEP="${LOCKSTEP:-0}" MAP="${MAP:-}" DUEL_MINUTES="${DUEL_MINUTES:-45}"
+# 60 game minutes by default: at 45 good games were still being decided (wins came at 40-43)
+export AI_PROFILE="${AI_PROFILE:-medium}" SPEED="${SPEED:-15}" LOCKSTEP="${LOCKSTEP:-0}" MAP="${MAP:-}" DUEL_MINUTES="${DUEL_MINUTES:-60}"
 # one game at a time by default (the machine stays usable); WORKERS=3 runs three at once
 WORKERS="${WORKERS:-1}"
 [ "$SCENARIO" = duel ] && WORKERS=1

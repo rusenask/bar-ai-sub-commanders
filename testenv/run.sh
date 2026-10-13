@@ -54,8 +54,8 @@ cp "${WIDGET_SRC:-$T/../widget/LuaUI/Widgets}"/../Include/sc_*.lua "$W/LuaUI/Inc
 # SPEED=10 runs the game that fast (as far as the machine keeps up); LOCKSTEP=1 pauses it while the
 # AI strategist is thinking, so it sees the game as often as at normal speed
 echo "${SPEED:-} ${LOCKSTEP:-0}" > "$W/sctest_speed.txt"
-# duels last DUEL_MINUTES (default 45: at 25 most games were still going)
-echo "${DUEL_MINUTES:-45}" > "$W/sctest_minutes.txt"
+# duels last DUEL_MINUTES (default 60: at 45 games were still being decided, some won after 40)
+echo "${DUEL_MINUTES:-60}" > "$W/sctest_minutes.txt"
 cd "$W"
 # fresh widget state each run: re-enable and forget saved sub-commanders
 python3 - "$W/LuaUI/Config/BYAR.lua" <<'PY'
@@ -73,7 +73,7 @@ open(p, "w").write(s)
 PY
 # wall-clock limit: twice the game at the requested speed plus loading, unless given
 SPEEDX="${SPEED:-3}"
-LIMIT="${2:-$(( ${DUEL_MINUTES:-45} * 60 * 2 / SPEEDX + 180 ))}"
+LIMIT="${2:-$(( ${DUEL_MINUTES:-60} * 60 * 2 / SPEEDX + 180 ))}"
 [ "${LOCKSTEP:-0}" = 1 ] && [ -z "$2" ] && LIMIT=$((LIMIT * 4))
 STALL="${STALL:-$([ "${LOCKSTEP:-0}" = 1 ] && echo 600 || echo 120)}"
 # at lower priority (NICE, default 10): the machine stays usable for other work while tests run
