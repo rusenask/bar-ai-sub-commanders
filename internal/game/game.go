@@ -68,6 +68,7 @@ type Sub struct {
 	Squad *Squad `json:"squad,omitempty"`
 	// armies: whether its fast units raid (on by default), and what the raid squad is doing
 	Raids *bool           `json:"raids,omitempty"`
+	FedBy string          `json:"fedBy,omitempty"` // an army without a factory: whose factory builds its units
 	Raid  json.RawMessage `json:"raid,omitempty"`
 	// what the player's own constructors queue and how many of their units are in this sub's zones
 	PlayerActivity json.RawMessage `json:"playerActivity,omitempty"`

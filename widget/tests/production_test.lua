@@ -66,4 +66,24 @@ return {
 		T.eq(P.opening(3), "raider")
 		T.eq(P.opening(99), nil)
 	end,
+	turret_roles = function()
+		local P = prod()
+		T.eq(P.turretRole({ staticDef = true, cost = 80, range = 400 }), "light")
+		T.eq(P.turretRole({ staticDef = true, cost = 320, range = 450 }), "heavy")
+		T.eq(P.turretRole({ staticDef = true, cost = 900, range = 1100 }), "long")
+		T.eq(P.turretRole({ staticDef = true, aaOnly = true, cost = 150, range = 800 }), nil, "anti-air is its own")
+		T.eq(P.turretRole({ mobile = true, cost = 100 }), nil)
+	end,
+	turret_mix_per_area = function()
+		local P = prod()
+		local late = 30 * 60 * 10
+		T.eq(P.turretNeed({}, 1, 0), "light", "an empty area starts with light turrets")
+		T.eq(P.turretNeed({ light = 3 }, 1, 0), "heavy")
+		T.eq(P.turretNeed({ light = 3, heavy = 2 }, 1, 0), nil, "no long-range turrets early")
+		T.eq(P.turretNeed({ light = 3, heavy = 2 }, 1, late), "long", "then artillery")
+		T.eq(P.turretNeed({ light = 3, heavy = 2, long = 1 }, 1, late), nil, "full mix")
+		T.eq(P.turretNeed({ light = 3, heavy = 2, long = 1 }, 2, late), "light", "a higher density wants more of each")
+		T.eq(P.turretNeed({ light = 1 }, 1, 0, { light = true }), "light", "only what it can build")
+		T.eq(P.turretNeed({}, 1, late, { long = true }), "long")
+	end,
 }

@@ -156,6 +156,39 @@ return function(ctx)
 		return list[1], cat
 	end
 
+	-- a turret's role in an area's mix (doctrine.turrets): "light", "heavy" or "long" (nil: not a ground
+	-- defence turret)
+	function P.turretRole(d)
+		local Tt = D.turrets
+		if not d or not d.staticDef or d.aaOnly then
+			return nil
+		end
+		if (d.range or 0) >= Tt.longRange then
+			return "long"
+		end
+		return d.cost < Tt.lightCost and "light" or "heavy"
+	end
+
+	-- which turret role an area needs next: the one furthest below its share of the mix.
+	-- have: role -> count in the area; density: the posture's multiplier; frame: game frame (long-range
+	-- turrets come later); available: role -> true for roles the constructor can build. Returns the role,
+	-- or nil when the area has its full mix.
+	function P.turretNeed(have, density, frame, available)
+		local Tt = D.turrets
+		local best, bestGap
+		for _, role in ipairs({ "light", "heavy", "long" }) do
+			local want = Tt.mix[role] * (density or 1)
+			if role == "long" and frame < Tt.longFrom then
+				want = 0
+			end
+			local gap = want - (have[role] or 0)
+			if gap > 0 and (not available or available[role]) and (not bestGap or gap / want > bestGap) then
+				best, bestGap = role, gap / want
+			end
+		end
+		return best
+	end
+
 	-- the factory's next opening step (1-based), or nil once the opening is done
 	function P.opening(step)
 		return D.production.opening[step]

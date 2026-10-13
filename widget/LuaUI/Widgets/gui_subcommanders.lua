@@ -1403,7 +1403,7 @@ local function countStatics(sub, zone, filter)
 	return n
 end
 
-local function pickDefense(sub, d, aa)
+local function pickDefense(sub, d, aa, role)
 	local cap = costCap(sub)
 	-- turret types the strategist (or player) focused on, when we can build and afford them
 	if sub.focus then
@@ -1415,7 +1415,7 @@ local function pickDefense(sub, d, aa)
 		end
 	end
 	local options = buildableBy(d, function(od)
-		return od.staticDef and (od.aaOnly == aa) and od.cost <= cap
+		return od.staticDef and (od.aaOnly == aa) and od.cost <= cap and (not role or Engine.prod.turretRole(od) == role)
 	end)
 	if #options == 0 then
 		return nil
@@ -1499,19 +1499,39 @@ function Jobs.defense(sub, unitID, d, ux, uz)
 	if (sub.autonomy or "balanced") == "light" and frame - (sub.lastThreatFrame or -99999) > 30 * 120 then
 		return false
 	end
-	local o = pickDefense(sub, d, false)
-	if not o or not canSpend(sub, defs[o]) or not Engine.turretBudget(defs[o].cost) then
+	-- the area's turret mix (doctrine.turrets.mix): light against raiders, heavy against assaults,
+	-- long-range against their artillery; build the role furthest below its share
+	local have = {}
+	for _, role in ipairs({ "light", "heavy", "long" }) do
+		have[role] = countStatics(sub, zone, function(od)
+			return Engine.prod.turretRole(od) == role
+		end)
+	end
+	local cap = costCap(sub)
+	local available = {}
+	for _, o in ipairs(d.options) do
+		local od = defs[o]
+		local role = od and od.cost <= cap and Engine.prod.turretRole(od)
+		if role then
+			available[role] = true
+		end
+	end
+	local role = Engine.prod.turretNeed(have, POSTURE_INFO[sub.posture].density, frame, available)
+	if not role then
 		return false
 	end
-	local limit = max(2, floor(Zone.area(zone) / 250000)) * POSTURE_INFO[sub.posture].density
-	if countStatics(sub, zone, function(od)
-		return od.staticDef and not od.aaOnly
-	end) >= limit then
+	local o = pickDefense(sub, d, false, not sub.focus and role or nil)
+	if not o or not canSpend(sub, defs[o]) or not Engine.turretBudget(defs[o].cost) then
 		return false
 	end
 	local cx, cz = Zone.center(zone)
 	local ex, ez = enemyDirectionRef(cx, cz)
 	local fx, fz = Zone.edgeToward(zone, ex, ez, 160)
+	-- long-range turrets stand back, behind the front line, where they still reach past it
+	local longRange = Engine.prod.turretRole(defs[o]) == "long"
+	if longRange then
+		fx, fz = (fx + cx) * 0.5, (fz + cz) * 0.5
+	end
 	-- spread along the front line
 	local dx, dz = ex - cx, ez - cz
 	local len = max(sqrt(dx * dx + dz * dz), 1)
@@ -1522,10 +1542,10 @@ function Jobs.defense(sub, unitID, d, ux, uz)
 		rings = 10,
 		samples = 5,
 		score = function(x, z)
-			return -sqrt(dist2(x, z, ex, ez))
+			return longRange and -abs(sqrt(dist2(x, z, fx, fz))) or -sqrt(dist2(x, z, ex, ez))
 		end,
 	})
-	return x and issueBuild(sub, unitID, o, x, z, facingToward(x, z, ex, ez), "defense toward enemy") or false
+	return x and issueBuild(sub, unitID, o, x, z, facingToward(x, z, ex, ez), (Engine.prod.turretRole(defs[o]) or "") .. " defense toward the enemy") or false
 end
 
 function Engine.haveAirPlant()
@@ -3505,6 +3525,18 @@ function Engine.setAutonomy(sub, level)
 	return true
 end
 
+function Engine.fedByName(sub)
+	if sub.role ~= "army" or sub.counts.factories > 0 or not Engine.D.production.feedArmy then
+		return nil
+	end
+	for _, s in ipairs(subs) do
+		if s.role == "economy" and s.counts.factories > 0 then
+			return s.name .. "'s factory builds my units"
+		end
+	end
+	return nil
+end
+
 -- for the report: true / false for armies, absent for other roles
 function Engine.raidsField(sub)
 	if sub.role ~= "army" then
@@ -3984,6 +4016,8 @@ local function summarize(sub)
 		autonomy = sub.autonomy or "balanced",
 		autoZones = sub.autoZones or false,
 		raids = Engine.raidsField(sub),
+		-- an army without a factory gets its units from the economy's (strong players run one lab)
+		fedBy = Engine.fedByName(sub),
 		raid = sub.raidOrder and { action = sub.raidOrder.action, target = { x = floor(sub.raidOrder.x), z = floor(sub.raidOrder.z) } } or nil,
 		squad = sub.squadOrder and { action = sub.squadOrder.action, ratio = floor(sub.squadOrder.ratio * 10) / 10, target = { x = floor(sub.squadOrder.x), z = floor(sub.squadOrder.z) } } or nil,
 		paused = sub.paused,

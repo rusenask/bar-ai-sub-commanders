@@ -109,6 +109,13 @@ D.turrets = {
 	extractorCoverFrom = 30 * 150, -- first turret at exposed extractors from about minute 2.5
 	extractorCoverRadius = 450,
 	scale = 1, -- multiplies the budget (tunable by the strategist)
+	-- per area (each defense zone), a mix of turret roles instead of one count for everything:
+	-- light (cheap, fast-firing: raiders), heavy (damage: assault and heavy units), long (range >= 700:
+	-- outranges their units and artillery). Counts are multiplied by the posture's density.
+	mix = { light = 3, heavy = 2, long = 1 },
+	longFrom = 30 * 60 * 8, -- long-range turrets from about minute 8
+	longRange = 700,
+	lightCost = 150,
 }
 
 -- autonomy levels: what a sub-commander does on its own
