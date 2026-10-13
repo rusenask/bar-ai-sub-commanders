@@ -11,6 +11,8 @@ testenv/LuaUI/Widgets/*
 !testenv/LuaUI/Widgets/zz_sctest.lua
 !testenv/LuaUI/Widgets/zz_datalog.lua
 !testenv/collect.sh
+!testenv/replays.sh
+!testenv/pro_replays.py
 # BAR source checkout used as API reference (make ref)
 ref/
 /bin/

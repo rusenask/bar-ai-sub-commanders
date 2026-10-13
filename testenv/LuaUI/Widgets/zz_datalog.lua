@@ -132,6 +132,87 @@ end
 -- units and turrets: follow each one's damage dealt
 ----------------------------------------------------------------------------------------------------
 
+-- choices: what a factory starts building (combat units) and what a constructor starts (turrets), with the
+-- options it had: imitation data from strong players' replays
+local function optionTraits(builderDef, filter)
+	local list = {}
+	for _, o in ipairs(builderDef.options or {}) do
+		local od = defs[o]
+		if od and filter(od) then
+			list[#list + 1] = unitTraits(od)
+		end
+	end
+	return list
+end
+
+local function turretPlace(unitID, unitTeam, x, z)
+	local near = 0
+	for _, u in ipairs(Spring.GetUnitsInCylinder(x, z, 600, unitTeam)) do
+		local od = defs[Spring.GetUnitDefID(u) or -1]
+		if u ~= unitID and isDefence(od) then
+			near = near + 1
+		end
+	end
+	local nearestEnemy
+	for _, u in ipairs(Spring.GetUnitsInCylinder(x, z, 3000)) do
+		if enemyOf(unitTeam, Spring.GetUnitTeam(u)) then
+			local ex, _, ez = spGetUnitPosition(u)
+			local dd = sqrt((ex - x) ^ 2 + (ez - z) ^ 2)
+			nearestEnemy = nearestEnemy and min(nearestEnemy, dd) or dd
+		end
+	end
+	return { turretsNear = near, ownStart = ownStartDist(unitTeam, x, z), enemyStart = nearestEnemyStart(unitTeam, x, z), nearestEnemy = nearestEnemy and floor(nearestEnemy) or -1 }
+end
+
+function widget:UnitCreated(unitID, unitDefID, unitTeam, builderID)
+	if not enabled or not teams[unitTeam] or not builderID then
+		return
+	end
+	local d, bd = defs[unitDefID], defs[Spring.GetUnitDefID(builderID) or -1]
+	if not d or not bd then
+		return
+	end
+	if bd.factory and isArmedMobile(d) then
+		write({ type = "build", game = gameKey, frame = Spring.GetGameFrame(), team = unitTeam, factory = bd.name, chosen = d.name,
+			options = optionTraits(bd, isArmedMobile), situation = teamSituation(unitTeam) })
+	elseif (bd.builder or bd.commander) and isDefence(d) then
+		local x, _, z = spGetUnitPosition(unitID)
+		write({ type = "turretbuild", game = gameKey, frame = Spring.GetGameFrame(), team = unitTeam, chosen = d.name,
+			options = optionTraits(bd, isDefence), situation = teamSituation(unitTeam), place = turretPlace(unitID, unitTeam, x, z) })
+	end
+end
+
+-- each team's economy once a minute: benchmarks for ours
+local function logEconomy(frame)
+	for team in pairs(teams) do
+		local m = { mex = 0, gen = 0, factories = 0, builders = 0, army = 0, turrets = 0 }
+		for _, u in ipairs(Spring.GetTeamUnits(team) or {}) do
+			local d = defs[Spring.GetUnitDefID(u) or -1]
+			if d and not Spring.GetUnitIsBeingBuilt(u) then
+				if d.mex > 0 then
+					m.mex = m.mex + 1
+				elseif d.energy > 0 then
+					m.gen = m.gen + 1
+				elseif d.factory then
+					m.factories = m.factories + 1
+				elseif d.builder then
+					m.builders = m.builders + 1
+				end
+				if isArmedMobile(d) then
+					m.army = m.army + d.cost
+				elseif isDefence(d) then
+					m.turrets = m.turrets + d.cost
+				end
+			end
+		end
+		local _, _, _, mInc = Spring.GetTeamResources(team, "metal")
+		local _, _, _, eInc = Spring.GetTeamResources(team, "energy")
+		write({ type = "eco", game = gameKey, frame = frame, team = team, minute = floor(frame / 1800), metalIncome = floor((mInc or 0) * 10) / 10,
+			energyIncome = floor(eInc or 0), mex = m.mex, generators = m.gen, factories = m.factories, builders = m.builders,
+			army = floor(m.army), turrets = floor(m.turrets) })
+	end
+end
+
 function widget:UnitFinished(unitID, unitDefID, unitTeam)
 	if not enabled or not teams[unitTeam] then
 		return
@@ -353,6 +434,9 @@ function widget:GameFrame(n)
 	if n % FIGHT_EVERY == 0 then
 		scanFights(n)
 	end
+	if n % 1800 == 0 and n > 0 then
+		logEconomy(n)
+	end
 	if n % 30 == 0 then
 		settleFights(n)
 		for u, s in pairs(tracked) do
@@ -401,5 +485,5 @@ function widget:Initialize()
 	math.randomseed(os.time())
 	gameKey = os.date("%Y%m%d-%H%M%S") .. "-" .. math.random(1000, 9999)
 	out = io.open("datalog.jsonl", "w")
-	write({ type = "start", game = gameKey, map = Game.mapName, mapX = Game.mapSizeX, mapZ = Game.mapSizeZ, version = 2 })
+	write({ type = "start", game = gameKey, map = Game.mapName, mapX = Game.mapSizeX, mapZ = Game.mapSizeZ, version = 3 })
 end

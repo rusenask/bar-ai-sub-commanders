@@ -361,7 +361,7 @@ local function duel(n)
 end
 
 function widget:GameOver(winners)
-	if scenario == "spectate" then
+	if scenario == "spectate" or scenario == "replay" then
 		out("RESULT GAMEOVER winners=" .. table.concat(winners or {}, ","))
 		out("DONE")
 		Spring.SendCommands("quitforce")
@@ -377,6 +377,16 @@ function widget:GameOver(winners)
 end
 
 local function gameFrame(n)
+	if scenario == "replay" then
+		-- a recorded game (testenv/replays.sh): full view, fast, quit at the end
+		if n == 12 then
+			Spring.SendCommands("specfullview 1", "setmaxspeed 40", "setspeed " .. (speedOverride or 20))
+			out("scenario replay")
+		elseif n % (30 * 60) == 0 then
+			out(string.format("t=%dmin", n / 1800))
+		end
+		return
+	end
 	if scenario == "spectate" then
 		-- BARbarian vs BARbarian for the data logger: full view, fast, 25 minutes at most
 		if n == 12 then
