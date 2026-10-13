@@ -1,0 +1,107 @@
+local F = dofile("widget/tests/fixtures.lua")
+
+return {
+	threat_covers_weapon_range = function()
+		local tm = F.map()
+		tm.see(10, 1, 1000, 1000, 0)
+		tm.update(0, {}, true)
+		T.eq(tm.threat(1000, 1000), 100, "at the raider")
+		T.eq(tm.threat(1250, 1000), 100, "within range + margin")
+		T.eq(tm.threat(2000, 1000), 0, "far away")
+		T.near(tm.threat(1000, 1000, "air"), 10, 1e-9, "ground units barely threaten aircraft")
+	end,
+	aa_only_threatens_air = function()
+		local tm = F.map()
+		tm.see(11, 3, 2000, 2000, 0)
+		tm.update(0, {}, true)
+		T.eq(tm.threat(2000, 2000), 0, "ground")
+		T.eq(tm.threat(2000, 2000, "air"), 200, "air")
+	end,
+	unarmed_units_are_no_threat = function()
+		local tm = F.map()
+		tm.see(12, 5, 500, 500, 0)
+		tm.update(0, {}, true)
+		T.eq(tm.threat(500, 500), 0)
+	end,
+	mobile_memory_fades_statics_stay = function()
+		local tm = F.map()
+		tm.see(10, 1, 1000, 1000, 0)
+		tm.see(20, 2, 3000, 3000, 0)
+		local D = F.doctrine.threat
+		tm.update(D.fresh, {}, true)
+		T.eq(tm.threat(1000, 1000), 100, "fresh")
+		local mid = math.floor((D.fresh + D.mobileMemory) / 2)
+		tm.update(mid, {}, true)
+		T.ok(tm.threat(1000, 1000) > 0 and tm.threat(1000, 1000) < 100, "fading")
+		tm.update(D.mobileMemory + 1, {}, true)
+		T.eq(tm.threat(1000, 1000), 0, "forgotten")
+		T.eq(tm.enemies[10], nil, "dropped from memory")
+		T.eq(tm.threat(3000, 3000), 300, "turret still remembered")
+	end,
+	forget_and_count = function()
+		local tm = F.map()
+		tm.see(10, 1, 1000, 1000, 0)
+		tm.see(10, 1, 1100, 1000, 5)
+		T.eq(tm.count, 1)
+		tm.forget(10)
+		T.eq(tm.count, 0)
+	end,
+	influence_from_our_units = function()
+		local tm = F.map()
+		tm.update(0, { { defID = 2, x = 800, z = 800 } }, true)
+		T.eq(tm.influence(800, 800), 300)
+		T.eq(tm.influence(3000, 3000), 0)
+	end,
+	enemy_power_counts_nearby_armed = function()
+		local tm = F.map()
+		tm.see(1, 1, 1000, 1000, 0)
+		tm.see(2, 4, 1200, 1000, 0)
+		tm.see(3, 2, 3000, 3000, 0)
+		tm.see(4, 3, 1000, 1100, 0)
+		T.eq(tm.enemyPower(1000, 1000, 500, 0), 350, "raider + artillery, not the AA turret")
+		T.eq(tm.enemyPower(1000, 1000, 500, 0, { air = true }), 550, "with anti-air")
+		T.eq(tm.enemyPower(3000, 3000, 500, 0, { mobileOnly = true }), 0, "mobile only")
+	end,
+	safe_point_falls_back_toward_home = function()
+		local tm = F.map()
+		tm.see(1, 4, 2000, 2000, 0) -- artillery, reach 1120
+		tm.update(0, {}, true)
+		T.ok(tm.threat(2000, 2000) > 0)
+		local x, z = tm.safePoint(2000, 2000, 0, 0)
+		T.ok(x and tm.threat(x, z) == 0, "safe")
+		T.ok(x < 2000 and z < 2000, "toward home")
+	end,
+	front_is_where_threat_starts = function()
+		local tm = F.map()
+		tm.see(1, 2, 3000, 3000, 0) -- turret, reach 570
+		tm.update(0, {}, true)
+		local sx, sz, tx, tz = tm.front(500, 500, 3500, 3500)
+		T.ok(tm.threat(sx, sz) == 0 and tm.threat(tx, tz) > 0, "edge")
+		T.ok(sx > 2000 and sx < 3000, "between")
+	end,
+	groups_cluster_enemies = function()
+		local tm = F.map()
+		tm.see(1, 2, 1000, 1000, 0)
+		tm.see(2, 2, 1100, 1000, 0)
+		tm.see(3, 1, 3500, 3500, 0)
+		tm.see(4, 3, 1050, 1050, 0) -- anti-air: its own layer
+		local gs = tm.groups(0, 5)
+		T.eq(#gs, 2, "two ground groups")
+		T.eq(gs[1].power, 600, "the turrets first")
+		T.eq(gs[1].x, 1050, "centre")
+		T.eq(gs[1].static, 600, "static share")
+		T.eq(tm.groups(0, 5, 900, "air")[1].power, 200, "air layer")
+	end,
+	radar_blips_count_until_identified = function()
+		local tm = F.map()
+		tm.seeBlip(50, 1000, 1000, 0)
+		tm.update(0, {}, true)
+		T.eq(tm.threat(1000, 1000), 120, "assumed value")
+		T.eq(tm.enemyPower(1000, 1000, 300, 0), 120)
+		tm.see(50, 2, 1000, 1000, 5) -- identified: a turret
+		tm.update(5, {}, true)
+		T.eq(tm.threat(1000, 1000), 300, "now the real thing")
+		tm.seeBlip(50, 1000, 1000, 9) -- radar again: keeps the identity
+		T.eq(tm.enemies[50].blip, nil)
+	end,
+}

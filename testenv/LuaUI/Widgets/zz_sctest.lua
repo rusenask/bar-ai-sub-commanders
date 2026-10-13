@@ -333,18 +333,20 @@ local function duel(n)
 	elseif duelState.stage == 1 then
 		local cons = ownedBy(ids.eco, "legck")
 		if #cons >= 3 then
-			duelState.stage = 2
-			local zone, dx, dz = towardEnemy(0.22, 1000)
+			-- like strong players: one lab until the economy carries a second (the economy's lab builds the
+			-- army's units meanwhile, and metal piling up gets another lab below)
+			duelState.stage = 3
+			local zone = towardEnemy(0.22, 1000)
 			ids.def = SC.create("defense")
 			SC.assign(ids.def, { cons[1] })
-			SC.clearZones(ids.def)
 			SC.addZone(ids.def, zone)
 			SC.setAI(ids.def, ai)
 			SC.setDirective(ids.def, "hold the side of the base facing the enemy")
-			-- second lab toward the front for the army
-			playerBuild(cons[2], "leglab", cx + dx * 380 - dz * 350, cz + dz * 380 + dx * 350, dx, dz)
-			duelState.lab2Builder = cons[2]
-			out("player: Defense created, second lab ordered")
+			ids.army = SC.create("army")
+			SC.addZone(ids.army, (towardEnemy(0.35, 1100)))
+			SC.setAI(ids.army, ai)
+			SC.setDirective(ids.army, "control our half of the map; attack when we are clearly stronger")
+			out("player: Defense and Army created (one lab: the economy's builds the army)")
 		end
 	elseif duelState.stage == 2 then
 		local labs = byName.leglab or {}

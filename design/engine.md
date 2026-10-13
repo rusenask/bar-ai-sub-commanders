@@ -1,0 +1,116 @@
+# Sub-commander engine: world model, doctrine, squads, autonomy
+
+Status: in progress (phases below). Owner: the improvement loop (`.claude/skills/improve`).
+
+## Why
+
+Measured against BARbarian (CircuitAI) and strong players (docs/research/test-games.md, lessons.md):
+
+- **Medium** beats us with raids from minute 2: no combat units before minute 3, no turret at the
+  extractors, a half-built second lab out front. Extractors peak at 7 and fall; the economy never recovers.
+- **Hard** matches neither of those weaknesses at first: our economy is on strong players' pace until
+  minute 12. Then its concentrated army with artillery trades 7:1 against us. Our units engage one by one,
+  gather under turrets that artillery outranges, retreat late (30% health), and we spend more on turrets
+  than strong players do.
+- Strong players build **one** factory until about minute 8-10, combat units from minute 1, a turret by
+  minute 3, and put metal into the army rather than turrets.
+
+CircuitAI's edge is machinery we don't have: a **threat / influence map** with memory, rebuilt 3x a
+second; **threat-aware pathing**; **squads** with retreat thresholds and power quotas; **doctrine as
+data** (unit mix per income tier, a counter-response matrix, economy ratios); and a **macro curve**
+(build power per income, extractor upgrades). Hard's profile is mostly that data tuned aggressively.
+
+The LLM strategist didn't add raw strength (AI-1, AI-2) and better-predicting models didn't win games
+(design/decision-models.md): the gap is the executor's policy. So the work goes into the executor, with the
+strategist steering it (more often, when it can afford to).
+
+## Architecture
+
+The widget stays the executor (it has to: only the player's client can order the player's units), split
+into modules so each part can be read, tested and extended on its own:
+
+```
+widget/LuaUI/Widgets/gui_subcommanders.lua   ownership, scheduler, jobs, panel, API (the glue)
+widget/LuaUI/Include/
+  sc_unitkinds.lua    unit classification (exists)
+  sc_doctrine.lua     tuning as data: retreat thresholds, engage ratios, unit mix per income tier,
+                      counter matrix, turret budget, economy ratios, autonomy levels
+  sc_threatmap.lua    world model: enemy memory (last seen, decays), threat per cell and layer
+                      (ground / air), our influence, queries (threat at, safe point, front, hotspots)
+  sc_pathing.lua      threat-aware A* over the threat grid (waypoints around danger)
+  sc_squads.lua       army as squads: cohesion, engage / hold / retreat by local power vs threat
+  sc_autozones.lua    areas per role when the player drew no zones
+widget/tests/         plain-Lua unit tests of the modules (make test-lua; stubs for Spring)
+```
+
+Modules are pure where possible: they get what they need through a small context (`defs`, the frame,
+map size, a few engine functions) so they run under plain Lua in tests. A module is a file that returns
+a constructor: `local ThreatMap = VFS.Include("LuaUI/Include/sc_threatmap.lua", nil, VFS.RAW_FIRST)(ctx)`.
+
+### Fast loops (in the widget, every frame budget)
+
+| Loop | Every | What |
+|---|---|---|
+| threat map | 10 frames (3/s) | rebuild threat and influence grids from enemy memory and our units |
+| combat / squads | 30 frames | squad state (gather, engage, hold, retreat), per-unit retreat, targets |
+| builders | 15 frames, 8 per pass | jobs, with threat checks on build spots and builder safety |
+| factories | 30 frames | production by doctrine (tier mix + counter response + hand-offs) |
+| auto zones | 300 frames | recompute role areas for sub-commanders without player zones |
+
+### Slow loop (the bridge)
+
+The strategist reviews each AI-enabled sub-commander. Pacing adapts:
+
+- **active** (threats in its area, losses, new orders): as often as the provider answers, measured as
+  the moving average of its turn time, converted to game time with the measured game speed; never more
+  often than `-urgent`;
+- **calm**: every 2 x `-interval`;
+- a cap on reviews in flight, so a slow provider isn't flooded.
+
+The widget exports a short threat summary (front, hotspots) so the strategist sees the world model too.
+
+## Doctrine (from BARbarian hard and strong players)
+
+| Topic | Value | Source |
+|---|---|---|
+| retreat | constructors at 85% health under fire, fighters at 50%, commander 60% | BARb hard behaviour.json |
+| engage | attack where our local power >= 1.2 x local threat (turrets count); hold >= 0.8 x; else regroup | BARb thr_mod, adapted to metal power |
+| opening | economy lab: constructor, constructor, 2 raiders, then about 1 constructor per 2-3 combat units | BARb factory tier0 (10-25% constructors), strong players |
+| factories | one lab until income >= 25 metal/s or metal overflows; then one more per tier | strong players (1 until min 8-10) |
+| constructors | target 3 + income / 10 (cap 12) | BARb buildpower 1.2, strong players 5-8 |
+| turrets | budget max(300 + 90 x minute, 0.4 x army value); first at exposed extractors from about minute 2.5 | strong players (5 by min 6, ~1.7k at 12), BARb build chain |
+| counters | response matrix: raiders vs scouts / raiders / artillery, skirmishers vs assault, anti-heavy vs heavy, artillery vs turrets, anti-air vs air (caps per kind) | BARb hard response.json |
+
+## Autonomy (per sub-commander: light / balanced / full)
+
+| Role | light | balanced (default) | full |
+|---|---|---|---|
+| economy | its zones only, no factories | + safe expansion, storage, converters | + builds factories by income tier, constructor target by income |
+| defense | turrets only where threats show up | + front line and extractor cover, budgeted | + turret schedule across base and expansions, radar |
+| army | defends its own area | + helps other areas, counter-pushes when clearly stronger | + attacks and raids on its own when the threat map says it wins |
+| air defense | reacts to air seen | + covers valuable structures | + proactive by income |
+| intelligence | radar only | + cameras, scouts | + jammer, hunting enemy intel |
+
+The autopilot (bot opponent) runs everything at **full**.
+
+## Zones are optional
+
+A sub-commander without player-drawn zones gets **auto zones** recomputed by role: economy around our
+structures plus safe metal spots on our side; defense at the base's front and exposed extractors; army at
+the front between base and the enemy (moving with the threat map); air defense over the base; intelligence
+on the approaches. Drawing a zone switches to manual zones; clearing them goes back to auto.
+
+## Phases and how each is measured
+
+1. Structure: modules, doctrine, plain-Lua tests. (no behaviour change)
+2. Threat map + enemy memory; builder safety; threat checks for expansions and build spots.
+3. Opening and macro: economy lab raiders and army hand-off, one lab until income tier, turret budget and
+   extractor cover. Harness and autopilot stop ordering the early second lab.
+4. Squads and counters: cohesion, engage / hold / retreat by power vs threat, 50% retreat, safe rally
+   point, counter-response production.
+5. Autonomy levels and auto zones (panel, API, text commands, strategist tool).
+6. Strategist pacing and threat summary.
+
+Phases 2-4 are measured with 8+ game batches against medium and hard versus the baselines of 2026-10-13
+(`testenv/batch/20261013-1153-baseline-rules`, `-1208-baseline-rules-hard`). Results go to
+docs/research/test-games.md, lessons to docs/research/lessons.md.

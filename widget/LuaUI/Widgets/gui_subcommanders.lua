@@ -114,6 +114,21 @@ end
 
 local defs = VFS.Include("LuaUI/Include/sc_unitkinds.lua", nil, VFS.RAW_FIRST)
 
+-- The engine modules (design/engine.md): doctrine data, the threat map (world model), threat-aware
+-- pathing, squad decisions, production and auto zones. Plain Lua, unit-tested in widget/tests.
+local Engine = {}
+do
+	local function include(name)
+		return VFS.Include("LuaUI/Include/" .. name .. ".lua", nil, VFS.RAW_FIRST)
+	end
+	Engine.D = include("sc_doctrine")
+	Engine.tm = include("sc_threatmap")({ defs = defs, mapX = Game.mapSizeX, mapZ = Game.mapSizeZ, doctrine = Engine.D })
+	Engine.path = include("sc_pathing")(Engine.tm)
+	Engine.squads = include("sc_squads")({ tm = Engine.tm, doctrine = Engine.D })
+	Engine.prod = include("sc_production")({ defs = defs, doctrine = Engine.D })
+	Engine.zones = include("sc_autozones")({ mapX = Game.mapSizeX, mapZ = Game.mapSizeZ })
+end
+
 --------------------------------------------------------------------------------
 -- State
 --------------------------------------------------------------------------------
@@ -706,8 +721,9 @@ local function areaClear(d, x, z, gap, facing)
 	return not blocksFactory(x, z, hx, hz) and not plannedConflict(d, x, z, gap, facing)
 end
 
--- Search outward from (ax, az) for a buildable spot inside the sub's zones.
--- opts: gap, rings, facing, samples, score(x, z) -> number (higher is better)
+-- Search outward from (ax, az) for a buildable spot inside the sub's zones, out of enemy reach unless our
+-- own firepower covers it (threat map).
+-- opts: gap, rings, facing, samples, score(x, z) -> number (higher is better), underFire (allow threat)
 local function findBuildSpot(sub, defID, ax, az, opts)
 	opts = opts or {}
 	local d = defs[defID]
@@ -726,7 +742,8 @@ local function findBuildSpot(sub, defID, ax, az, opts)
 			local x, z = ax + cos(a) * ring * step, az + sin(a) * ring * step
 			if x > 64 and z > 64 and x < MAP_X - 64 and z < MAP_Z - 64 and inSubZones(sub, x, z) then
 				local bx, by, bz = Spring.Pos2BuildPos(defID, x, spGetGroundHeight(x, z), z, facing)
-				if Spring.TestBuildOrder(defID, bx, by, bz, facing) > 0 and not nearMetalSpot(bx, bz, d) and not isBadSpot(bx, bz) and areaClear(d, bx, bz, gap, facing) then
+				if Spring.TestBuildOrder(defID, bx, by, bz, facing) > 0 and not nearMetalSpot(bx, bz, d) and not isBadSpot(bx, bz) and areaClear(d, bx, bz, gap, facing)
+					and (opts.underFire or Engine.tm.threat(bx, bz) <= Engine.tm.influence(bx, bz)) then
 					local s = opts.score and opts.score(bx, bz) or 0
 					if not best or s > best then
 						best, bestX, bestZ = s, bx, bz
@@ -850,14 +867,9 @@ function Jobs.safeExpansion(sub, spot)
 			return false
 		end
 	end
-	for i = #enemySightings, 1, -1 do
-		local e = enemySightings[i]
-		if frame - e.frame > 30 * 90 then
-			break
-		end
-		if dist2(spot.x, spot.z, e.x, e.z) < 900 * 900 then
-			return false
-		end
+	-- the threat map remembers raids (mobile threat fades over ~90 s) and enemy defences
+	if Engine.tm.threat(spot.x, spot.z) > 0 then
+		return false
 	end
 	for _, e in pairs(Enemy.units) do
 		if defs[e.defID].staticDef and dist2(spot.x, spot.z, e.x, e.z) < 800 * 800 then
@@ -887,7 +899,8 @@ function Jobs.mex(sub, unitID, d, ux, uz)
 		local spot = spots[i]
 		local inZone = inSubZones(sub, spot.x, spot.z)
 		-- economy also expands to safe spots on our side of the map beyond its zones
-		if (spotCooldown[i] or 0) <= frame and (inZone or (sub.role == "economy" and not d.commander and Jobs.safeExpansion(sub, spot))) and not plannedConflict(defs[bestMex], spot.x, spot.z, EXTRACTOR_RADIUS) then
+		if (spotCooldown[i] or 0) <= frame and (inZone or (sub.role == "economy" and not d.commander and Engine.auto(sub).expand and Jobs.safeExpansion(sub, spot)))
+			and Engine.tm.threat(spot.x, spot.z) <= Engine.tm.influence(spot.x, spot.z) and not plannedConflict(defs[bestMex], spot.x, spot.z, EXTRACTOR_RADIUS) then
 			local exID, exDef = extractorAt(spot)
 			local upgrade = exID and exDef.mex < bestYield and spGetUnitTeam(exID) == myTeam and not spGetUnitIsBeingBuilt(exID)
 			if not exID or upgrade then
@@ -1079,7 +1092,7 @@ function Jobs.guardTurret(sub, unitID, d, ux, uz)
 	if not best then
 		return false
 	end
-	local x, z = findBuildSpot(sub, o, best[1], best[2], { gap = 16, rings = 5 })
+	local x, z = findBuildSpot(sub, o, best[1], best[2], { gap = 16, rings = 5, underFire = true })
 	if x and issueBuild(sub, unitID, o, x, z, facingToward(x, z, t.x, t.z), "turret: raiders in the economy") then
 		sub.guardTurretFrame = frame
 		return true
@@ -1413,8 +1426,15 @@ function Jobs.defense(sub, unitID, d, ux, uz)
 	if not zone then
 		return false
 	end
+	-- light autonomy: turrets only where threats showed up in the last two minutes
+	if #sub.threats > 0 then
+		sub.lastThreatFrame = frame
+	end
+	if (sub.autonomy or "balanced") == "light" and frame - (sub.lastThreatFrame or -99999) > 30 * 120 then
+		return false
+	end
 	local o = pickDefense(sub, d, false)
-	if not o or not canSpend(sub, defs[o]) then
+	if not o or not canSpend(sub, defs[o]) or not Engine.turretBudget(defs[o].cost) then
 		return false
 	end
 	local limit = max(2, floor(Zone.area(zone) / 250000)) * POSTURE_INFO[sub.posture].density
@@ -1440,6 +1460,114 @@ function Jobs.defense(sub, unitID, d, ux, uz)
 		end,
 	})
 	return x and issueBuild(sub, unitID, o, x, z, facingToward(x, z, ex, ez), "defense toward enemy") or false
+end
+
+-- full autonomy: factories as income grows (strong players run one lab until about 25 metal/s, then add
+-- about one per 22); the first one if there's none. A new lab goes to an Army without one.
+function Jobs.newFactory(sub, unitID, d, ux, uz)
+	if not Engine.auto(sub).factories or not Engine.homeX then
+		return false
+	end
+	local E = Engine.D.economy
+	local have = Engine.factoryCount or 0
+	if d.commander and (have > 0 or frame < 30 * 40) then
+		return false
+	end
+	local income = max(econ.mInc, 0)
+	local want = 1
+	if income >= E.secondFactoryIncome then
+		want = 2 + floor((income - E.secondFactoryIncome) / E.factoryPerIncome)
+	end
+	if econ.mFrac > 0.85 and have > 0 then
+		want = want + 1
+	end
+	if have >= min(want, E.maxFactories) then
+		return false
+	end
+	for _, p in pairs(planned) do
+		if defs[p.defID].factory then
+			return false
+		end
+	end
+	-- the lab type we already have, else a bot lab, else any ground factory it can build
+	local o
+	for _, opt in ipairs(d.options) do
+		local od = defs[opt]
+		if od and od.factory and not makesAircraft(od) then
+			if opt == Engine.labDef then
+				o = opt
+				break
+			end
+			if not o or (UnitDefs[opt].name or ""):find("lab$") then
+				o = opt
+			end
+		end
+	end
+	if not o or (have > 0 and not canSpend(sub, defs[o])) or econ.m < defs[o].cost * 0.25 then
+		return false
+	end
+	-- behind home, away from the enemy
+	local dx, dz = (Engine.enemyX or MAP_X / 2) - Engine.homeX, (Engine.enemyZ or MAP_Z / 2) - Engine.homeZ
+	local len = max(sqrt(dx * dx + dz * dz), 1)
+	local ax, az = clampToMap(Engine.homeX - dx / len * 250, Engine.homeZ - dz / len * 250)
+	local x, z = findBuildSpot(sub, o, ax, az, { gap = 48, rings = 10 })
+	if x and issueBuild(sub, unitID, o, x, z, facingToward(x, z, Engine.enemyX or MAP_X / 2, Engine.enemyZ or MAP_Z / 2), have == 0 and "our first factory" or "another factory: income allows it") then
+		local army = Engine.armyToFeed()
+		getState(unitID).rebuildFor, getState(unitID).newFactory = (army or sub).id, true
+		return true
+	end
+	return false
+end
+
+-- a cheap turret at each exposed extractor cluster (ours, away from home toward the enemy) that has none:
+-- strong players have one up by minute 3 and five by minute 6; raids go for extractors first
+function Jobs.extractorCover(sub, unitID, d, ux, uz)
+	local T = Engine.D.turrets
+	if frame < T.extractorCoverFrom or not Engine.auto(sub).extractorCover or not Engine.homeX then
+		return false
+	end
+	local options = buildableBy(d, function(od)
+		return od.staticDef and not od.aaOnly
+	end)
+	if #options == 0 then
+		return false
+	end
+	tsort(options, function(a, b)
+		return defs[a].cost < defs[b].cost
+	end)
+	local o = options[1]
+	if not canSpend(sub, defs[o], "essential") or not Engine.turretBudget(defs[o].cost) then
+		return false
+	end
+	local exposed = Engine.zones.exposed({ Engine.homeX, Engine.homeZ }, { Engine.enemyX, Engine.enemyZ }, Engine.extractors, 3)
+	local r = T.extractorCoverRadius
+	for _, m in ipairs(exposed) do
+		local covered = false
+		for _, u in ipairs(spGetUnitsInCylinder(m.x, m.z, r)) do
+			local ud = unitDef(u)
+			covered = covered or (ud and ud.staticDef and not ud.aaOnly and spGetUnitTeam(u) == myTeam)
+		end
+		for _, p in pairs(planned) do
+			covered = covered or (defs[p.defID].staticDef and dist2(p.x, p.z, m.x, m.z) < r * r)
+		end
+		if not covered and Engine.tm.threat(m.x, m.z) <= Engine.tm.influence(m.x, m.z) then
+			local ex, ez = enemyDirectionRef(m.x, m.z)
+			local dx, dz = ex - m.x, ez - m.z
+			local len = max(sqrt(dx * dx + dz * dz), 1)
+			local x, z = findBuildSpot(sub, o, m.x + dx / len * 120, m.z + dz / len * 120, { gap = 16, rings = 5, underFire = true })
+			if not x then
+				-- outside its zones: place it anyway, it's covering our extractor
+				local bx, by, bz = Spring.Pos2BuildPos(o, m.x + dx / len * 120, spGetGroundHeight(m.x, m.z), m.z + dz / len * 120, 0)
+				if Spring.TestBuildOrder(o, bx, by, bz, 0) > 0 and not nearMetalSpot(bx, bz, defs[o]) then
+					x, z = bx, bz
+				end
+			end
+			if x and issueBuild(sub, unitID, o, x, z, facingToward(x, z, ex, ez), "covering an exposed extractor") then
+				return true
+			end
+		end
+	end
+	return false
 end
 
 function Jobs.airDefense(sub, unitID, d, ux, uz)
@@ -1833,6 +1961,7 @@ local BUILDER_PLANS = {
 		return Jobs.removeMarked(sub, u, d, x, z)
 			or Jobs.guardTurret(sub, u, d, x, z)
 			or Jobs.rebuildFactory(sub, u, d, x, z)
+			or Jobs.newFactory(sub, u, d, x, z)
 			or Jobs.basicEconomy(sub, u, d, x, z)
 			or (energyWanted() and Jobs.energy(sub, u, d, x, z, false))
 			or Jobs.buildPower(sub, u, d, x, z)
@@ -1848,6 +1977,7 @@ local BUILDER_PLANS = {
 	defense = function(sub, u, d, x, z)
 		return Jobs.removeMarked(sub, u, d, x, z)
 			or Jobs.repair(sub, u, d, x, z)
+			or Jobs.extractorCover(sub, u, d, x, z)
 			or Jobs.radar(sub, u, d, x, z)
 			-- enemy aircraft are a real part of what they field: anti-air on our line too
 			or (Enemy.share("air") > 0.2 and Jobs.airDefense(sub, u, d, x, z))
@@ -1892,6 +2022,86 @@ local BUILDER_PLANS = {
 -- Factories
 --------------------------------------------------------------------------------
 
+-- an Army sub-commander without a factory of its own: the economy's lab builds its units (strong players
+-- run one lab until about minute 8-10)
+function Engine.armyToFeed()
+	for _, s in ipairs(subs) do
+		if s.role == "army" and not s.paused and s.counts.factories == 0 then
+			return s
+		end
+	end
+end
+
+-- the economy's lab: the opening (constructors and raiders in doctrine order), then the income tier's mix
+-- of constructors and combat units; combat units go to an Army without a lab, else stay as a guard
+function Engine.economyProduction(sub, facID, fd, cap)
+	local st = getState(facID)
+	st.handOff, st.handOffCombat, st.openingPending = nil, nil, nil
+	local counts = sub.counts
+	local income = max(econ.mInc, 0)
+	local target = Engine.D.economy.builders(income)
+	if (sub.autonomy or "balanced") == "light" then
+		target = min(target, 3)
+	end
+	if sub.posture == "conserve" then
+		target = min(target, 2)
+	elseif sub.posture == "spend" then
+		target = target + 2
+	end
+	local feed = Engine.D.production.feedArmy and Engine.armyToFeed()
+	local have = {}
+	for k, v in pairs(counts.cats or {}) do
+		have[k] = v
+	end
+	if feed then
+		for k, v in pairs(feed.counts.cats or {}) do
+			if k ~= "constructor" then
+				have[k] = (have[k] or 0) + v
+			end
+		end
+	end
+	local kinds = Enemy.mix().kinds
+	local defID, cat
+	st.openStep = st.openStep or 1
+	local step = frame < 30 * 60 * 6 and Engine.prod.opening(st.openStep)
+	if step then
+		defID, cat = Engine.prod.pick(fd.options, have, income, kinds, { category = step, cap = cap })
+		st.openingPending = defID ~= nil
+	end
+	if not defID then
+		defID, cat = Engine.prod.pick(fd.options, have, income, kinds, { cap = cap, combatOnly = counts.builders >= target })
+	end
+	if not defID then
+		return nil, "nothing affordable"
+	end
+	if cat == "constructor" then
+		return defID, "constructor"
+	end
+	if feed then
+		st.handOff, st.handOffCombat = feed.id, true
+		return defID, "army (for " .. feed.name .. ")"
+	end
+	local guard = sub.posture == "conserve" and 2 or (sub.posture == "spend" and 8 or 4)
+	if counts.combat >= guard and econ.mFrac < 0.75 then
+		st.openingPending = nil
+		return nil, "enough guards"
+	end
+	return defID, step and "opening" or "guard"
+end
+
+-- an Army's own labs: the income tier's mix, moved toward what counters the enemy (sc_production.lua)
+function Engine.armyProduction(sub, fd, cap)
+	local p = POSTURE_INFO[sub.posture]
+	if sub.counts.combat >= p.army * 3 * (econ.mFrac > 0.8 and 2 or 1) then
+		return nil, "at unit cap"
+	end
+	local defID = Engine.prod.pick(fd.options, sub.counts.cats or {}, max(econ.mInc, 0), Enemy.mix().kinds, { cap = cap, combatOnly = true })
+	if not defID then
+		return nil, "nothing affordable"
+	end
+	return defID, "army"
+end
+
 local function pickProduction(sub, facID, fd)
 	local p = POSTURE_INFO[sub.posture]
 	local counts = sub.counts
@@ -1927,16 +2137,10 @@ local function pickProduction(sub, facID, fd)
 				end
 			end
 		end
-		wantBuilder = counts.builders < p.builders
-		-- a small guard against early raids once the first constructors are out
-		local guard = sub.posture == "conserve" and 1 or (sub.posture == "spend" and 4 or 2)
-		if counts.builders >= 3 and counts.combat < guard and (#sub.threats > 0 or Enemy.share("raiders") > 0 or frame > 30 * 150) then
-			wantBuilder = false
-		-- enough constructors: only make fighters (to guard the economy) when metal piles up
-		elseif not wantBuilder and econ.mFrac < 0.75 then
-			return nil, "enough constructors"
-		end
-	elseif sub.role ~= "army" and counts.builders < 1 then
+		return Engine.economyProduction(sub, facID, fd, cap)
+	elseif sub.role == "army" then
+		return Engine.armyProduction(sub, fd, cap)
+	elseif counts.builders < 1 then
 		wantBuilder = true
 	end
 	if wantBuilder then
@@ -2422,6 +2626,9 @@ local function thinkFactory(sub, facID, fd, st)
 		return
 	end
 	order(facID, -defID, {})
+	if st.openingPending then
+		st.openStep, st.openingPending = (st.openStep or 1) + 1, nil
+	end
 	st.factoryNote = defs[defID].human
 	log(sub, sformat("factory: %s (%s)", defs[defID].human, why))
 end
@@ -2473,7 +2680,7 @@ local Tactics = {} -- commander safety, army counter-push and rally point
 -- Counter-push: a clearly stronger army with nothing to defend goes for the nearest known enemy
 -- structure few turrets guard (extractors, radar, expansions), and comes home when that changes.
 function Tactics.updatePush(sub)
-	if sub.role ~= "army" or not sub.armyX or sub.paused then
+	if sub.role ~= "army" or not sub.armyX or sub.paused or not Engine.auto(sub).push then
 		sub.pushTarget = nil
 		return
 	end
@@ -2521,31 +2728,129 @@ function Tactics.updatePush(sub)
 	sub.pushTarget = best
 end
 
--- army rally point: inside the main zone, on its edge toward the enemy
+-- army rally point: the safe edge of our side toward the enemy (threat map), or the edge of a zone the
+-- player drew; never where known enemy weapons reach more than ours (artillery outranges turrets)
 function Tactics.rallyPoint(sub)
-	local zone = largestZone(sub)
-	if not zone then
+	local hx, hz = Engine.homeX, Engine.homeZ
+	if not hx then
 		return nil
 	end
-	local cx, cz = Zone.center(zone)
-	local ex, ez = enemyDirectionRef(cx, cz)
-	local fx, fz = Zone.edgeToward(zone, ex, ez, 250)
-	-- outweighed near the front: gather under our turrets (or the zone centre) instead
-	if Enemy.powerNear(fx, fz, 1400) > sub.counts.power then
-		local sx, sz, n = 0, 0, 0
-		for _, u in ipairs(spGetUnitsInCylinder(cx, cz, 2200)) do
-			local ud = unitDef(u)
-			if ud and ud.staticDef and not ud.aaOnly and spGetUnitTeam(u) == myTeam then
-				local x, _, z = spGetUnitPosition(u)
-				sx, sz, n = sx + x, sz + z, n + 1
+	local rx, rz
+	local zone = not sub.autoZones and largestZone(sub)
+	if zone then
+		local cx, cz = Zone.center(zone)
+		local ex, ez = enemyDirectionRef(cx, cz)
+		rx, rz = Zone.edgeToward(zone, ex, ez, 250)
+	else
+		rx, rz = Engine.squads.rally(hx, hz, Engine.enemyX or MAP_X / 2, Engine.enemyZ or MAP_Z / 2)
+	end
+	local tm = Engine.tm
+	if tm.threat(rx, rz) > tm.influence(rx, rz) then
+		local sx, sz = tm.safePoint(rx, rz, hx, hz)
+		if sx then
+			rx, rz = sx, sz
+		end
+	end
+	return clampToMap(rx, rz)
+end
+
+-- our turrets' value around (x, z): they fight on our side when the army defends there
+local function turretSupport(x, z, r)
+	local v = 0
+	for _, u in ipairs(spGetUnitsInCylinder(x, z, r)) do
+		local ud = unitDef(u)
+		if ud and ud.staticDef and not ud.aaOnly and spGetUnitTeam(u) == myTeam and not spGetUnitIsBeingBuilt(u) then
+			v = v + ud.cost
+		end
+	end
+	return v
+end
+
+-- full autonomy: the nearest enemy group (threat map memory) the squad beats, preferring ones with few
+-- defences (expansions, raiders)
+function Tactics.attackTarget(sub, sq)
+	local best, bestScore
+	for _, g in ipairs(Engine.tm.groups(frame, 8)) do
+		local action = Engine.squads.decide(sq, g.x, g.z, frame, {})
+		if action == "engage" or action == "regroup" then
+			local score = sqrt(dist2(sq.x, sq.z, g.x, g.z)) + g.static * 2
+			if not bestScore or score < bestScore then
+				best, bestScore = { id = "group:" .. floor(g.x / 512) .. ":" .. floor(g.z / 512), x = g.x, z = g.z, name = sformat("enemy group (%d metal)", g.power) }, score
 			end
 		end
-		if n > 0 then
-			return sx / n, sz / n
-		end
-		return cx, cz
 	end
-	return fx, fz
+	return best
+end
+
+local ACTION_TEXT = {
+	engage = "engaging %s (%.1fx their strength)",
+	regroup = "regrouping before %s (%.1fx)",
+	hold = "holding: %s is too strong here (%.1fx)",
+	fallback = "falling back from %s (%.1fx)",
+}
+
+-- the army as one squad (sc_squads.lua), once per combat pass: where its main body is, what it goes for,
+-- and whether to engage, regroup, hold or fall back
+function Tactics.squad(sub)
+	if sub.role ~= "army" then
+		return
+	end
+	local members = {}
+	for u in pairs(sub.units) do
+		local d = unitDef(u)
+		local st = ustate[u]
+		if d and d.combat and not d.aaOnly and not d.air and not spGetUnitIsBeingBuilt(u) and not (st and (st.retreating or st.manual)) then
+			local x, _, z = spGetUnitPosition(u)
+			if x then
+				members[#members + 1] = { id = u, x = x, z = z, cost = d.cost }
+			end
+		end
+	end
+	local S = Engine.squads
+	local sq = S.summarize(members)
+	sub.squad = sq
+	sub.rallyX, sub.rallyZ = Tactics.rallyPoint(sub)
+	if sq.power <= 0 then
+		sub.squadOrder = nil
+		return
+	end
+	local auto = Engine.auto(sub)
+	-- an intruder: in our zones first, then (helping) anywhere in the base
+	local target, targetD
+	local function consider(list, helping)
+		for _, t in ipairs(list) do
+			-- helping elsewhere: not where our turrets and guards already outgun the intruders
+			if not t.air and not (helping and Engine.tm.influence(t.x, t.z) >= 1.5 * Engine.tm.enemyPower(t.x, t.z, 700, frame)) then
+				local dd = dist2(sq.x, sq.z, t.x, t.z)
+				if dd < 4000 * 4000 and (not targetD or dd < targetD) then
+					target, targetD = { id = t.id, x = t.x, z = t.z, name = "intruders" }, dd
+				end
+			end
+		end
+	end
+	consider(sub.threats)
+	if not target and auto.help then
+		consider(baseThreats, true)
+	end
+	local home = target and Engine.inBase(target.x, target.z)
+	if not target and auto.push and sub.pushTarget then
+		local p = sub.pushTarget
+		target = { id = p.id, x = p.x, z = p.z, name = p.name }
+	end
+	if not target and auto.attack and S.canAttack(sq) then
+		target = Tactics.attackTarget(sub, sq)
+	end
+	local prev = sub.squadOrder
+	if not target then
+		sub.squadOrder = nil
+		return
+	end
+	local engaged = prev and prev.id == target.id and prev.action == "engage"
+	local action, ratio = S.decide(sq, target.x, target.z, frame, { home = home, engaged = engaged, support = turretSupport(target.x, target.z, 700) })
+	sub.squadOrder = { action = action, id = target.id, x = target.x, z = target.z, ratio = ratio }
+	if not prev or prev.action ~= action or prev.id ~= target.id then
+		log(sub, sformat(ACTION_TEXT[action], target.name, ratio))
+	end
 end
 
 local function thinkCombat(sub, unitID, d, st, threats)
@@ -2553,68 +2858,75 @@ local function thinkCombat(sub, unitID, d, st, threats)
 	if not x then
 		return
 	end
-	-- badly damaged units worth saving fall back to the zone centre, where constructors repair them
+	-- badly damaged units worth saving fall back out of reach (threat map), where constructors repair them
+	local retreatAt = Engine.squads.retreatAt(d)
 	local hp, maxHp = Spring.GetUnitHealth(unitID)
-	if hp and maxHp and maxHp > 0 then
+	if hp and maxHp and maxHp > 0 and retreatAt then
 		local f = hp / maxHp
 		if st.retreating then
-			if f > 0.8 or frame - st.retreating > 30 * 40 then
+			if f > Engine.D.retreat.back or frame - st.retreating > Engine.D.retreat.maxFrames then
 				st.retreating = nil
 			else
 				return
 			end
-		elseif f < 0.3 and d.cost >= 100 and not d.air then
-			local zone = largestZone(sub)
-			if zone then
-				local zx, zz = Zone.center(zone)
-				if dist2(x, z, zx, zz) > 300 * 300 then
-					order(unitID, CMD.MOVE, { zx, spGetGroundHeight(zx, zz), zz })
-					st.retreating, st.engaged = frame, nil
-					setTask(unitID, "retreat", "falling back to repair", true)
-					return
+		elseif f < retreatAt and Engine.tm.threat(x, z) > 0 then
+			local rx, rz = Engine.tm.safePoint(x, z, Engine.homeX, Engine.homeZ)
+			if not rx then
+				local zone = largestZone(sub)
+				if zone then
+					rx, rz = Zone.center(zone)
 				end
+			end
+			if rx and dist2(x, z, rx, rz) > 200 * 200 then
+				order(unitID, CMD.MOVE, { rx, spGetGroundHeight(rx, rz), rz })
+				st.retreating, st.engaged = frame, nil
+				setTask(unitID, "retreat", "falling back to repair", true)
+				return
 			end
 		end
 	end
-	-- an army chooses from where the army is, so every unit goes for the same enemy
-	local fromX, fromZ = x, z
-	if sub.role == "army" and sub.armyX then
-		fromX, fromZ = sub.armyX, sub.armyZ
+	local busy = (spGetUnitCommandCount(unitID) or 0) > 0
+	-- the army acts as one squad (Tactics.squad)
+	if sub.role == "army" and not d.aaOnly and not d.air then
+		local so, sq = sub.squadOrder, sub.squad
+		if so and so.action == "engage" then
+			if st.engaged ~= so.id or not busy or frame - (st.engagedFrame or 0) > 150 then
+				order(unitID, CMD.FIGHT, { so.x, spGetGroundHeight(so.x, so.z), so.z })
+				st.engaged, st.engagedFrame = so.id, frame
+				setTask(unitID, "engage", "engaging", true)
+			end
+			return
+		end
+		st.engaged = nil
+		if so and so.action == "regroup" and sq and sq.x then
+			if dist2(x, z, sq.x, sq.z) > (Engine.D.engage.cohesion * 0.6) ^ 2 and (not busy or frame - (st.regroupFrame or 0) > 150) then
+				order(unitID, CMD.MOVE, { sq.x, spGetGroundHeight(sq.x, sq.z), sq.z })
+				st.regroupFrame = frame
+				setTask(unitID, "regroup", "regrouping", true)
+			end
+			return
+		end
+		local rx, rz = sub.rallyX, sub.rallyZ
+		if rx and dist2(x, z, rx, rz) > 260 * 260 and (not busy or (st.softUntil and frame > st.softUntil) or (so and so.action == "fallback")) then
+			local a = (unitID % 12) / 12 * 2 * pi
+			local gx, gz = clampToMap(rx + cos(a) * 120, rz + sin(a) * 120)
+			-- falling back: move without stopping to fight; otherwise fight-move
+			order(unitID, (so and so.action == "fallback") and CMD.MOVE or CMD.FIGHT, { gx, spGetGroundHeight(gx, gz), gz })
+			setTask(unitID, "rally", (so and so.action == "fallback") and "falling back" or "gathering", true)
+		end
+		return
 	end
+	-- everyone else (guards, defense, anti-air): the nearest intruder in their zones
 	local target, targetD
 	for i = 1, #threats do
 		local t = threats[i]
 		if (d.aaOnly and t.air) or (not d.aaOnly and (not t.air or d.air)) then
-			local dd = dist2(fromX, fromZ, t.x, t.z)
+			local dd = dist2(x, z, t.x, t.z)
 			if not targetD or dd < targetD then
 				target, targetD = t, dd
 			end
 		end
 	end
-	if not target and sub.role == "army" then
-		-- no intruder in our zones: help the other sub-commanders, if we aren't badly outnumbered
-		for i = 1, #baseThreats do
-			local t = baseThreats[i]
-			if (not t.air or d.air or d.aaOnly) and not (d.aaOnly and not t.air) then
-				local dd = dist2(fromX, fromZ, t.x, t.z)
-				if dd < 3500 * 3500 and (not targetD or dd < targetD) then
-					target, targetD = t, dd
-				end
-			end
-		end
-		if target then
-			-- the combat model's verdict when we have one, else the value rule
-			local p = Decider.fightVerdict(sub, target.x, target.z)
-			if p ~= nil then
-				if p < 0.5 then
-					target = nil
-				end
-			elseif sub.counts.power < 0.8 * Enemy.powerNear(target.x, target.z, 900) then
-				target = nil
-			end
-		end
-	end
-	local busy = (spGetUnitCommandCount(unitID) or 0) > 0
 	if target then
 		if st.engaged ~= target.id or not busy or frame - (st.engagedFrame or 0) > 150 then
 			order(unitID, CMD.FIGHT, { target.x, spGetGroundHeight(target.x, target.z), target.z })
@@ -2624,27 +2936,6 @@ local function thinkCombat(sub, unitID, d, st, threats)
 		return
 	end
 	st.engaged = nil
-	if sub.role == "army" and sub.pushTarget then
-		local p = sub.pushTarget
-		if st.pushing ~= p.id or not busy or frame - (st.pushFrame or 0) > 300 then
-			order(unitID, CMD.FIGHT, { p.x, spGetGroundHeight(p.x, p.z), p.z })
-			st.pushing, st.pushFrame = p.id, frame
-			setTask(unitID, "push", "pushing " .. p.name, true)
-		end
-		return
-	end
-	st.pushing = nil
-	if sub.role == "army" then
-		-- gather: the army waits together at its rally point instead of spreading out on patrol
-		local rx, rz = Tactics.rallyPoint(sub)
-		if rx and (not busy or (st.softUntil and frame > st.softUntil)) and dist2(x, z, rx, rz) > 260 * 260 then
-			local a = (unitID % 12) / 12 * 2 * pi
-			local gx, gz = clampToMap(rx + cos(a) * 120, rz + sin(a) * 120)
-			order(unitID, CMD.FIGHT, { gx, spGetGroundHeight(gx, gz), gz })
-			setTask(unitID, "rally", "gathering", true)
-		end
-		return
-	end
 	if not busy or (st.softUntil and frame > st.softUntil) or (#sub.zones > 0 and not inSubZones(sub, x, z, 900)) then
 		patrolZone(sub, unitID, x, z)
 	end
@@ -2685,11 +2976,14 @@ local function createSub(role, name)
 		threats = {},
 		ai = false,
 		removals = {}, -- own structures to reclaim: unitID -> true
+		autonomy = "balanced", -- light / balanced / full (sc_doctrine.lua)
+		autoZones = true, -- no zones drawn: work where its role calls for (sc_autozones.lua)
 	}
 	sub.color = PALETTE[sub.colorIndex]
 	subs[#subs + 1] = sub
 	activeSub = sub
 	log(sub, "created (" .. ROLE_INFO[role].label .. ")")
+	Engine.updateAutoZones(sub)
 	return sub
 end
 
@@ -2764,7 +3058,7 @@ local function addUnit(sub, unitID, opts)
 end
 
 local function autoZone(sub, unitIDs)
-	if #sub.zones > 0 then
+	if #sub.zones > 0 or sub.autoZones then
 		return
 	end
 	local sx, sz, n = 0, 0, 0
@@ -2836,6 +3130,48 @@ local function setPosture(sub, posture)
 	log(sub, "posture: " .. POSTURE_INFO[posture].label)
 end
 
+-- autonomy: how much a sub-commander does on its own (sc_doctrine.lua autonomy levels)
+function Engine.setAutonomy(sub, level)
+	if not Engine.D.autonomy[level] or level == "levels" or level == "labels" then
+		return false
+	end
+	sub.autonomy = level
+	log(sub, "autonomy: " .. Engine.D.autonomy.labels[level])
+	return true
+end
+
+-- auto zones: recomputed from the base, the enemy's direction, exposed extractors and the army's rally
+function Engine.updateAutoZones(sub)
+	if not sub.autoZones or not Engine.homeX then
+		return
+	end
+	local rally
+	if sub.role == "army" and sub.rallyX then
+		rally = { sub.rallyX, sub.rallyZ }
+	end
+	sub.zones = Engine.zones.forRole(sub.role, {
+		home = { Engine.homeX, Engine.homeZ },
+		enemy = { Engine.enemyX or MAP_X / 2, Engine.enemyZ or MAP_Z / 2 },
+		extractors = Engine.extractors,
+		rally = rally,
+	})
+end
+
+-- the player (or the strategist) draws a zone: from now on zones are theirs
+function Engine.manualZones(sub)
+	if sub.autoZones then
+		sub.autoZones = false
+		sub.zones = {}
+	end
+end
+
+function Engine.useAutoZones(sub)
+	sub.autoZones = true
+	sub.zones = {}
+	Engine.updateAutoZones(sub)
+	log(sub, "zones: automatic (by role)")
+end
+
 local function setRole(sub, role)
 	if not ROLE_INFO[role] then
 		return
@@ -2849,6 +3185,7 @@ local function setRole(sub, role)
 		local st = getState(u)
 		st.task, st.nextThink = nil, frame
 	end
+	Engine.updateAutoZones(sub)
 	log(sub, "role: " .. ROLE_INFO[role].label)
 end
 
@@ -2866,13 +3203,17 @@ end
 --------------------------------------------------------------------------------
 
 local function updateCounts(sub)
-	local c = { builders = 0, factories = 0, combat = 0, nanos = 0, statics = 0, total = 0, scouts = 0, intelUnits = 0, power = 0 }
+	local c = { builders = 0, factories = 0, combat = 0, nanos = 0, statics = 0, total = 0, scouts = 0, intelUnits = 0, power = 0, cats = {} }
 	local spendM, spendE = 0, 0
 	local sx, sz, sn = 0, 0, 0
 	for u in pairs(sub.units) do
 		local d = unitDef(u)
 		if d then
 			c.total = c.total + 1
+			local cat = Engine.prod.category(d)
+			if cat then
+				c.cats[cat] = (c.cats[cat] or 0) + 1
+			end
 			if d.scout or (d.air and not d.armed and not d.transport) then
 				c.scouts = c.scouts + 1
 			elseif d.mobile and not d.builder and (d.jammer > 0 or d.radarRange > 0) and not d.armed then
@@ -3033,6 +3374,46 @@ function Tactics.guardCommander(sub, unitID, st)
 	return true
 end
 
+-- Constructors (BARbarian retreats them at 85% health): leave when enemy firepower reaches them that ours
+-- doesn't cover, and enemies are close or they're getting hurt; fall back to the nearest safe point
+-- toward home (threat map) and come back when it's clear.
+function Tactics.builderSafety(sub, unitID, d, st)
+	if st.fleeing and frame - st.fleeing < 30 * 10 then
+		return true
+	end
+	st.fleeing = nil
+	local x, _, z = spGetUnitPosition(unitID)
+	if not x then
+		return false
+	end
+	local tm = Engine.tm
+	local threat = tm.threat(x, z)
+	if threat <= 0 or threat <= tm.influence(x, z) then
+		return false
+	end
+	local hp, maxHp = Spring.GetUnitHealth(unitID)
+	local hurt = hp and maxHp and hp < maxHp * Engine.D.retreat.builder
+	if not hurt and tm.enemyPower(x, z, 700, frame) <= 0 then
+		return false
+	end
+	local sx, sz = tm.safePoint(x, z, Engine.homeX, Engine.homeZ)
+	if not sx then
+		sx, sz = Engine.homeX, Engine.homeZ
+	end
+	if not sx or dist2(x, z, sx, sz) < 64 * 64 then
+		return false
+	end
+	order(unitID, CMD.MOVE, { sx, spGetGroundHeight(sx, sz), sz })
+	planned[unitID] = nil
+	st.fleeing = frame
+	setTask(unitID, "flee", "falling back from enemies", true)
+	if frame - (sub.builderFleeNoted or -99999) > 30 * 30 then
+		sub.builderFleeNoted = frame
+		log(sub, "constructor pulled back from enemies")
+	end
+	return true
+end
+
 local function thinkBuilder(sub, unitID, d, st)
 	local x, _, z = spGetUnitPosition(unitID)
 	if not x then
@@ -3074,6 +3455,8 @@ local function runSub(sub, budget, combatPass)
 				if d.builder then
 					if d.commander and ((combatPass and Tactics.guardCommander(sub, unitID, st)) or (st.fleeing and frame - st.fleeing < 30 * 15)) then
 						-- the commander is getting out of danger
+					elseif not d.commander and ((combatPass and Tactics.builderSafety(sub, unitID, d, st)) or (st.fleeing and frame - st.fleeing < 30 * 10)) then
+						-- a constructor is getting out of danger
 					elseif budget > 0 and builderNeedsThink(unitID, st) then
 						thinkBuilder(sub, unitID, d, st)
 						budget = budget - 1
@@ -3213,6 +3596,9 @@ local function summarize(sub)
 		name = sub.name,
 		role = sub.role,
 		posture = sub.posture,
+		autonomy = sub.autonomy or "balanced",
+		autoZones = sub.autoZones or false,
+		squad = sub.squadOrder and { action = sub.squadOrder.action, ratio = floor(sub.squadOrder.ratio * 10) / 10, target = { x = floor(sub.squadOrder.x), z = floor(sub.squadOrder.z) } } or nil,
 		paused = sub.paused,
 		ai = sub.ai or false,
 		directive = sub.directive,
@@ -3590,14 +3976,19 @@ local function exportAPI()
 		addZone = function(id, zone)
 			local sub = findSub(id)
 			if sub and zone and (zone.kind == "rect" or zone.kind == "circle") then
+				Engine.manualZones(sub)
 				sub.zones[#sub.zones + 1] = zone
 				log(sub, "zone added")
 			end
 		end,
+		setAutonomy = function(id, level)
+			local sub = findSub(id)
+			return sub and Engine.setAutonomy(sub, level) or false
+		end,
 		clearZones = function(id)
 			local sub = findSub(id)
 			if sub then
-				sub.zones = {}
+				Engine.useAutoZones(sub)
 				log(sub, "zones cleared")
 			end
 		end,
@@ -3684,8 +4075,9 @@ local HELP = {
 	"  assign [id]      give selected units to the active (or given) sub-commander",
 	"  release          take selected units back",
 	"  zone [id]        drag on the map to add a zone (shift keeps drawing)",
-	"  clearzones [id]  remove all zones",
+	"  clearzones [id]  remove the drawn zones: back to automatic zones by role",
 	"  role <role> [id] / posture <conserve|balanced|spend> [id]",
+	"  autonomy <light|balanced|full> [id]   how much it does on its own",
 	"  focus [id]       factory produces only the selected unit types (none selected = automatic)",
 	"  pause [id] / resume [id] / delete [id] / select [id] / list",
 	"  tell [id] <orders>   standing orders in plain words for its AI strategist (empty = clear)",
@@ -3790,7 +4182,7 @@ local function textCommand(_, line, words)
 		end
 	else
 		local sub
-		if verb == "role" or verb == "posture" or verb == "ai" then
+		if verb == "role" or verb == "posture" or verb == "ai" or verb == "autonomy" then
 			sub = target(3)
 		elseif verb == "tell" then
 			sub = tonumber(words[2]) and findSub(tonumber(words[2])) or activeSub
@@ -3809,9 +4201,12 @@ local function textCommand(_, line, words)
 			end
 		elseif verb == "zone" then
 			startZoneTool(sub)
-		elseif verb == "clearzones" then
-			sub.zones = {}
-			log(sub, "zones cleared")
+		elseif verb == "clearzones" or verb == "autozones" then
+			Engine.useAutoZones(sub)
+		elseif verb == "autonomy" then
+			if not Engine.setAutonomy(sub, words[2] or "") then
+				spEcho("Sub-Commanders: autonomy is light, balanced or full")
+			end
 		elseif verb == "role" then
 			setRole(sub, words[2])
 		elseif verb == "posture" then
@@ -3993,6 +4388,13 @@ local function drawActiveControls(sub, x1, x2, y, s)
 		end, sub.paused and { 1, 0.6, 0.2 } or nil },
 	}, fs)
 	y = y - h - 4 * s
+	local AL = Engine.D.autonomy
+	buttonRow(x1, x2, y, h, s, {
+		{ "Autonomy: " .. AL.labels[sub.autonomy or "balanced"], function(button)
+			Engine.setAutonomy(sub, cycle(AL.levels, sub.autonomy or "balanced", button == 3 and -1 or 1))
+		end, (sub.autonomy == "full") and { 0.55, 1, 0.6 } or nil },
+	}, fs)
+	y = y - h - 4 * s
 	local drawing = zoneTool and zoneTool.sub == sub
 	buttonRow(x1, x2, y, h, s, {
 		{ drawing and "Drawing…" or "+ Zone", function()
@@ -4002,10 +4404,9 @@ local function drawActiveControls(sub, x1, x2, y, s)
 				startZoneTool(sub)
 			end
 		end, drawing and sub.color or nil },
-		{ "Clear zones", function()
-			sub.zones = {}
-			log(sub, "zones cleared")
-		end },
+		{ sub.autoZones and "Zones: auto" or "Auto zones", function()
+			Engine.useAutoZones(sub)
+		end, sub.autoZones and { 0.6, 0.85, 1 } or nil },
 		{ sub.focus and "Focus: set" or "Focus: auto", function()
 			setFocus(sub, selectedDefIDs())
 		end, sub.focus and { 0.5, 0.9, 1 } or nil },
@@ -4269,7 +4670,11 @@ function widget:DrawWorldPreUnit()
 	for _, sub in ipairs(subs) do
 		local isActive = sub == activeSub
 		for _, zone in ipairs(sub.zones) do
-			drawZone(zone, sub.color, isActive and 0.9 or 0.45, isActive and 3 or 2)
+			if not zone.auto then
+				drawZone(zone, sub.color, isActive and 0.9 or 0.45, isActive and 3 or 2)
+			elseif isActive then
+				drawZone(zone, sub.color, 0.35, 1)
+			end
 		end
 	end
 	drawPlans()
@@ -4402,6 +4807,7 @@ function widget:MouseRelease(x, y, button)
 		local sub = zoneTool.sub
 		local z = zoneDrag
 		local w, h = abs(z.x2 - z.x1), abs(z.z2 - z.z1)
+		Engine.manualZones(sub)
 		if w < 96 and h < 96 then
 			local cx, cz = clampToMap(z.x1, z.z1)
 			sub.zones[#sub.zones + 1] = { kind = "circle", x = cx, z = cz, r = 700 }
@@ -4490,7 +4896,8 @@ function widget:UnitCreated(unitID, unitDefID, unitTeam, builderID)
 			bst.rebuildFor = nil
 			addUnit(target, unitID)
 			getState(unitID).graceUntil = math.huge
-			log(target, d.human .. " is being rebuilt for me")
+			log(target, d.human .. (bst.newFactory and " is being built for me" or " is being rebuilt for me"))
+			bst.newFactory = nil
 			return
 		end
 		log(sub, d.human .. " stays yours: assign it to me if I should produce with it")
@@ -4498,12 +4905,14 @@ function widget:UnitCreated(unitID, unitDefID, unitTeam, builderID)
 	end
 	-- built for another sub-commander that had no constructor left
 	local fst = ustate[builderID]
-	if fst and fst.handOff and d and d.builder then
+	if fst and fst.handOff and d and (d.builder or (fst.handOffCombat and d.combat)) then
 		local target = findSub(fst.handOff)
-		fst.handOff = nil
+		fst.handOff, fst.handOffCombat = nil, nil
 		if target then
 			sub = target
-			log(target, "received a constructor from " .. owner[builderID].name)
+			if d.builder then
+				log(target, "received a constructor from " .. owner[builderID].name)
+			end
 		end
 	end
 	addUnit(sub, unitID)
@@ -4554,6 +4963,7 @@ function widget:UnitDestroyed(unitID, unitDefID, unitTeam)
 		Enemy.units[unitID] = nil
 		Enemy.known = Enemy.known - 1
 	end
+	Engine.tm.forget(unitID)
 end
 
 function widget:UnitTaken(unitID, unitDefID, unitTeam, newTeam)
@@ -4652,7 +5062,19 @@ function widget:UnitEnteredLos(unitID, unitTeam)
 				Enemy.known = Enemy.known + 1
 			end
 			e.last, e.x, e.z = frame, x, z
+			Engine.tm.see(unitID, defID, x, z, frame)
 		end
+	end
+end
+
+-- radar contacts we can't identify yet still count in the threat map (as a typical armed unit)
+function widget:UnitEnteredRadar(unitID, unitTeam)
+	if unitTeam and Spring.AreTeamsAllied(unitTeam, myTeam) then
+		return
+	end
+	local x, _, z = spGetUnitPosition(unitID)
+	if x then
+		Engine.tm.seeBlip(unitID, x, z, frame)
 	end
 end
 
@@ -4663,6 +5085,7 @@ function Enemy.prune()
 		if not defs[e.defID].mobile and Spring.IsPosInLos(e.x, 0, e.z, myAlly) and not spGetUnitPosition(u) then
 			Enemy.units[u] = nil
 			Enemy.known = Enemy.known - 1
+			Engine.tm.forget(u)
 		elseif not oldestFrame or e.last < oldestFrame then
 			oldest, oldestFrame = u, e.last
 		end
@@ -4673,12 +5096,129 @@ function Enemy.prune()
 	end
 end
 
+-- The world model, 3 times a second: where the enemies we can see are now (the ones we can't keep their
+-- last position and fade), our armed units and defences, and the threat / influence grids.
+function Engine.refreshWorld(n)
+	local tm = Engine.tm
+	for u, e in pairs(tm.enemies) do
+		if not e.static then
+			local x, _, z = spGetUnitPosition(u)
+			if x then
+				e.x, e.z, e.last = x, z, n
+			end
+		end
+	end
+	local own, turrets, army = {}, 0, 0
+	for _, u in ipairs(Spring.GetTeamUnits(myTeam) or {}) do
+		local d, defID = unitDef(u)
+		if d and d.armed and not d.builder and not spGetUnitIsBeingBuilt(u) then
+			local x, _, z = spGetUnitPosition(u)
+			if x then
+				own[#own + 1] = { defID = defID, x = x, z = z }
+				if d.staticDef then
+					turrets = turrets + d.cost
+				elseif d.mobile then
+					army = army + d.cost
+				end
+			end
+		end
+	end
+	tm.update(n, own, true)
+	Engine.turretValue, Engine.armyValue = turrets, army
+	if n - (Engine.homeFrame or -9999) >= 300 then
+		Engine.homeFrame = n
+		Engine.refreshHome()
+	end
+end
+
+-- home: the centre of our factories (else the commander, else our start); the enemy: where they come from
+function Engine.refreshHome()
+	local sx, sz, n, cx, cz = 0, 0, 0, nil, nil
+	local extractors = {}
+	local factories, labDef = 0, nil
+	for _, u in ipairs(Spring.GetTeamUnits(myTeam) or {}) do
+		local d, defID = unitDef(u)
+		if d and d.factory then
+			factories = factories + 1
+			labDef = labDef or defID
+		end
+		if d and d.mex > 0 and not spGetUnitIsBeingBuilt(u) then
+			local x, _, z = spGetUnitPosition(u)
+			if x then
+				extractors[#extractors + 1] = { x = x, z = z }
+			end
+		end
+		if d and (d.factory or d.commander) then
+			local x, _, z = spGetUnitPosition(u)
+			if x then
+				if d.factory then
+					sx, sz, n = sx + x, sz + z, n + 1
+				else
+					cx, cz = x, z
+				end
+			end
+		end
+	end
+	if n > 0 then
+		Engine.homeX, Engine.homeZ = sx / n, sz / n
+	elseif cx and not Engine.homeX then
+		Engine.homeX, Engine.homeZ = cx, cz
+	elseif not Engine.homeX then
+		local x, _, z = Spring.GetTeamStartPosition(myTeam)
+		Engine.homeX, Engine.homeZ = x or MAP_X / 2, z or MAP_Z / 2
+	end
+	Engine.enemyX, Engine.enemyZ = enemyDirectionRef(Engine.homeX, Engine.homeZ)
+	Engine.extractors = extractors
+	Engine.factoryCount, Engine.labDef = factories, labDef or Engine.labDef
+end
+
+-- turrets have a budget (strong players put their metal into the army): metal of turrets we have plus
+-- the one we'd add, against sc_doctrine's turrets.budget(minute, army value)
+function Engine.turretBudget(extra)
+	local planned_ = 0
+	for _, p in pairs(planned) do
+		if defs[p.defID].staticDef and not defs[p.defID].aaOnly then
+			planned_ = planned_ + defs[p.defID].cost
+		end
+	end
+	return (Engine.turretValue or 0) + planned_ + (extra or 0) <= Engine.D.turrets.budget(Engine.minute(), Engine.armyValue or 0)
+end
+
+function Engine.minute()
+	return frame / 1800
+end
+
+-- the sub-commander's autonomy settings (sc_doctrine.lua: light / balanced / full)
+function Engine.auto(sub)
+	return Engine.D.autonomy[sub.autonomy or "balanced"] or Engine.D.autonomy.balanced
+end
+
+-- is (x, z) in our base: near home, or inside a non-army sub-commander's zones
+function Engine.inBase(x, z)
+	if Engine.homeX and dist2(x, z, Engine.homeX, Engine.homeZ) < 1500 * 1500 then
+		return true
+	end
+	for _, sub in ipairs(subs) do
+		if sub.role ~= "army" and sub.role ~= "intelligence" then
+			for _, zone in ipairs(sub.zones) do
+				if Zone.contains(zone, x, z, 200) then
+					return true
+				end
+			end
+		end
+	end
+	return false
+end
+
 --------------------------------------------------------------------------------
 -- Main loop
 --------------------------------------------------------------------------------
 
 function widget:GameFrame(n)
 	frame = n
+	if n - Engine.tm.builtFrame >= Engine.D.threat.every then
+		Engine.refreshWorld(n)
+	end
 	if n % THINK_EVERY ~= 0 then
 		return
 	end
@@ -4690,6 +5230,9 @@ function widget:GameFrame(n)
 	end
 	if n % 300 == 0 then
 		Enemy.prune()
+		for _, sub in ipairs(subs) do
+			Engine.updateAutoZones(sub)
+		end
 	end
 	-- forget stale plans
 	for unitID, p in pairs(planned) do
@@ -4712,6 +5255,7 @@ function widget:GameFrame(n)
 	if combatPass then
 		for _, sub in ipairs(subs) do
 			Tactics.updatePush(sub)
+			Tactics.squad(sub)
 		end
 	end
 	local budget = MAX_THINKS_PER_PASS
@@ -4741,7 +5285,7 @@ local function serialize()
 				focus[#focus + 1] = defs[defID].name
 			end
 		end
-		out[#out + 1] = { id = sub.id, name = sub.name, role = sub.role, posture = sub.posture, paused = sub.paused, zones = sub.zones, colorIndex = sub.colorIndex, units = units, focus = focus, ai = sub.ai, directive = sub.directive }
+		out[#out + 1] = { id = sub.id, name = sub.name, role = sub.role, posture = sub.posture, paused = sub.paused, zones = not sub.autoZones and sub.zones or {}, autoZones = sub.autoZones or false, autonomy = sub.autonomy, colorIndex = sub.colorIndex, units = units, focus = focus, ai = sub.ai, directive = sub.directive }
 	end
 	return out
 end
@@ -4763,6 +5307,13 @@ local function restore(game)
 		sub.ai = s.ai and true or false
 		sub.directive = s.directive
 		sub.zones = s.zones or {}
+		-- older saves have no flag: zones were drawn (or claimed) by then
+		if s.autoZones ~= nil then
+			sub.autoZones = s.autoZones
+		else
+			sub.autoZones = #sub.zones == 0
+		end
+		sub.autonomy = Engine.D.autonomy[s.autonomy or ""] and s.autonomy or "balanced"
 		sub.colorIndex = s.colorIndex or sub.colorIndex
 		sub.color = PALETTE[sub.colorIndex] or sub.color
 		for _, pair in ipairs(s.units or {}) do

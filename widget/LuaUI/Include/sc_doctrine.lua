@@ -1,0 +1,99 @@
+-- Sub-Commanders doctrine: the executor's tuning as data (design/engine.md).
+-- Values come from BARbarian's hard profile (ref/bar/luarules/configs/BARb/stable/config/hard) and from
+-- strong players' replays (docs/research/pro-playbook.md), adapted to metal-value power. Change numbers
+-- here, not in the code; measure every change with an A/B batch (.claude/skills/ab-test).
+-- usage: local doctrine = VFS.Include("LuaUI/Include/sc_doctrine.lua", nil, VFS.RAW_FIRST)
+
+local D = {}
+
+-- health fraction below which a unit leaves the fight (BARb hard: builder 0.85, fighter 0.5)
+D.retreat = {
+	builder = 0.85, -- constructors under fire
+	fighter = 0.5,
+	commander = 0.6,
+	minCost = 60, -- cheaper units fight on
+	back = 0.9, -- health at which a retreated unit returns
+	maxFrames = 30 * 45, -- give up waiting for repairs after this
+}
+
+-- squad decisions, as ratios of our local power to the enemy's local threat (metal value; our turrets
+-- count on our side, theirs on theirs)
+D.engage = {
+	attack = 1.2, -- start a fight away from home only this much stronger
+	hold = 0.8, -- keep fighting while at least this strong
+	defend = 0.5, -- inside our base, with turret support, fight down to this
+	radius = 700, -- "local": around the target / the squad
+	cohesion = 650, -- units farther than this from the squad centre regroup first
+	minAttack = 1200, -- metal value of the smallest squad that attacks on its own (BARb quota.attack)
+	raid = { 250, 900 }, -- [min, max] metal value of a raid squad (BARb quota.raid)
+}
+
+-- threat map
+D.threat = {
+	cell = 256, -- elmos per cell
+	every = 10, -- frames between rebuilds (3 a second, like CircuitAI)
+	margin = 120, -- added to weapon range
+	mobileMemory = 30 * 90, -- a mobile enemy's threat fades over this long after it was last seen
+	staticMemory = 30 * 60 * 10, -- static defences are remembered much longer
+	fresh = 30 * 8, -- seen this recently: full weight
+	minRange = 200, -- treat short-ranged and unknown weapons as at least this
+	blip = { cost = 120, range = 350 }, -- what an unidentified radar contact is assumed to be
+}
+
+-- production by income tier: shares of what a factory makes (BARb hard factory.json tiers, adapted to
+-- unit kinds). `income` is the lower bound of the tier's metal income.
+D.production = {
+	tiers = {
+		{ income = 0, constructor = 0.25, raider = 0.45, assault = 0.30 },
+		{ income = 12, constructor = 0.2, raider = 0.25, assault = 0.4, skirmisher = 0.15 },
+		{ income = 25, constructor = 0.15, raider = 0.1, assault = 0.35, skirmisher = 0.2, heavy = 0.2 },
+		{ income = 40, constructor = 0.15, raider = 0.05, assault = 0.25, skirmisher = 0.2, heavy = 0.3, artillery = 0.05 },
+	},
+	-- the first lab's opening: constructors and raiders in this order before the tier mix takes over
+	opening = { "constructor", "constructor", "raider", "raider", "constructor" },
+	-- combat units the economy lab sends to an Army sub-commander that has no factory of its own
+	feedArmy = true,
+}
+
+-- counter-response (BARb hard response.json): our kind -> enemy kinds it answers, with weights, and the
+-- most of our army it may make up
+D.response = {
+	raider = { vs = { scout = 2.0, raider = 1.0, artillery = 0.5 }, max = 0.6 },
+	assault = { vs = { raider = 0.9, skirmisher = 0.4, turret = 0.3 }, max = 0.8 },
+	skirmisher = { vs = { assault = 0.8, heavy = 0.5, skirmisher = 0.7 }, max = 0.8 },
+	heavy = { vs = { assault = 0.5, skirmisher = 0.7, heavy = 1.5, turret = 0.3 }, max = 0.6 },
+	artillery = { vs = { turret = 1.0, ["long-range artillery"] = 0.5 }, max = 0.2 },
+	["mobile anti-air"] = { vs = { gunship = 1.0, bomber = 1.0, fighter = 0.5 }, max = 0.25 },
+}
+D.responseWeight = 0.6 -- how much the counter matrix moves the tier mix (0 = tier mix only)
+
+-- factories, constructors, economy
+D.economy = {
+	secondFactoryIncome = 25, -- strong players run one lab until about minute 8-10
+	factoryPerIncome = 22, -- then about one more lab per this much metal income
+	maxFactories = 5,
+	builders = function(income) -- constructor target (BARb buildpower 1.2; strong players 5-8)
+		return math.min(12, math.floor(3 + income / 10))
+	end,
+	energyPerMetal = 12, -- energy income to aim for per metal income (strong players 10-16)
+}
+
+-- turrets: a budget instead of filling zones (strong players: ~5 turrets by minute 6, ~1.7k metal at 12)
+D.turrets = {
+	budget = function(minute, armyValue)
+		return math.max(300 + 90 * minute, 0.4 * armyValue)
+	end,
+	extractorCoverFrom = 30 * 150, -- first turret at exposed extractors from about minute 2.5
+	extractorCoverRadius = 450,
+}
+
+-- autonomy levels: what a sub-commander does on its own
+D.autonomy = {
+	levels = { "light", "balanced", "full" },
+	labels = { light = "Light", balanced = "Balanced", full = "Full" },
+	light = { expand = false, factories = false, help = false, push = false, attack = false, proactiveTurrets = false, extractorCover = false },
+	balanced = { expand = true, factories = false, help = true, push = true, attack = false, proactiveTurrets = false, extractorCover = true },
+	full = { expand = true, factories = true, help = true, push = true, attack = true, proactiveTurrets = true, extractorCover = true },
+}
+
+return D

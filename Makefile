@@ -2,7 +2,7 @@ BAR_DIR ?= $(HOME)/Library/Application Support/Beyond-All-Reason-mac
 MODEL ?= lightning/deepseek-v4.1-flash
 BAR_REF ?= 8247b61
 
-.PHONY: build install run up down restart logs test-game test-batch test-bridge play-vs report compare benchmarks decider-deploy decider-eval ref lint
+.PHONY: build install run up down restart logs test-game test-batch test-bridge play-vs report compare benchmarks test-lua decider-deploy decider-eval ref lint
 
 build:
 	go build -o bin/scbridge ./cmd/scbridge
@@ -74,9 +74,13 @@ test-bridge:
 		-e SCBRIDGE_MODEL=$${MODEL:-$$(sed -n 's/^MODEL=//p' .env)} -e SCBRIDGE_DECIDER_URL=$(DECIDER_URL) \
 		$(TEST_BRIDGE_ARGS) bar-scbridge:test
 
-lint:
-	luac -p widget/LuaUI/Widgets/*.lua testenv/LuaUI/Widgets/*.lua
+lint: test-lua
+	luac -p widget/LuaUI/Widgets/*.lua widget/LuaUI/Include/*.lua testenv/LuaUI/Widgets/*.lua
 	go vet ./...
+
+# unit tests of the widget's engine modules (widget/LuaUI/Include) under plain Lua
+test-lua:
+	lua widget/tests/run.lua widget/tests/*_test.lua
 
 # BAR game source at the installed version, for API reference
 ref:
