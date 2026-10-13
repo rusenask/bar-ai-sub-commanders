@@ -28,3 +28,4 @@ play/*
 !testenv/worker.sh
 !testenv/force-batch.sh
 !testenv/force/
+!testenv/force-replays.sh

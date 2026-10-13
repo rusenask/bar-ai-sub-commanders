@@ -5,6 +5,8 @@
 //	gamereport -compare batch/A batch/B          # A/B arms side by side, one directory per arm
 //	gamereport -bench-from testenv/data/pro      # rebuild the strong players' benchmark from replay logs
 //	gamereport -json testenv/batch/latest        # the report as JSON (for agents); -compare -json too
+//	gamereport -micro testenv/data/pro [-json]   # how strong players' units move and shoot, by kind,
+//	                                             # and the D.micro.kinds doctrine that follows
 //	gamereport -timeline testenv/batch/latest/3.txt [-json]  # one game minute by minute: economy,
 //	                                             # losses and kills by kind, squad / raid decisions
 package main
@@ -31,9 +33,23 @@ func main() {
 	benchDesc := flag.String("bench-desc", "strong players' 1v1s (both rated 30+, BAR replays)", "benchmark description")
 	playbookOut := flag.String("playbook-out", "docs/research/pro-playbook.md", "with -bench-from: where to write what strong players build and when")
 	asJSON := flag.Bool("json", false, "print JSON (report, compare, timeline) instead of markdown / text")
+	micro := flag.String("micro", "", "directory of data logger JSONL files: per-kind unit behaviour and doctrine")
 	timeline := flag.Bool("timeline", false, "each argument is one game's harness log: show it minute by minute")
 	flag.Parse()
 
+	if *micro != "" {
+		samples, err := analysis.ReadMicro(*micro)
+		if err != nil {
+			log.Fatal(err)
+		}
+		kinds := analysis.MicroByKind(samples, 50)
+		if *asJSON {
+			printJSON(kinds)
+			return
+		}
+		fmt.Printf("%d micro samples\n\n%s\nSuggested D.micro:\n\n%s", len(samples), analysis.MicroText(kinds), analysis.MicroDoctrine(kinds))
+		return
+	}
 	if *benchFrom != "" {
 		buildBenchmark(*benchFrom, *benchOut, *benchDesc, *playbookOut)
 		return

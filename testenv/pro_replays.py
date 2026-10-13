@@ -1,6 +1,8 @@
 """Fetch replays of strong players' 1v1 games from BAR's public replay archive, with what they need to play.
 
 usage: uv run --with certifi python testenv/pro_replays.py [--pages 5] [--min-skill 30] [--max 20]
+On the force host (testenv/force/README.md): BAR_PRD=~/bar-sim/engine/pr-downloader BAR_DATA=~/bar-sim/data
+BAR_DEMOS=~/bar-sim/demos python3 pro_replays.py ... (system CA certificates; certifi optional)
 
 For each human 1v1 that ended normally, on the installed engine, longer than 8 minutes, where both players
 are rated at least --min-skill: downloads the replay into testenv/demos/pro/, and its map and game version
@@ -18,15 +20,18 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-import certifi
+try:
+    import certifi
+except ImportError:  # Linux: the system's CA certificates
+    certifi = None
 
 API = "https://api.bar-rts.com/replays"
 STORAGE = "https://storage.uk.cloud.ovh.net/v1/AUTH_10286efc0d334efd917d476d7183232e/BAR/demos"
 ENGINE = "2026.07.04"
-PRD = "/Applications/BAR Launcher.app/Contents/MacOS/pr-downloader"
-BAR = Path.home() / "Library/Application Support/Beyond-All-Reason-mac"
-OUT = Path(__file__).resolve().parent / "demos/pro"
-CTX = ssl.create_default_context(cafile=certifi.where())
+PRD = os.environ.get("BAR_PRD", "/Applications/BAR Launcher.app/Contents/MacOS/pr-downloader")
+BAR = Path(os.environ.get("BAR_DATA", Path.home() / "Library/Application Support/Beyond-All-Reason-mac"))
+OUT = Path(os.environ.get("BAR_DEMOS", Path(__file__).resolve().parent / "demos/pro"))
+CTX = ssl.create_default_context(cafile=certifi.where()) if certifi else ssl.create_default_context()
 
 
 def get(url):

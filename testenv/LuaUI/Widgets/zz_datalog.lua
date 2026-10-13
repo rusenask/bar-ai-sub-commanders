@@ -6,6 +6,9 @@
 --   unit:   a combat unit when finished; its team's situation; damage it dealt over its life (valued at
 --           the victims' metal cost per hit point), until it died, 8 minutes passed or the game ended
 --   turret: the same for static defences, plus where it stands
+--   micro:  how a combat unit near an enemy moves and shoots (sampled): distance to the nearest armed enemy
+--           against both ranges, moving toward or away from it, firing, what it targets, how far ahead of
+--           or behind its group it stands: the per-kind doctrine of sc_micro.lua comes from these
 -- Enabled when datalog.txt exists in the write dir (testenv/collect.sh writes it).
 function widget:GetInfo()
 	return { name = "ZZ Decision Data Logger", layer = 101, enabled = true }
@@ -30,6 +33,8 @@ local CONTACT = 700 -- an armed unit with an enemy this close is in contact
 local GROUP = 900 -- our units this close to the contact centre belong to the group
 local ENEMY_RADIUS = 1100 -- enemies this close to the centre are the opposition
 local UNIT_HORIZON = 30 * 60 * 8
+local MICRO_EVERY = 90 -- frames between micro scans
+local MICRO_PER_TEAM = 25 -- units sampled per team and scan (in contact only)
 
 local function write(t)
 	if out then
@@ -389,6 +394,64 @@ local function scanFights(frame)
 	end
 end
 
+-- micro: up to MICRO_PER_TEAM combat units per team within 1.5x their range of an armed enemy
+local function round2(v)
+	return floor(v * 100 + 0.5) / 100
+end
+
+local function scanMicro(frame)
+	for team in pairs(teams) do
+		local list = Spring.GetTeamUnits(team) or {}
+		local n, picked = #list, 0
+		local first = n > 0 and math.random(n) or 1
+		for k = 0, n - 1 do
+			if picked >= MICRO_PER_TEAM then
+				break
+			end
+			local u = list[(first + k - 1) % n + 1]
+			local d = defs[Spring.GetUnitDefID(u) or -1]
+			if isArmedMobile(d) and d.range > 0 and not Spring.GetUnitIsBeingBuilt(u) then
+				local e = Spring.GetUnitNearestEnemy(u, d.range * 1.5, false)
+				local ed = e and defs[Spring.GetUnitDefID(e) or -1]
+				if ed and ed.armed then
+					local x, _, z = spGetUnitPosition(u)
+					local ex, _, ez = spGetUnitPosition(e)
+					local dx, dz = ex - x, ez - z
+					local dist = max(sqrt(dx * dx + dz * dz), 1)
+					-- moving toward (+1) or away from (-1) the enemy, as a share of top speed
+					local vx, _, vz = Spring.GetUnitVelocity(u)
+					local radial = ((vx or 0) * dx + (vz or 0) * dz) / dist * 30 / max(d.speed, 1)
+					-- reloading = fired within its reload time
+					local reload = Spring.GetUnitWeaponState(u, 1, "reloadState")
+					local firing = reload and reload > frame or false
+					local tType, _, target = Spring.GetUnitWeaponTarget(u, 1)
+					local tStatic
+					if tType == 1 and target then
+						local td = defs[Spring.GetUnitDefID(target) or -1]
+						tStatic = td and not td.mobile or false
+					end
+					-- ahead (+) of or behind (-) the armed units of its own team within 600, toward the enemy
+					local sx, sz, m = 0, 0, 0
+					for _, a in ipairs(Spring.GetUnitsInCylinder(x, z, 600, team)) do
+						local ad = defs[Spring.GetUnitDefID(a) or -1]
+						if isArmedMobile(ad) then
+							local ax, _, az = spGetUnitPosition(a)
+							sx, sz, m = sx + ax, sz + az, m + 1
+						end
+					end
+					local ahead = m > 1 and ((x - sx / m) * dx + (z - sz / m) * dz) / dist or 0
+					local hp, maxHp = Spring.GetUnitHealth(u)
+					write({ type = "micro", game = gameKey, frame = frame, team = team, name = d.name, kind = d.kind, tech = d.tech,
+						cost = cost(d), range = floor(d.range), speed = floor(d.speed), dist = floor(dist), eRange = floor(ed.range),
+						eKind = ed.kind, eStatic = not ed.mobile, approach = round2(max(-1.5, min(1.5, radial))),
+						hp = round2((hp or 0) / max(maxHp or 1, 1)), firing = firing, tStatic = tStatic, ahead = floor(ahead), group = m })
+					picked = picked + 1
+				end
+			end
+		end
+	end
+end
+
 local function settleFights(frame)
 	for i = #pendingFights, 1, -1 do
 		local f = pendingFights[i]
@@ -433,6 +496,9 @@ function widget:GameFrame(n)
 	end
 	if n % FIGHT_EVERY == 0 then
 		scanFights(n)
+	end
+	if n % MICRO_EVERY == 45 then
+		scanMicro(n)
 	end
 	if n % 1800 == 0 and n > 0 then
 		logEconomy(n)
@@ -485,5 +551,5 @@ function widget:Initialize()
 	math.randomseed(os.time())
 	gameKey = os.date("%Y%m%d-%H%M%S") .. "-" .. math.random(1000, 9999)
 	out = io.open("datalog.jsonl", "w")
-	write({ type = "start", game = gameKey, map = Game.mapName, mapX = Game.mapSizeX, mapZ = Game.mapSizeZ, version = 3 })
+	write({ type = "start", game = gameKey, map = Game.mapName, mapX = Game.mapSizeX, mapZ = Game.mapSizeZ, version = 4 })
 end

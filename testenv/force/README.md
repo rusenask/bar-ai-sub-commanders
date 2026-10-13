@@ -29,3 +29,18 @@ games' raw output is in `remote/`. Widget errors are flagged the same way (`WIDG
 The harness is copied with `setmaxspeed 20` raised to 1000 (nothing renders, so the game runs as fast as
 the CPU allows); everything else is the same files as a local batch. The only error in a headless log is
 BAR's own picture-in-picture minimap widget (needs shaders), harmless.
+
+## Strong players' replays
+
+```sh
+ssh force 'cd bar-sim && BAR_PRD=$HOME/bar-sim/engine/pr-downloader BAR_DATA=$HOME/bar-sim/data \
+  BAR_DEMOS=$HOME/bar-sim/demos python3 pro_replays.py --pages 40 --max 150'   # fetch (scp pro_replays.py first)
+python3 testenv/force/sync_games.py $(game versions the manifest lists) > /tmp/f.txt  # see below
+testenv/force-replays.sh                     # play them all with the logger -> testenv/data/pro/
+go run ./cmd/gamereport -micro testenv/data/pro   # per-kind unit behaviour and the D.micro it suggests
+```
+
+Maps download on force; game versions don't (the rapid streamer answers force with an HTTP error), so
+fetch them on the Mac (`pr-downloader --download-game "<version>"` with the PRD_* variables in
+pro_replays.py) and copy them with `testenv/force/sync_games.py` and rsync. A replay whose game or map is
+missing logs "no data (... Dependent archive ...)".

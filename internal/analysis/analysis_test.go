@@ -184,3 +184,38 @@ func TestWidgetCrashFinding(t *testing.T) {
 		t.Errorf("findings %+v", f)
 	}
 }
+
+func TestMicro(t *testing.T) {
+	var log strings.Builder
+	for i := 0; i < 60; i++ {
+		// skirmishers: fire from ~0.9 of their range, back off at ~0.5 from short-range enemies
+		log.WriteString(`{"type":"micro","kind":"skirmisher","range":600,"dist":540,"eRange":200,"approach":0,"hp":1,"firing":true,"ahead":-50,"group":4}` + "\n")
+		log.WriteString(`{"type":"micro","kind":"skirmisher","range":600,"dist":300,"eRange":200,"approach":-0.8,"hp":0.9,"firing":true,"ahead":-50,"group":4}` + "\n")
+		// heavies: close in, ahead of the group
+		log.WriteString(`{"type":"micro","kind":"heavy","range":300,"dist":150,"eRange":600,"approach":0.8,"hp":0.7,"firing":true,"ahead":150,"group":4}` + "\n")
+		log.WriteString(`{"type":"micro","kind":"hover heavy","range":300,"dist":250,"eRange":200,"approach":0.1,"hp":0.4,"firing":false,"ahead":150,"group":4}` + "\n")
+	}
+	s, err := parseMicro(strings.NewReader(log.String() + `{"type":"fight"}` + "\n"))
+	if err != nil || len(s) != 240 {
+		t.Fatal(err, len(s))
+	}
+	kinds := MicroByKind(s, 50)
+	if len(kinds) != 2 {
+		t.Fatalf("kinds %+v", kinds)
+	}
+	by := map[string]MicroKind{}
+	for _, k := range kinds {
+		by[k.Kind] = k
+	}
+	sk, hv := by["skirmisher"], by["heavy"]
+	if sk.Hold != 0.9 || sk.Kite < 0.99 || sk.KiteAt != 0.5 {
+		t.Errorf("skirmisher %+v", sk)
+	}
+	if hv.Close < 0.99 || hv.Ahead != 150 || hv.Samples != 120 {
+		t.Errorf("heavy %+v", hv)
+	}
+	doc := MicroDoctrine(kinds)
+	if !strings.Contains(doc, `["skirmisher"] = { hold = 0.90, kite = 0.50`) || !strings.Contains(doc, `["heavy"] = { hold = 0.50, kite = false, front = true`) {
+		t.Errorf("doctrine:\n%s", doc)
+	}
+}
