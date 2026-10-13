@@ -30,7 +30,12 @@ return {
 	end,
 	phases = function()
 		local t = team()
-		local base = { minute = 3, income = 10, armyPower = 500, enemyArmy = 0, baseUnderAttack = 0, techLab = false, techReady = false }
+		local base = { minute = 3, income = 10, armyPower = 500, enemyArmy = 0, baseUnderAttack = 0, techLab = false, techReady = false, frame = 0 }
+		local phase = t.phase
+		t.phase = function(s) -- each step well after the last: no hysteresis here
+			s.frame = s.frame + 100000
+			return phase(s)
+		end
 		T.eq(t.phase(base).phase, "opening")
 		base.minute = 10
 		T.eq(t.phase(base).phase, "expand")
@@ -45,5 +50,23 @@ return {
 		T.eq(t.phase(base).phase, "defend", "the base is under attack")
 		T.ok(t.plan.why:find("attack"), "with a reason")
 		T.ok(t.plan.base, "raids pause")
+	end,
+	hysteresis = function()
+		local t = team()
+		local s = { minute = 10, income = 20, armyPower = 6000, enemyArmy = 1000, baseUnderAttack = 0, techLab = true, techReady = false, frame = 30 * 600 }
+		T.eq(t.phase(s).phase, "push")
+		s.enemyArmy, s.frame = 8000, s.frame + 30 * 10
+		T.eq(t.phase(s).phase, "push", "an army that just showed up doesn't flip the plan at once")
+		s.frame = s.frame + 30 * 60
+		T.eq(t.phase(s).phase, "defend", "it does once the plan held long enough")
+		s.enemyArmy, s.baseUnderAttack, s.frame = 0, 0, s.frame + 30
+		T.eq(t.phase(s).phase, "defend")
+		s.baseUnderAttack = 2000
+		T.eq(t.phase(s).phase, "defend")
+		local u = team()
+		local q = { minute = 10, income = 20, armyPower = 6000, enemyArmy = 1000, baseUnderAttack = 0, techLab = true, techReady = false, frame = 30 * 600 }
+		T.eq(u.phase(q).phase, "push")
+		q.baseUnderAttack, q.frame = 2000, q.frame + 30
+		T.eq(u.phase(q).phase, "defend", "the base attacked: at once")
 	end,
 }

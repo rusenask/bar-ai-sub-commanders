@@ -16,7 +16,7 @@ local max, sqrt = math.max, math.sqrt
 return function(ctx)
 	local D = ctx.doctrine
 	local P = D.team
-	local T = { requests = {}, nextID = 1, plan = { phase = "opening", why = "the first minutes" } }
+	local T = { requests = {}, nextID = 1, plan = { phase = "opening", why = "the first minutes" }, since = 0 }
 
 	-- post (or refresh) a request. req: { kind, from, x, z, need, note }. Returns the request.
 	function T.post(req, frame)
@@ -75,7 +75,9 @@ return function(ctx)
 
 	-- the team's phase from the game's state:
 	-- s = { minute, income, armyPower, enemyArmy (strongest known enemy group, metal), baseUnderAttack
-	--       (enemy metal inside our base), techLab (we have one), techReady (conditions for tier 2) }
+	--       (enemy metal inside our base), techLab (we have one), techReady (conditions for tier 2), frame }
+	-- A phase holds for doctrine.team.hold frames (estimates of their army come and go: v18 flipped
+	-- between push and defend ten times a game) unless the base itself comes under attack.
 	function T.phase(s)
 		local plan
 		if s.baseUnderAttack >= P.defendBase or (s.enemyArmy > 0 and s.enemyArmy > s.armyPower * P.defendRatio) then
@@ -89,6 +91,13 @@ return function(ctx)
 			plan = { phase = "tech", why = "the economy carries tier 2" }
 		else
 			plan = { phase = "expand", why = "take safe metal, grow production" }
+		end
+		local frame = s.frame or 0
+		if plan.phase ~= T.plan.phase and frame - T.since < (P.hold or 0) and not plan.base and T.plan.phase ~= "opening" then
+			return T.plan
+		end
+		if plan.phase ~= T.plan.phase then
+			T.since = frame
 		end
 		T.plan = plan
 		return plan

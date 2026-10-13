@@ -58,6 +58,7 @@ D.team = {
 	pushMin = 4000, -- and at least this big
 	requestLife = 30 * 45, -- a request nobody refreshes expires
 	mergeRadius = 900,
+	hold = 30 * 45, -- a plan holds this long unless the base is attacked
 	defendTurrets = 1.5, -- the turret budget while the team defends
 	defendResponders = 1.5, -- the response squad's share of the army while the team defends
 }

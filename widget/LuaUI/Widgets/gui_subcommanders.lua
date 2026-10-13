@@ -3448,7 +3448,7 @@ function Engine.refreshTeam()
 	local prev = team.plan.phase
 	local plan = team.phase({
 		minute = Engine.minute(), income = income, armyPower = Engine.armyValue or 0, enemyArmy = enemyArmy,
-		baseUnderAttack = inBase, techLab = Engine.haveTechLab(),
+		baseUnderAttack = inBase, techLab = Engine.haveTechLab(), frame = frame,
 		techReady = income >= E.t2Income or (frame >= 30 * 60 * E.t2Minute and income >= E.t2MinIncome),
 	})
 	if plan.phase ~= prev then
