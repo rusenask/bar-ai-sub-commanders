@@ -41,6 +41,12 @@ Strategist arms (`BATCH_SCENARIO=duel LOCKSTEP=1 SPEED=10`) use one worker and a
 player (`MAP`, and the faction in `testenv/script_vsai.txt`, as needed); self-play against our own bot:
 `HOST_DIR=testenv SCENARIO=duelrules YOU=Legion BOT=Cortex play/vs.sh` (the host's log is the harness log).
 
+## When a fix lands mid-batch
+
+If a fix for something seen in the games (by you or the player watching) is committed while a batch runs,
+stop that batch (`pkill -f "[b]atch.sh"; pkill -f "[t]estenv/run.sh"; pkill -9 -f "[M]acOS/spring"`),
+note it in its `meta.txt`, and start one with the newest widgets. Old arms only repeat known mistakes.
+
 ## Judging
 
 Look at, in order: games lost, damage dealt / taken, metal produced, constructors lost, the pace at 8 and
