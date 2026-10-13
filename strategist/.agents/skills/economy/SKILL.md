@@ -69,6 +69,10 @@ Reports carry a **Pace** line: our metal and energy income against strong player
 
 ## Expansion
 
+- **Corner first, outproduce later.** BARbarian is strongest early (raids) and its economy is weak late:
+  secure safe metal (the corner behind our base, against map edges) before contested spots in the middle,
+  and win the long game on production. The executor already prefers corner and rear spots; extend zones
+  toward the middle only once the army controls it.
 - **Fewer sides to defend.** Strong players grow the base against the map edge, cliffs and water, and hold
   the few passable approaches. The report's `territory` counts our exposed frontier (edge cells enemies can
   walk to) and lists the pickets (the approaches worth holding). Prefer expansions that keep the territory

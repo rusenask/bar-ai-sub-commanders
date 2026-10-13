@@ -88,4 +88,13 @@ return {
 		local ps = t.pickets(1, { 2000, 2000 }, { 7000, 2000 }, nil)
 		T.ok(ps[1] and ps[1].x > 2000, "the picket holds the side facing the gap")
 	end,
+	expansion_prefers_the_corner = function()
+		local t = terr()
+		local home, enemy = { 6500, 1500 }, { 1500, 6500 } -- we are top-right, they bottom-left
+		local corner = t.spotCost(7800, 400, home, enemy) -- behind us, in the corner
+		local side = t.spotCost(6500, 3000, home, enemy) -- toward the middle
+		local forward = t.spotCost(5000, 3000, home, enemy) -- toward them
+		T.ok(corner < side and side < forward, string.format("corner %.0f < side %.0f < forward %.0f", corner, side, forward))
+		T.ok(forward > 1000, "a forward spot costs over 1000 elmos of walking")
+	end,
 }

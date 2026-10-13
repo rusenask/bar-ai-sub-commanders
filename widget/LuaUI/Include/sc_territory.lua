@@ -158,6 +158,22 @@ return function(ctx)
 		return v
 	end
 
+	-- how much an expansion at (x, z) costs in safety, in elmos (added to the walking distance): spots
+	-- toward the enemy cost more, spots behind home and against the map's edges and corners cost less.
+	-- Strong players fill their corner first (fewer sides to defend) and take the middle later.
+	function T.spotCost(x, z, home, enemy)
+		local hx, hz = home[1], home[2]
+		local ex, ez = enemy[1] - hx, enemy[2] - hz
+		local len = max(sqrt(ex * ex + ez * ez), 1)
+		local along = ((x - hx) * ex + (z - hz) * ez) / len -- how far toward the enemy
+		local cost = max(0, along) * 1.2 - max(0, -along) * 0.4
+		-- the nearest map edges: a spot near one edge is sheltered on that side, a corner on two
+		local dx = min(x, ctx.mapX - x)
+		local dz = min(z, ctx.mapZ - z)
+		cost = cost - max(0, 1500 - dx) * 0.4 - max(0, 1500 - dz) * 0.4
+		return cost
+	end
+
 	-- the n best frontier points to hold, at least `spacing` apart. home, enemy: { x, z }; sectors: 8
 	-- intrusion counts around home (sector 1 = west, then clockwise: north-west, north, ...), may be nil.
 	-- score = (1 + facing the enemy) x (1 + intrusions from that side) x what it protects

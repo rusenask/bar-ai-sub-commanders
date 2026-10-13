@@ -925,7 +925,9 @@ function Jobs.mex(sub, unitID, d, ux, uz)
 			local exID, exDef = extractorAt(spot)
 			local upgrade = exID and exDef.mex < bestYield and spGetUnitTeam(exID) == myTeam and not spGetUnitIsBeingBuilt(exID)
 			if not exID or upgrade then
-				candidates[#candidates + 1] = { i = i, spot = spot, d = dist2(ux, uz, spot.x, spot.z) + (upgrade and 400 * 400 or 0) + (inZone and 0 or 700 * 700) }
+				-- walking distance plus safety: the corner and behind home before the middle (sc_territory)
+				local safety = (sub.role == "economy" and Engine.homeX) and Engine.terr.spotCost(spot.x, spot.z, { Engine.homeX, Engine.homeZ }, { Engine.enemyX or MAP_X / 2, Engine.enemyZ or MAP_Z / 2 }) or 0
+				candidates[#candidates + 1] = { i = i, spot = spot, d = sqrt(dist2(ux, uz, spot.x, spot.z)) + (upgrade and 400 or 0) + (inZone and 0 or 700) + safety }
 			end
 		end
 	end
