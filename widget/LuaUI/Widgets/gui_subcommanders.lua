@@ -1600,11 +1600,20 @@ function Jobs.airPlant(sub, unitID, d, ux, uz)
 	if not wantTier then
 		return false
 	end
-	local o
+	-- the plant that makes the most kinds of planes (a drone plant makes one), the higher tier on a tie
+	local o, oScore
 	for _, opt in ipairs(d.options) do
 		local od = defs[opt]
-		if od and od.factory and makesAircraft(od) and (od.tech or 1) >= wantTier and not (od.name or ""):find("sy$") and (not o or (od.tech or 1) > (defs[o].tech or 1)) then
-			o = opt
+		if od and od.factory and makesAircraft(od) and (od.tech or 1) >= wantTier and not (od.name or ""):find("sy$") then
+			local opts = {}
+			for _, b in ipairs(od.options or {}) do
+				opts[#opts + 1] = defs[b]
+			end
+			local _, n = Engine.air.classes(opts)
+			local score = n * 10 + (od.tech or 1)
+			if not oScore or score > oScore then
+				o, oScore = opt, score
+			end
 		end
 	end
 	if not o or not canSpend(sub, defs[o]) or econ.m < defs[o].cost * 0.25 then
@@ -2672,8 +2681,27 @@ function Engine.airForceProduction(sub, fd, cap)
 			have[c] = (have[c] or 0) + 1
 		end
 	end
-	local want = A.want(have, Enemy.share("air"))
-	for _, class in ipairs({ want, "gunship", "bomber", "fighter" }) do
+	local opts = {}
+	for _, b in ipairs(fd.options or {}) do
+		if defs[b] and defs[b].cost <= cap then
+			opts[#opts + 1] = defs[b]
+		end
+	end
+	local available = A.classes(opts)
+	if not sub.airClassesNoted then
+		sub.airClassesNoted = true
+		local list = {}
+		for c in pairs(available) do
+			list[#list + 1] = c
+		end
+		tsort(list)
+		log(sub, fd.human .. " makes: " .. (#list > 0 and tconcat(list, ", ") or "no planes we use"))
+	end
+	local want = A.want(have, Enemy.share("air"), available)
+	if not want then
+		return nil, "no aircraft to build"
+	end
+	for _, class in ipairs({ want }) do
 		local options = buildableBy(fd, function(od)
 			return A.class(od) == class and od.cost <= cap
 		end)

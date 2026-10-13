@@ -34,6 +34,15 @@ return {
 		T.eq(A.want({ scout = 1, fighter = 1, bomber = 1 }, 0), "gunship")
 		T.eq(A.want({ scout = 1, fighter = 3, bomber = 3, gunship = 3 }, 0), "bomber")
 		T.eq(A.want({ scout = 1, fighter = 3, bomber = 3, gunship = 3 }, 0.4), "fighter", "they fly: more fighters")
+		-- only what the plant makes
+		local noScouts = { fighter = true, bomber = true, gunship = true }
+		T.eq(A.want({}, 0, noScouts), "fighter", "no scout planes here: skip them")
+		T.eq(A.want({ fighter = 1 }, 0, { fighter = true, gunship = true }), "gunship", "no bombers: gunships")
+		T.eq(A.want({ gunship = 5 }, 0, { bomber = true }), "bomber")
+		T.eq(A.want({}, 0, {}), nil)
+		local cls, n = A.classes({ { air = true, mobile = true, armed = true, kind = "gunship" }, { air = true, mobile = true, armed = true, aaOnly = true }, { air = true, mobile = true, builder = true } })
+		T.eq(n, 2)
+		T.ok(cls.fighter and cls.gunship and not cls.bomber)
 	end,
 	strikes_avoid_and_clear_anti_air = function()
 		local A = air()

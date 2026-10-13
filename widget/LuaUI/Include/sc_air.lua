@@ -34,22 +34,43 @@ return function(ctx)
 		return d.kind == "bomber" and "bomber" or "gunship"
 	end
 
-	-- what to build next. have: class -> count; enemyAir: the share of their units that fly. A scout
-	-- first, then fighters up to their share (more when the enemy flies), then bombers and gunships.
-	function A.want(have, enemyAir)
+	-- what to build next. have: class -> count; enemyAir: the share of their units that fly; available:
+	-- class -> true for what the plant can build (nil = everything). A scout first, then fighters up to
+	-- their share (more when the enemy flies), then bombers and gunships. Classes the plant can't build
+	-- are skipped (v21: a plant without scout planes built nothing but gunships, the scout never came).
+	function A.want(have, enemyAir, available)
 		local P = D.air
-		if (have.scout or 0) < P.scouts then
+		local function ok(c)
+			return not available or available[c]
+		end
+		if ok("scout") and (have.scout or 0) < P.scouts then
 			return "scout"
 		end
 		local fighters, gunships, bombers = have.fighter or 0, have.gunship or 0, have.bomber or 0
 		local share = min(P.maxFighters, max(P.fighters, (enemyAir or 0) * 1.5))
-		if fighters < share * (fighters + gunships + bombers + 1) then
+		if ok("fighter") and fighters < share * (fighters + gunships + bombers + 1) then
 			return "fighter"
 		end
-		if bombers < P.bombers * (gunships + bombers + 1) then
+		if ok("bomber") and (bombers < P.bombers * (gunships + bombers + 1) or not ok("gunship")) then
 			return "bomber"
 		end
-		return "gunship"
+		if ok("gunship") then
+			return "gunship"
+		end
+		return ok("fighter") and "fighter" or nil
+	end
+
+	-- the classes a factory's options cover (class -> true) and how many: picks the plant that makes the
+	-- whole air force, not a drone plant. options: list of defs
+	function A.classes(options)
+		local out, n = {}, 0
+		for _, d in ipairs(options) do
+			local c = A.class(d)
+			if c and not out[c] then
+				out[c], n = true, n + 1
+			end
+		end
+		return out, n
 	end
 
 	local function dist(x1, z1, x2, z2)
