@@ -226,3 +226,17 @@ Reports in `testenv/batch/<dir>/report.md` (gamereport: pace against 26 strong p
 (about minute 12-20), and the rest of each game was played without sub-commanders. Seen in v18 (game 2's
 status froze at minute 12; spring's log: `Removed widget: Sub-Commanders`); v15 and v17 used the same
 code (v16 mostly never reached the hand-off: its lab built Infestors). Re-measured in v19.
+
+## v19: team plan + commander modes, crash fixed (first clean run since v14)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261013-1843-engine-v14-responders | 16 | 7 timeout, 9 loss | 2 | 75.4k | 136 / 457 | 0.69 | 15.8 | 11.5 | 4.5k |
+| 20261013-2044-engine-v19-team-fixed | 7 | 6 timeout, 1 loss | 0 | 180.1k | 194 / 471 | 0.83 | 12.0 | 11 | 5.3k |
+
+- 6/7 alive at 45 min (stopped at 7 for v20). The economy now scales: 150-240 metal/s by minute 35,
+  armies of 150k by 45. But no wins: metal at the storage cap, turrets stay T1 (the per-area mix was
+  full), the Economy kept ~130 guards at home, and the 200-unit army chased raiders at home during the
+  push. The one loss: BARbarian's Hammer push at minute 17 took both labs past a 7k army.
+- v20 spends it: turret mix grows with income, tier 2 constructors for Defense, an Army air wing,
+  surplus guards to the Army, push ignores small raids.
