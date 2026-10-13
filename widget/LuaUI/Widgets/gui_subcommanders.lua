@@ -2473,7 +2473,8 @@ function Engine.economyProduction(sub, facID, fd, cap)
 	if cat == "constructor" then
 		return defID, "constructor"
 	end
-	if feed then
+	-- the commander's escort first (v20: every unit went to the Army, the commander died alone twice)
+	if feed and counts.combat >= Engine.D.economy.escorts then
 		st.handOff, st.handOffCombat = feed.id, true
 		return defID, "army (for " .. feed.name .. ")"
 	end
@@ -6691,7 +6692,7 @@ function Engine.escort(sub, unitID)
 		tsort(list, function(a, b)
 			return a.d < b.d
 		end)
-		for i = 1, min(2, #list) do
+		for i = 1, min(Engine.D.economy.escorts, #list) do
 			Engine.escorts[list[i].u] = true
 		end
 	end

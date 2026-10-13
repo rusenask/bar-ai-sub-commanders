@@ -86,8 +86,9 @@ return {
 		T.eq(P.turretNeed({ light = 1 }, 1, 0, { light = true }), "light", "only what it can build")
 		T.eq(P.turretNeed({}, 1, late, { long = true }), "long")
 		-- a big economy: more heavy and long-range turrets per area, not more light ones
+		T.eq(P.turretNeed({ light = 3, heavy = 2, long = 1 }, 1, late, nil, 40), nil, "not below 50 metal/s: production first")
 		T.eq(P.turretNeed({ light = 3, heavy = 2, long = 1 }, 1, late, nil, 100), "heavy", "rich: the mix grows")
-		T.eq(P.turretNeed({ light = 3, heavy = 6, long = 3 }, 1, late, nil, 100), nil, "3x heavy and long at 100 metal/s")
+		T.eq(P.turretNeed({ light = 3, heavy = 4, long = 2 }, 1, late, nil, 100), nil, "2x heavy and long at 100 metal/s")
 		T.eq(P.mixScale("light", 500), 1)
 		T.eq(P.mixScale("heavy", 1000), 4, "capped")
 	end,

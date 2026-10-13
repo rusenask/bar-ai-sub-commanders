@@ -121,6 +121,7 @@ D.responseWeight = 0.6 -- how much the counter matrix moves the tier mix (0 = ti
 
 -- factories, constructors, economy
 D.economy = {
+	escorts = 2, -- combat units the economy keeps with the commander before it feeds the Army
 	secondFactoryIncome = 25, -- strong players run one lab until about minute 8-10
 	factoryPerIncome = 22, -- then about one more lab per this much metal income
 	maxFactories = 5, -- tunable by the strategist (e.g. 1 to stop new labs)
@@ -166,6 +167,8 @@ D.turrets = {
 -- spending a big economy (v19: 150-240 metal/s by minute 35, metal at the storage cap, T1 turrets only,
 -- 130 idle guards): the defences grow and harden, Defense gets tier 2, the Army gets an air wing
 D.escalation = {
+	mixFrom = 50, -- the turret mix grows only above this income (below it production comes first: v20
+	-- grew it from 30 metal/s, metal never piled up, no second lab, and the commander died alone)
 	mixPerIncome = 50, -- each area's heavy and long-range turret shares grow by one per this much income
 	mixMax = 4, -- at most this many times the base mix
 	t2DefenseIncome = 60, -- Defense asks for a tier 2 constructor (harder turrets) from this income

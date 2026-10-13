@@ -176,7 +176,7 @@ return function(ctx)
 		if role == "light" or not X then
 			return 1
 		end
-		return math.min(X.mixMax, 1 + math.max(income or 0, 0) / X.mixPerIncome)
+		return math.min(X.mixMax, 1 + math.max((income or 0) - (X.mixFrom or 0), 0) / X.mixPerIncome)
 	end
 
 	-- which turret role an area needs next: the one furthest below its share of the mix.
