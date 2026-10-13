@@ -36,6 +36,14 @@ Name the turret types you want with `set_focus` when the default mix is wrong fo
 - The line holds far better when the Army fights next to it: if the army keeps fighting in the open in
   front of your turrets, tell the player.
 
+## What strong players do (26 rated 1v1 replays)
+
+- **Every** strong player had a turret up by about minute 3, about 5 by minute 6 and 15 by minute 12
+  (turret value around 700 metal at 8 minutes, 1.7k at 12). Early turrets are cheap light lasers at
+  extractors and approaches; heavier ones (Exploiter, Twin Guard, Beamer-class) come after minute 6.
+- Anti-air comes late and only when air shows up: a third of them had any by minute 9. Don't spend on
+  anti-air before the enemy has aircraft.
+
 ## Placement
 
 - The line belongs where the enemy comes from: between the enemy and what you protect, at chokepoints

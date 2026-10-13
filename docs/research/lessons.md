@@ -39,6 +39,15 @@ out wrong.
   (game 1)
 - In player mode `Spring.GetTeamUnits` / `GetTeamResources` of an enemy team return nothing: only the
   harness's own team has eco lines in test games.
+- Widgets rarely get the attacker of an enemy unit in `UnitDestroyed`: count enemy deaths in view rather
+  than "killed by us".
+- `MaxParticles` below 7000 in springsettings makes BAR's fire/smoke gadget define an empty buffer; the
+  error takes down all of LuaRules on that client: no commanders spawn, and in multiplayer it desyncs at
+  frame 0. Keep it at 10000 (testenv template). (first self-play game)
+- A client that joins a game and catches up may not see every frame in widget `GameFrame`: act when a
+  frame is due (`n >= next`), not on `n % k == 0`. (autopilot bot, likely cause)
+- When a multiplayer game desyncs, the engine writes `ServerGameState-*.txt` / `ClientGameState-*.txt` in
+  the write dirs: diff them to see what differs, then look for Lua errors in the client's log.
 
 ## Process traps
 
@@ -51,3 +60,6 @@ out wrong.
 - Lightning studios auto-stop when idle mid-training; outputs persist, restart and continue. H100/H200/A100
   aren't available on the account: use L40S.
 - A stale base-model eval (from a smoke run) once got reused: check evals ran on the current test set.
+- `pgrep -f "replays.sh"` inside a shell loop matches the loop's own command line and never ends: use
+  `pgrep -f "[r]eplays.sh"`.
+- Don't edit a shell script while it runs: bash reads it as it goes and fails mid-run.

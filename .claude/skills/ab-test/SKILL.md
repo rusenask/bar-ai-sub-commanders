@@ -8,7 +8,7 @@ description: Run and judge A/B test batches of BAR games for a sub-commander cha
 ## Rules
 
 - **One game environment at a time.** Test games, `testenv/collect.sh` and `testenv/replays.sh` share the
-  `testenv/` write dir and port 17878. Check nothing runs first: `pgrep -fl "run.sh|replays.sh|collect.sh|spring"`.
+  `testenv/` write dir and port 17878. Check nothing runs first: `pgrep -fl "[r]un.sh|[r]eplays.sh|[c]ollect.sh|[M]acOS/spring"`.
 - **Widgets are copied at the start of every game.** Editing `widget/LuaUI/Widgets/*.lua` during a batch
   leaks the edit into the remaining games. Run arms from frozen copies:
   ```sh

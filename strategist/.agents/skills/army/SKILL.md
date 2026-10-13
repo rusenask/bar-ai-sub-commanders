@@ -34,6 +34,16 @@ Keep a mix: pure raiders die to riot units and turrets, pure heavies get outrang
   at once if it dies.
 - Metal piling up for minutes means production capacity is too small: ask the player for another factory.
 
+## What strong players field (26 rated 1v1 replays)
+
+- **Opening (0-6 min)**: about 30 cheap units (2k metal): raiders and light assault in numbers, a few
+  scouts. Army value around 1k at 5 minutes, 1.8k at 8.
+- **Middle (6-12 min)**: assault and heavy units take over (around 45 more units, 5-6k metal); army value
+  near 5k at 12 minutes.
+- **Late (12+ min)**: heavies dominate (half the metal); tech 2 units appear late (median minute 19, few
+  players) and air stays small (5-10% of metal).
+- So: early numbers and map control, then weight; tech 2 isn't a race in a 1v1.
+
 ## Hold or push
 
 - **Hold** (zone on our side, near our turrets and extractors) while we are weaker or still building up.

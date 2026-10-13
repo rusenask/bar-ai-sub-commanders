@@ -35,5 +35,5 @@ widget reconnects by itself within a few seconds. Sub-commanders survive `/luaui
   7878 that a real game uses. To exercise the bridge without BAR, use `bin/fakegame -addr 127.0.0.1:<port>`
   against a separate bridge container.
 - One test environment at a time: test games, batches, `testenv/collect.sh` and `testenv/replays.sh` share
-  `testenv/`. Check with `pgrep -fl "run.sh|replays.sh|collect.sh"` first.
+  `testenv/`. Check with `pgrep -fl "[r]un.sh|[r]eplays.sh|[c]ollect.sh"` first.
 - `MAPVIEW_OUT=/tmp/x go test ./internal/mapview` writes sample map pictures to look at.

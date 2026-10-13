@@ -1,6 +1,6 @@
 # Learning from strong players' replays
 
-Status: data pipeline working, imitation tasks defined; models not trained yet.
+Status: pipeline working, 26 games logged; benchmark, playbook and strategist knowledge built from them; imitation models not trained yet.
 
 ## What BAR offers
 
@@ -53,22 +53,21 @@ Caveats:
   Legion, so production imitation helps directly only when we play Armada/Cortex, unless candidates are
   described by traits (they are: kind, cost, range, speed, dps) and the model generalises.
 
-## First replay (Isidis, 41 vs 41, 26 minutes)
+## What 26 strong players' games show
 
-906 fights, 719 units, 617 build choices, 90 turret choices. Economy of the stronger players:
+25 rated duels (both players 30+, 8-29 minutes, mostly Cortex and Armada, 15 maps) plus the first test
+replay. The full numbers are generated into [docs/research/pro-playbook.md](../docs/research/pro-playbook.md)
+by `make benchmarks`; the economy quartiles are built into the binary
+(`internal/analysis/benchmarks/pro-duel.json`) for `gamereport` and the strategist's Pace line.
 
-| Minute | Metal income | Extractors | Factories | Army |
-|---|---|---|---|---|
-| 5 | +19-20/s | 10-12 | 1 | ~1k |
-| 8 | +30-42/s | 15-22 | 2-3 | |
-| 12 | +48-57/s | 25-30 | 3-4 | ~6k |
-| 16 | +61-66/s | 32 | | 9-14k |
+- Economy: +20 metal/s and 9 extractors at 5 minutes, +35/s and 15 at 8, +47/s and 20 at 12; one
+  factory until about minute 8-10, two by 12, three by 15; 5-8 constructors.
+- Defence: every player had a turret by about minute 3 and ~5 by minute 6.
+- Army: cheap raiders and light assault in numbers first, assault and heavies after minute 6; tech 2 is
+  rare and late (median minute 19); air is 5-10% of the metal.
 
-Our rules-only games reach +39/s at 7 minutes in a good game, but usually only one or two factories and
-lose most of the metal to raids.
-
-Production was mostly cheap raiders and mid-weight units in volume (A.K. 178, Vengeance 140, Blade
-Wing 77, Gator 72), from air and ground factories in parallel.
+Against this, our rules-only games fall below the lower quartile of metal income from about minute 8 and
+lag far behind on energy by minute 15 (batch 20261013-old-F).
 
 ## Next steps
 

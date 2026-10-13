@@ -31,6 +31,26 @@ Your job is to steer *where* (zones) and *how hard* (posture), and to ask the pl
 - **Pull** is what everything is trying to spend per second. Pull well above income drains storage: when
   metal or energy storage is falling and pull > income, the team is overspending (conserve, or more income).
 
+## Pace of strong players (26 rated 1v1 replays)
+
+Reports carry a **Pace** line: our metal and energy income against strong players' at the same minute
+(their middle half). Medians from their games:
+
+| Minute | Metal income | Extractors | Factories | Constructors | Energy income |
+|---|---|---|---|---|---|
+| 5 | +20/s | 9 | 1 | 5 | ~215 |
+| 8 | +35/s | 15 | 1-2 | 5 | ~360 |
+| 12 | +47/s | 20 | 2 | 7 | ~720 |
+| 15 | +58/s | 27 | 3 | 8 | ~900 |
+
+- Below their lower band at 8 minutes almost always means too few extractors: expand (zones over free
+  spots on our half) and ask for constructors before anything else.
+- They stay on **one factory until about minute 8-10** and add the second around minute 10-12: factories
+  follow income, not the other way round.
+- Energy grows steeply after minute 10 (fusion, converters): when metal income is at pace but energy is far
+  below it, energy is what holds the next step back.
+- Maps differ; treat the numbers as a guide, not a target to hit at any cost.
+
 ## The first minutes (lessons from test games)
 
 - **The commander is the game**: in the default mode its death loses everything (in one test game a 64-unit
