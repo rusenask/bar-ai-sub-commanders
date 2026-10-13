@@ -14,7 +14,8 @@ SCENARIO="${2:-duelrules}"
 SCRIPT="${3:-script_vsai.txt}"
 # 45 game minutes by default: at 25 most games were still going (nobody can win that fast)
 export AI_PROFILE="${AI_PROFILE:-medium}" SPEED="${SPEED:-15}" LOCKSTEP="${LOCKSTEP:-0}" MAP="${MAP:-}" DUEL_MINUTES="${DUEL_MINUTES:-45}"
-WORKERS="${WORKERS:-$([ "$SCENARIO" = duel ] && echo 1 || echo 3)}"
+# one game at a time by default (the machine stays usable); WORKERS=3 runs three at once
+WORKERS="${WORKERS:-1}"
 [ "$SCENARIO" = duel ] && WORKERS=1
 DIR="$T/batch/$(date +%Y%m%d-%H%M)-${LABEL:-$SCENARIO}"
 mkdir -p "$DIR"

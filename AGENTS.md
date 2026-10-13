@@ -35,7 +35,7 @@ widget reconnects by itself within a few seconds. Sub-commanders survive `/luaui
   7878 that a real game uses. To exercise the bridge without BAR, use `bin/fakegame -addr 127.0.0.1:<port>`
   against a separate bridge container.
 - One batch at a time: a batch runs its games in parallel on separate write dirs (`testenv/workers/<n>`,
-  `WORKERS`, default 3; strategist batches use one, the test bridge serves one game). Single test games,
+  `WORKERS`, default 1 so the machine stays usable; strategist batches always use one). Single test games,
   `testenv/collect.sh` and `testenv/replays.sh` use `testenv/` itself. Check with
   `pgrep -fl "[b]atch.sh|[r]eplays.sh|[c]ollect.sh"` first, and don't edit `testenv/run.sh`,
   `batch.sh` or the harness while a batch runs.

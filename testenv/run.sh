@@ -76,7 +76,8 @@ SPEEDX="${SPEED:-3}"
 LIMIT="${2:-$(( ${DUEL_MINUTES:-45} * 60 * 2 / SPEEDX + 180 ))}"
 [ "${LOCKSTEP:-0}" = 1 ] && [ -z "$2" ] && LIMIT=$((LIMIT * 4))
 STALL="${STALL:-$([ "${LOCKSTEP:-0}" = 1 ] && echo 600 || echo 120)}"
-SPRING_DATADIR="$RES:$BAR" BAR_INFOLOG="$W/infolog.txt" perl -e 'alarm shift; exec @ARGV' "$LIMIT" \
+# at lower priority (NICE, default 10): the machine stays usable for other work while tests run
+SPRING_DATADIR="$RES:$BAR" BAR_INFOLOG="$W/infolog.txt" nice -n "${NICE:-10}" perl -e 'alarm shift; exec @ARGV' "$LIMIT" \
 	"$APP/MacOS/spring" --window --write-dir "$W" "$SCRIPT" > "$W/run.log" 2>&1 &
 pid=$!
 # watchdog: the harness writes a line at least every 30 game seconds; nothing new for STALL seconds

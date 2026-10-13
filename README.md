@@ -345,7 +345,7 @@ tasks: `DECIDER_ROUTES=fight=http://host:8011,unit=http://host:8012,turret=http:
   in a real one; `MAP="Altair_Crossing_V4.1"` picks another map (names as in BAR's archive cache);
   `DUEL_MINUTES=40` plays longer. Test windows are small (800x500), never fullscreen.
 - `make test-batch GAMES=8 LABEL=my-change` plays several fast games (`BATCH_SCENARIO`, `AI_PROFILE`, `MAP`
-  as above), 3 at a time on separate write dirs (`WORKERS`; strategist batches 1), and keeps them in
+  as above), one at a time at lower CPU priority (`WORKERS=3` runs three at once on separate write dirs), and keeps them in
   `testenv/batch/<date>-<label>/` with `meta.txt` (commit, settings, how many ran) and `report.md`. A game
   that didn't run is retried once; one that stalls is killed. `WIDGET_SRC=$(testenv/arm.sh name [commit])`
   runs a frozen version of the widgets, for A/B comparisons. Results so far: [docs/research/test-games.md](docs/research/test-games.md).
