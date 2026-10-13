@@ -22,6 +22,10 @@ out wrong.
 - Against strong players' pace (`make report`): our metal income falls behind from about minute 8 and our
   energy income is far behind by minute 15. Strong players keep one or two factories until about minute
   12 and keep 5-7 constructors. (pro benchmark, batch 20261013-old-F)
+- Against hard, economy isn't the problem until minute 12 (on strong players' pace); fights are: from
+  minute 11 its concentrated army with artillery and rockets trades 7:1 against us. Against medium the
+  early raids are: no combat units before minute 3, no turret by the extractors. (baseline batches
+  20261013-1153 / -1208)
 - The whole team dies with the commander (BAR's default end condition): keep it home. (game 10)
 - Letting emergency energy pick basic solar instead of wind made every average worse. (batch E)
 - The counter-push rarely triggers: the army is seldom 1.5x what it sees. (batch B)
@@ -51,6 +55,9 @@ out wrong.
 
 ## Process traps
 
+- The test bridge (`scbridge-test`) keeps the decision-model routes it was started with: a "baseline" ran
+  with the fight + turret models for hours. batch.sh records them in meta.txt now; restart it with
+  `make test-bridge` (no `DECIDER_URL` / `TEST_BRIDGE_ARGS`) for rules-only baselines.
 - Widgets (and the harness) are copied at each game's start: editing them during a batch leaks into the
   remaining games. Freeze arms with `WIDGET_SRC` (ab-test skill).
 - One game environment at a time: batches, `collect.sh` and `replays.sh` share `testenv/` and port 17878.

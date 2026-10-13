@@ -83,3 +83,24 @@ still standing at 25 minutes (BARbarian wasn't beaten in any game yet). Averages
 | gradient boosting, all tasks | 8 | 5 | 32.1k | 40 / 275 | 0.47 |
 | our Kev fight + turret | 16 | 7 | 35.7k | 50 / 183 | 0.65 |
 | fight + turret + lookahead production | 8 | 5 | 18.4k | 31 / 162 | 0.55 |
+
+## Baselines with game analysis (2026-10-13, `make report`, 8 fast rules-only games each)
+
+Reports in `testenv/batch/<dir>/report.md` (gamereport: pace against 26 strong players' replays).
+
+| Arm | Games | Results | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|
+| fight-turret-models (test bridge still had the fight + turret routes) | 7 | 5 timeout, 2 loss | 21.4k | 32 / 151 | 0.57 | 15.3 | 6 | 1.6k |
+| baseline-rules vs medium | 8 | 3 timeout, 5 loss | 24.5k | 42 / 171 | 0.56 | 18.8 | 5.5 | 2.7k |
+| baseline-rules vs hard | 8 | 3 timeout, 5 loss | 38.6k | 31 / 263 | 0.38 | 22.4 | 16 | 4.4k |
+
+- **Medium** raids from minute 2 (Fleas, Flash): we lose about 1k metal before minute 6 for 90 killed,
+  the half-built second lab dies at minute 2-3, extractors peak at 7 and fall to 5-6, and the economy
+  never recovers (17 metal/s at 15 min against strong players' 58).
+- **Hard** raids less early: our economy is on strong players' pace until minute 12 (16 extractors at 8,
+  21 at 10, army 4.4k at 12). Then its army (Stumpy, Hammer, Janus, artillery, Flash) arrives: our losses
+  jump from about 300 to 1-7k metal per minute, trades after minute 12 are 0.13, and by minute 20 we're
+  down to 1.5 factories and 1.6k army. Our turret value (2.8k at 12) is above strong players'; theirs goes
+  into the army.
+- Rules-only lost 5/8 against medium here, where earlier arms lost 3/16 (no code path differs without the
+  models; variance or a cause not found yet).

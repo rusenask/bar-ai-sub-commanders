@@ -19,7 +19,7 @@ ln -sfn "$DIR" "$T/batch/latest"
 	echo "widgets: ${WIDGET_SRC:-widget/LuaUI/Widgets}"
 	echo "scenario: $SCENARIO  script: $SCRIPT  opponent: $AI_PROFILE  map: ${MAP:-All That Simmers}  speed: $SPEED  lockstep: $LOCKSTEP"
 	# the test bridge serves the decision models: they change how the rules play, so record them
-	echo "test bridge: $(docker inspect scbridge-test --format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | grep -E '^SCBRIDGE_DECIDER_(URL|ROUTES)=.' | tr '\n' ' ' || true)$(docker inspect scbridge-test >/dev/null 2>&1 || echo 'not running')"
+	echo "test bridge: $(docker inspect scbridge-test --format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | grep -E '^SCBRIDGE_DECIDER_(URL|ROUTES)=.' | tr '\n' ' ' || true)$(docker inspect scbridge-test >/dev/null 2>&1 && { docker inspect scbridge-test --format '{{range .Config.Env}}{{println .}}{{end}}' | grep -qE '^SCBRIDGE_DECIDER_(URL|ROUTES)=.' || echo 'no decision models'; } || echo 'not running')"
 	echo "started: $(date '+%Y-%m-%d %H:%M')"
 } > "$DIR/meta.txt"
 wins=0 losses=0 timeouts=0
