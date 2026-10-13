@@ -5,6 +5,8 @@
 # games at a time at up to SPEED x, and collects it into testenv/batch/<stamp>-<label>/ like batch.sh
 # (N.txt, results.txt, meta.txt, report.md), so make compare / make report work the same. Setup of the
 # host (engine, game package, maps): testenv/force/README.md. Doesn't touch testenv/ or a local batch.
+# RESUME=<stamp-label> (a testenv/batch/ dir name): wait for that batch's games on force and collect them,
+# when the local side died (a closed session) while the games kept running there.
 set -e
 T="$(cd "$(dirname "$0")" && pwd)"
 HOST="${FORCE_HOST:-force}"
@@ -17,6 +19,15 @@ AI_PROFILE="${AI_PROFILE:-medium}"
 LABEL="${LABEL:-force}"
 STAMP="$(date +%Y%m%d-%H%M)"
 DIR="$T/batch/$STAMP-$LABEL"
+if [ -n "$RESUME" ]; then
+	DIR="$T/batch/$RESUME"
+	R="bar-sim/batches/$RESUME"
+	start=$(date +%s)
+	until [ "$(ssh -n "$HOST" "pgrep -fc '[x]args.*$RESUME'")" = 0 ]; do sleep 30; done
+	rm -f "$DIR/results.txt"
+	set +e
+fi
+if [ -z "$RESUME" ]; then
 SRC="${WIDGET_SRC:-$T/../widget/LuaUI/Widgets}"
 mkdir -p "$DIR"
 {
@@ -50,6 +61,7 @@ rm -rf "$STAGE"
 LIMIT=$(( DUEL_MINUTES * 60 / 2 + 300 ))
 start=$(date +%s)
 ssh -n "$HOST" "cd \$HOME/$R && seq 1 $N | xargs -P $PARALLEL -I{} bash \$HOME/bar-sim/run_game.sh \$HOME/$R {} $LIMIT"
+fi
 set +e # collecting: a missing file or an empty grep isn't fatal
 rsync -a "$HOST:$R/" "$DIR/remote/" --include='g*/' --include='sctest_out.txt' --include='run.log' --include='exit.txt' --exclude='*'
 for i in $(seq 1 "$N"); do

@@ -44,7 +44,8 @@ def skill(p):
 
 
 def prd(*args):
-    env = dict(os.environ, PRD_RAPID_REPO_MASTER="https://repos-cdn.beyondallreason.dev/repos.gz",
+    # without the rapid streamer: it answers Linux pr-downloader with an HTTP error (file by file works)
+    env = dict(os.environ, PRD_RAPID_USE_STREAMER="false", PRD_RAPID_REPO_MASTER="https://repos-cdn.beyondallreason.dev/repos.gz",
                PRD_HTTP_SEARCH_URL="https://files-cdn.beyondallreason.dev/find")
     r = subprocess.run([PRD, "--filesystem-writepath", str(BAR), *args], env=env, capture_output=True, text=True)
     return r.returncode == 0

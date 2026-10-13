@@ -12,6 +12,19 @@ local startOffset -- frame our commander appeared (scenario time 0)
 local SC
 local ids = {}
 local byName = {}
+-- our faction's units the scripted player uses (lab, constructor, vehicle plant, T2 lab): Legion's,
+-- Armada's or Cortex's by the commander's name prefix (legcom / armcom / corcom), set at game start
+local U = { lab = "leglab", ck = "legck", vp = "legvp", alab = "legalab" }
+local function setFaction()
+	for _, u in ipairs(Spring.GetTeamUnits(Spring.GetMyTeamID()) or {}) do
+		local name = UnitDefs[Spring.GetUnitDefID(u)].name
+		if UnitDefs[Spring.GetUnitDefID(u)].customParams.iscommander then
+			local p = name:sub(1, 3)
+			U = { lab = p .. "lab", ck = p .. "ck", vp = p .. "vp", alab = p .. "alab" }
+			return p
+		end
+	end
+end
 -- duels against BARbarian: our scripted player (duel = with the AI strategist, duelrules = rules only), or
 -- the Sub-Commanders Autopilot widget playing the team (autopilot; run.sh enables it)
 local isDuel = scenario == "duel" or scenario == "duelrules" or scenario == "autopilot"
@@ -298,6 +311,7 @@ local function duel(n)
 		out(string.format("enemy start %d,%d  us %d,%d  ai=%s", enemyX, enemyZ, cx, cz, tostring(ai)))
 		local com = Spring.GetTeamUnits(myTeam)[1]
 		ids.com = com
+		out("faction " .. (setFaction() or "?"))
 		ids.eco = SC.create("economy")
 		SC.assign(ids.eco, { com })
 		SC.setAI(ids.eco, ai)
@@ -321,23 +335,23 @@ local function duel(n)
 		if (mex >= 2 and gen >= 2) or n > 30 * 75 then
 			duelState.stage = 0
 			local _, dx, dz = towardEnemy(0.1, 0)
-			playerBuild(ids.com, "leglab", cx + dx * 220, cz + dz * 220, dx, dz)
+			playerBuild(ids.com, U.lab, cx + dx * 220, cz + dz * 220, dx, dz)
 			out(string.format("player: opener done (%d extractors, %d generators), commander builds the lab", mex, gen))
 		end
 	elseif duelState.stage == 0 then
-		local lab = (byName.leglab or {})[1]
+		local lab = (byName[U.lab] or {})[1]
 		-- like a player who notices the lab never started: order it again, a bit elsewhere
 		duelState.lab1Since = duelState.lab1Since or n
 		if not lab and n - duelState.lab1Since > 30 * 60 then
 			local started = false
 			for _, u in ipairs(Spring.GetTeamUnits(myTeam)) do
-				started = started or (UnitDefs[Spring.GetUnitDefID(u)].name == "leglab")
+				started = started or (UnitDefs[Spring.GetUnitDefID(u)].name == U.lab)
 			end
 			if not started then
 				duelState.lab1Tries = (duelState.lab1Tries or 0) + 1
 				local _, dx, dz = towardEnemy(0.1, 0)
 				local a = duelState.lab1Tries * 2.1
-				playerBuild(ids.com, "leglab", cx + dx * 150 + math.cos(a) * 300, cz + dz * 150 + math.sin(a) * 300, dx, dz)
+				playerBuild(ids.com, U.lab, cx + dx * 150 + math.cos(a) * 300, cz + dz * 150 + math.sin(a) * 300, dx, dz)
 				out("player: first lab never started, ordered again")
 			end
 			duelState.lab1Since = n
@@ -349,7 +363,7 @@ local function duel(n)
 			out("player: first lab to Economy")
 		end
 	elseif duelState.stage == 1 then
-		local cons = ownedBy(ids.eco, "legck")
+		local cons = ownedBy(ids.eco, U.ck)
 		if #cons >= 3 then
 			-- like strong players: one lab until the economy carries a second (the economy's lab builds the
 			-- army's units meanwhile, and metal piling up gets another lab below)
@@ -367,24 +381,24 @@ local function duel(n)
 			out("player: Defense and Army created (one lab: the economy's builds the army)")
 		end
 	elseif duelState.stage == 2 then
-		local labs = byName.leglab or {}
+		local labs = byName[U.lab] or {}
 		local lab2 = labs[2]
 		-- like a player who notices the lab never started: order it again, a bit elsewhere
 		duelState.lab2Since = duelState.lab2Since or n
 		if not lab2 and n - duelState.lab2Since > 30 * 90 then
 			local frames = 0
 			for _, u in ipairs(Spring.GetTeamUnits(myTeam)) do
-				if UnitDefs[Spring.GetUnitDefID(u)].name == "leglab" and Spring.GetUnitIsBeingBuilt(u) then
+				if UnitDefs[Spring.GetUnitDefID(u)].name == U.lab and Spring.GetUnitIsBeingBuilt(u) then
 					frames = frames + 1
 				end
 			end
 			if frames == 0 then
-				local cons = ownedBy(ids.eco, "legck")
+				local cons = ownedBy(ids.eco, U.ck)
 				local _, dx, dz = towardEnemy(0.1, 0)
 				if cons[1] then
 					duelState.lab2Tries = (duelState.lab2Tries or 0) + 1
 					local a = duelState.lab2Tries * 2.1
-					playerBuild(cons[1], "leglab", cx + dx * 300 + math.cos(a) * 450, cz + dz * 300 + math.sin(a) * 450, dx, dz)
+					playerBuild(cons[1], U.lab, cx + dx * 300 + math.cos(a) * 450, cz + dz * 300 + math.sin(a) * 450, dx, dz)
 					out("player: second lab never started, ordered again")
 				end
 			end
@@ -402,7 +416,7 @@ local function duel(n)
 		end
 	elseif duelState.stage == 3 and n >= 30 * 60 * 4 then
 		-- recon early (radar net, scouts): raids that arrive unseen cost the most
-		local cons = ownedBy(ids.eco, "legck")
+		local cons = ownedBy(ids.eco, U.ck)
 		if #cons >= 3 then
 			duelState.stage = 4
 			ids.intel = SC.create("intelligence")
@@ -413,14 +427,14 @@ local function duel(n)
 			out("player: Intelligence created")
 		end
 	elseif duelState.stage == 4 and n >= 30 * 60 * 5 then
-		local cons = ownedBy(ids.eco, "legck")
+		local cons = ownedBy(ids.eco, U.ck)
 		if #cons >= 3 then
 			duelState.stage = 5
 			SC.assign(ids.def, { cons[1] })
 			out("player: second constructor to Defense")
 		end
 	elseif duelState.stage == 5 and n >= 30 * 60 * 7 then
-		local cons = ownedBy(ids.eco, "legck")
+		local cons = ownedBy(ids.eco, U.ck)
 		if #cons >= 3 then
 			duelState.stage = 6
 			ids.aa = SC.create("airdefense")
@@ -431,7 +445,7 @@ local function duel(n)
 		end
 	elseif duelState.stage == 6 and n >= 30 * 60 * 10 then
 		-- the air force: fighters over the base and army, gunships on raids, bombers on their economy
-		local cons = ownedBy(ids.eco, "legck")
+		local cons = ownedBy(ids.eco, U.ck)
 		if #cons >= 3 then
 			duelState.stage = 7
 			ids.air = SC.create("air")
@@ -445,14 +459,14 @@ local function duel(n)
 	if duelState.stage >= 3 and n % 30 == 0 then
 		local m, mS = Spring.GetTeamResources(myTeam, "metal")
 		duelState.overflow = (m > mS * 0.8) and (duelState.overflow or 0) + 1 or 0
-		local labs = #(byName.leglab or {}) + #(byName.legvp or {})
+		local labs = #(byName[U.lab] or {}) + #(byName[U.vp] or {})
 		if duelState.overflow >= 60 and labs < 5 and not duelState.labOrdered then
-			local cons = ownedBy(ids.eco, "legck")
+			local cons = ownedBy(ids.eco, U.ck)
 			if #cons >= 2 then
 				local _, dx, dz = towardEnemy(0.1, 0)
 				local a = labs * 1.3
 				-- the second factory a vehicle plant (strong players field about half vehicles)
-				local kind = #(byName.legvp or {}) == 0 and "legvp" or "leglab"
+				local kind = #(byName[U.vp] or {}) == 0 and U.vp or U.lab
 				playerBuild(cons[1], kind, cx + dx * 250 + math.cos(a) * 500, cz + dz * 250 + math.sin(a) * 500, dx, dz)
 				duelState.labOrdered, duelState.labCount, duelState.overflow = n, labs, 0
 				duelState.labKind = kind
@@ -463,32 +477,32 @@ local function duel(n)
 	-- like a player who techs up once the economy carries it (BARbarian goes tier 2 around minute 25):
 	-- the T2 lab at minute 18 with 25+ metal/s, to the Economy (T2 constructors, then it goes to the Army)
 	if duelState.stage >= 3 and not duelState.t2Assigned and n >= 30 * 60 * 18 and n % 30 == 0 then
-		local t2 = (byName.legalab or {})[1]
+		local t2 = (byName[U.alab] or {})[1]
 		if t2 and not Spring.GetUnitIsBeingBuilt(t2) then
 			SC.assign(ids.eco, { t2 })
 			duelState.t2Assigned = true
 			out("player: tier 2 lab to Economy")
 		elseif not duelState.t2Ordered or (n - duelState.t2Ordered > 30 * 150 and not t2) then
 			local _, _, _, mInc = Spring.GetTeamResources(myTeam, "metal")
-			local cons = ownedBy(ids.eco, "legck")
+			local cons = ownedBy(ids.eco, U.ck)
 			local building = false
 			for _, u in ipairs(Spring.GetTeamUnits(myTeam)) do
-				building = building or (UnitDefs[Spring.GetUnitDefID(u)].name == "legalab")
+				building = building or (UnitDefs[Spring.GetUnitDefID(u)].name == U.alab)
 			end
 			if (mInc or 0) >= 25 and cons[1] and not building then
 				local _, dx, dz = towardEnemy(0.1, 0)
 				duelState.t2Tries = (duelState.t2Tries or 0) + 1
 				local a = duelState.t2Tries * 2.1
-				playerBuild(cons[1], "legalab", cx - dx * 700 + math.cos(a) * 250, cz - dz * 700 + math.sin(a) * 250, dx, dz)
+				playerBuild(cons[1], U.alab, cx - dx * 700 + math.cos(a) * 250, cz - dz * 700 + math.sin(a) * 250, dx, dz)
 				duelState.t2Ordered = n
 				out("player: tier 2 lab ordered")
 			end
 		end
 	end
 	if duelState.labOrdered then
-		local labs = byName[duelState.labKind or "leglab"] or {}
+		local labs = byName[duelState.labKind or U.lab] or {}
 		local newest = labs[#labs]
-		local total = #(byName.leglab or {}) + #(byName.legvp or {})
+		local total = #(byName[U.lab] or {}) + #(byName[U.vp] or {})
 		if total > duelState.labCount and newest and not Spring.GetUnitIsBeingBuilt(newest) then
 			SC.assign(ids.army, { newest })
 			duelState.labOrdered = nil
@@ -560,16 +574,16 @@ local function gameFrame(n)
 			Spring.SendCommands("setmaxspeed 20", "setspeed 8")
 			Spring.SendCommands("cheat 1")
 		elseif n == 45 then
-			give(1, "leglab", myTeam, cx - 400, cz - 250)
-			give(2, "legck", myTeam, cx + 150, cz + 100)
+			give(1, U.lab, myTeam, cx - 400, cz - 250)
+			give(2, U.ck, myTeam, cx + 150, cz + 100)
 		elseif n == 150 then
-			out("have", #(byName.leglab or {}), "lab", #(byName.legck or {}), "ck")
+			out("have", #(byName[U.lab] or {}), "lab", #(byName[U.ck] or {}), "ck")
 			local com = Spring.GetTeamUnits(myTeam)
 			Spring.SendCommands("luaui sc new army")
-			Spring.SelectUnitArray(byName.leglab or {})
+			Spring.SelectUnitArray(byName[U.lab] or {})
 		elseif n == 152 then
 			Spring.SendCommands("luaui sc assign")
-			Spring.SelectUnitArray(byName.legck or {})
+			Spring.SelectUnitArray(byName[U.ck] or {})
 			Spring.SendCommands("luaui sc new airdefense")
 		elseif n == 154 then
 			Spring.SendCommands("luaui sc assign", "luaui sc posture conserve", "luaui sc role defense")
@@ -638,18 +652,18 @@ local function gameFrame(n)
 			Spring.SetCameraTarget(cx, 0, cz, 0)
 			Spring.SendCommands("setmaxspeed 20", "setspeed 8", "cheat 1")
 		elseif n == 45 then
-			give(1, "leglab", myTeam, cx - 300, cz + 250)
-			give(1, "leglab", myTeam, cx + 350, cz - 200)
-			give(3, "legck", myTeam, cx, cz + 120)
+			give(1, U.lab, myTeam, cx - 300, cz + 250)
+			give(1, U.lab, myTeam, cx + 350, cz - 200)
+			give(3, U.ck, myTeam, cx, cz + 120)
 		elseif n == 120 then
 			ids.eco = SC.create("economy")
 			SC.setPosture(ids.eco, "spend")
 			SC.addZone(ids.eco, { kind = "circle", x = cx, z = cz, r = 900 })
-			SC.assign(ids.eco, byName.legck or {})
+			SC.assign(ids.eco, byName[U.ck] or {})
 		elseif n == 30 * 180 then
 			-- every structure must stay out of each lab's exit lane (300 in front) and 64 ring
 			local bad, total = 0, 0
-			for _, lab in ipairs(byName.leglab or {}) do
+			for _, lab in ipairs(byName[U.lab] or {}) do
 				local lx, _, lz = Spring.GetUnitPosition(lab)
 				local f = Spring.GetUnitBuildFacing(lab)
 				local ld = UnitDefs[Spring.GetUnitDefID(lab)]
@@ -699,22 +713,22 @@ local function gameFrame(n)
 			Spring.SetCameraTarget(cx, 0, cz, 0)
 			Spring.SendCommands("setmaxspeed 20", "setspeed 8", "cheat 1")
 		elseif n == 45 then
-			give(1, "legck", myTeam, cx + 200, cz)
+			give(1, U.ck, myTeam, cx + 200, cz)
 		elseif n == 120 then
 			ids.army = SC.create("army")
 			SC.setPosture(ids.army, "spend")
-			SC.assign(ids.army, byName.legck or {})
+			SC.assign(ids.army, byName[U.ck] or {})
 		elseif n == 30 * 40 then
-			local labs = byName.leglab or {}
+			local labs = byName[U.lab] or {}
 			out("after 40s: factories built by the army sub-commander = " .. #labs)
 			-- the player takes the constructor and builds a lab with it
-			local ck = (byName.legck or {})[1]
+			local ck = (byName[U.ck] or {})[1]
 			local x, z = cx - 450, cz - 300
-			playerOrder(ck, -UnitDefNames.leglab.id, { x, Spring.GetGroundHeight(x, z), z, 0 })
+			playerOrder(ck, -UnitDefNames[U.lab].id, { x, Spring.GetGroundHeight(x, z), z, 0 })
 			out("player ordered the constructor to build a Bot Lab")
 		elseif n == 30 * 110 then
-			local labs = byName.leglab or {}
-			local ck = (byName.legck or {})[1]
+			local labs = byName[U.lab] or {}
+			local ck = (byName[U.ck] or {})[1]
 			out(string.format("labs=%d lab owner=%s constructor owner=%s", #labs, tostring(labs[1] and SC.ownerOf(labs[1])), tostring(ck and SC.ownerOf(ck))))
 			report()
 			out("DONE")
@@ -726,12 +740,12 @@ local function gameFrame(n)
 		if n == 12 then
 			Spring.SendCommands("setspeed 3")
 		elseif n == 40 then
-			give(2, "legck", myTeam, cx + 200, cz)
+			give(2, U.ck, myTeam, cx + 200, cz)
 		elseif n == 90 then
 			SC.setAI(ids.eco, true)
 			SC.setDirective(ids.eco, "keep energy healthy and grab every metal spot east of the base")
 			ids.def = SC.create("defense")
-			SC.assign(ids.def, byName.legck or {})
+			SC.assign(ids.def, byName[U.ck] or {})
 			SC.setAI(ids.def, true)
 			SC.setDirective(ids.def, "the enemy starts south of us: protect the base from the south")
 		elseif n == 30 * 120 then
@@ -741,11 +755,11 @@ local function gameFrame(n)
 	end
 	if scenario == "vsai" then
 		if n == 40 then
-			give(2, "legck", myTeam, cx + 200, cz)
-			give(1, "leglab", myTeam, cx - 500, cz - 300)
-			give(1, "legck", myTeam, cx, cz + 200)
+			give(2, U.ck, myTeam, cx + 200, cz)
+			give(1, U.lab, myTeam, cx - 500, cz - 300)
+			give(1, U.ck, myTeam, cx, cz + 200)
 		elseif n == 90 then
-			local ck, lab = byName.legck or {}, byName.leglab or {}
+			local ck, lab = byName[U.ck] or {}, byName[U.lab] or {}
 			ids.def = SC.create("defense")
 			SC.assign(ids.def, { ck[1], ck[2] })
 			ids.army = SC.create("army")
@@ -762,14 +776,14 @@ local function gameFrame(n)
 		if n == 20 then
 			Spring.SendCommands("setmaxspeed 20", "setspeed 4", "cheat 1")
 		elseif n == 40 then
-			give(2, "legck", myTeam, cx + 200, cz)
-			give(1, "legvp", myTeam, cx - 450, cz + 300)
+			give(2, U.ck, myTeam, cx + 200, cz)
+			give(1, U.vp, myTeam, cx - 450, cz + 300)
 			give(4, "legwin", myTeam, cx + 400, cz + 400)
 		elseif n == 150 then
 			ids.intel = SC.create("intelligence")
 			SC.addZone(ids.intel, { kind = "circle", x = cx, z = cz + 1200, r = 1300 })
 			local units = {}
-			for _, name in ipairs({ "legck", "legvp" }) do
+			for _, name in ipairs({ U.ck, U.vp }) do
 				for _, u in ipairs(byName[name] or {}) do
 					units[#units + 1] = u
 				end
@@ -813,14 +827,14 @@ local function gameFrame(n)
 		if n == 20 then
 			Spring.SendCommands("setmaxspeed 20", "setspeed 3", "cheat 1")
 		elseif n == 40 then
-			give(3, "legck", myTeam, cx + 200, cz)
+			give(3, U.ck, myTeam, cx + 200, cz)
 		elseif n == 120 then
 			ids.eco = SC.create("economy")
-			SC.assign(ids.eco, byName.legck or {})
+			SC.assign(ids.eco, byName[U.ck] or {})
 			SC.setPosture(ids.eco, "spend")
 		elseif n == 30 * 20 then
-			ids.ck = (byName.legck or {})[2]
-			playerBuild(ids.ck, "leglab", cx + 300, cz + 400, 0, 1)
+			ids.ck = (byName[U.ck] or {})[2]
+			playerBuild(ids.ck, U.lab, cx + 300, cz + 400, 0, 1)
 		elseif n > 30 * 20 and n % 30 == 0 and n <= 30 * 100 then
 			local st
 			for _, u in ipairs(SC.get(ids.eco).units) do
@@ -828,7 +842,7 @@ local function gameFrame(n)
 					st = (u.task or "-") .. (u.manual and " (manual)" or "")
 				end
 			end
-			out(string.format("ck %s selected=%s owner=%s task=%s labs=%d", queueOf(ids.ck), tostring(Spring.IsUnitSelected(ids.ck)), tostring(SC.ownerOf(ids.ck)), tostring(st), #(byName.leglab or {})))
+			out(string.format("ck %s selected=%s owner=%s task=%s labs=%d", queueOf(ids.ck), tostring(Spring.IsUnitSelected(ids.ck)), tostring(SC.ownerOf(ids.ck)), tostring(st), #(byName[U.lab] or {})))
 			if n % 300 == 0 then
 				local q = Spring.GetUnitCommands(ids.ck, 1)
 				local c = q and q[1]
@@ -853,11 +867,11 @@ local function gameFrame(n)
 		if n == 20 then
 			Spring.SendCommands("setmaxspeed 20", "setspeed 4", "cheat 1")
 		elseif n == 40 then
-			give(3, "legck", myTeam, cx + 200, cz)
+			give(3, U.ck, myTeam, cx + 200, cz)
 		elseif n == 120 then
 			ids.eco = SC.create("economy")
 			SC.addZone(ids.eco, { kind = "circle", x = cx, z = cz, r = 1000 })
-			SC.assign(ids.eco, byName.legck or {})
+			SC.assign(ids.eco, byName[U.ck] or {})
 			SC.setPosture(ids.eco, "spend")
 			-- the player's own plan: a block of wind turbines and two light turrets, queued with shift
 			ids.com = Spring.GetTeamUnits(myTeam)[1]
@@ -943,13 +957,13 @@ local function gameFrame(n)
 	end
 	if scenario == "multi" then
 		if n == 40 then
-			give(2, "legck", myTeam, cx + 200, cz)
-			give(1, "leglab", myTeam, cx - 500, cz - 300)
-			give(1, "legck", myTeam, cx, cz + 200)
+			give(2, U.ck, myTeam, cx + 200, cz)
+			give(1, U.lab, myTeam, cx - 500, cz - 300)
+			give(1, U.ck, myTeam, cx, cz + 200)
 		elseif n == 90 then
-			local ck = byName.legck or {}
-			local lab = byName.leglab or {}
-			out("given", #ck, "legck", #lab, "leglab")
+			local ck = byName[U.ck] or {}
+			local lab = byName[U.lab] or {}
+			out("given", #ck, U.ck, #lab, U.lab)
 			ids.def = SC.create("defense")
 			SC.addZone(ids.def, { kind = "rect", x1 = cx - 900, z1 = cz - 1500, x2 = cx + 900, z2 = cz - 600 })
 			SC.assign(ids.def, { ck[1], ck[2] })
