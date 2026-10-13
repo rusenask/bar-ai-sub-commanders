@@ -172,8 +172,8 @@ style`), the strategist (`set_army_style`) or `auto` choose: defend plan -> hold
 static -> siege; our army 35% ranged against theirs 50% heavy/assault -> skirmish; not pushing and 25%
 ranged -> harass; else balanced. An auto style holds a minute.
 
-The starting numbers are judgement; the plan is to measure them in strong players' replays (distance kept
-to the nearest enemy relative to weapon range, backing off while firing, per kind) with the data logger.
+The numbers come from 143 strong players' duels (docs/research/pro-micro.md): fight from 0.7-0.8 of range,
+only long-range units (450+) kite, at 0.6 of range; heavies lead; no siege habit outside the siege style.
 
 ## Zones are optional
 

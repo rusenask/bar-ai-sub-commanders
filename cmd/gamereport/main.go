@@ -47,7 +47,11 @@ func main() {
 			printJSON(kinds)
 			return
 		}
-		fmt.Printf("%d micro samples\n\n%s\nSuggested D.micro:\n\n%s", len(samples), analysis.MicroText(kinds), analysis.MicroDoctrine(kinds))
+		names := analysis.MicroByName(samples, 150)
+		if len(names) > 25 {
+			names = names[:25]
+		}
+		fmt.Printf("%d micro samples\n\n%s\nBy unit (most sampled):\n\n%s\nSuggested D.micro:\n\n%s", len(samples), analysis.MicroText(kinds), analysis.MicroText(names), analysis.MicroDoctrine(kinds))
 		return
 	}
 	if *benchFrom != "" {

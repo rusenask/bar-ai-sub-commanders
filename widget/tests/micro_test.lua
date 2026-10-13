@@ -12,14 +12,15 @@ return {
 		T.near(M.rule("skirmisher", "skirmish").kite, 0.8, 1e-9, "skirmish kites earlier")
 		T.ok(M.rule("skirmisher", "siege").siege, "siege: skirmishers shell structures")
 		T.ok(not M.rule("skirmisher").siege)
-		T.near(M.rule("hover skirmisher").hold, 0.9, 1e-9, "hovers are their kind")
+		T.near(M.rule("hover skirmisher").hold, 0.72, 1e-9, "hovers are their kind")
 		T.eq(M.rule("whatever").kite, false, "default")
 	end,
 	kiting = function()
 		local M = micro()
 		local r = M.rule("skirmisher")
-		T.near(M.kite(r, 600, 300, 200), 540, 1e-9, "a short-range enemy at half range: back to 90%")
+		T.near(M.kite(r, 600, 300, 200), 432, 1e-9, "a short-range enemy at half range: back to where pros fight from")
 		T.eq(M.kite(r, 600, 500, 200), nil, "far enough")
+		T.eq(M.kite(r, 400, 150, 100), nil, "short-range skirmishers don't kite (pros' rarely did)")
 		T.eq(M.kite(r, 600, 300, 650), nil, "they outrange us: don't run, fight")
 		T.eq(M.kite(M.rule("heavy"), 300, 50, 100), nil)
 	end,

@@ -66,6 +66,10 @@ out wrong.
 - The Air Force (v21c): fighters, gunships hunting raids, bombers striking around anti-air. First wins
   against BARbarian medium came with it (v21 game 1, v21c game 2).
 
+- Strong players' micro is simpler than my first doctrine assumed (143 duels, 245k samples): units fight
+  from 0.7-0.8 of their range, only long-range ones kite, artillery stays with its group, damaged units
+  aren't pulled out more than healthy ones. Measure before writing doctrine (docs/research/pro-micro.md).
+
 ## Engine and widget traps
 
 - Widgets get no attacker in `UnitDamaged` (they do in `UnitDestroyed`); use `Spring.GetUnitExperience`

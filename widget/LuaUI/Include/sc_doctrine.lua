@@ -209,20 +209,25 @@ D.air = {
 	t2Income = 70, -- from this income the Air Force asks for a tier 2 constructor (a T2 air plant)
 }
 
--- how each kind of unit fights and the army styles that change it (sc_micro.lua). Starting values from
--- how strong players use them; the replay logger's micro samples are to replace them (design/engine.md)
+-- how each kind of unit fights and the army styles that change it (sc_micro.lua). Measured in 143
+-- strong players' duels (245k samples, `gamereport -micro testenv/data/pro`, docs/research/pro-micro.md):
+-- every ground kind fights from 0.7-0.8 of its range; only long-range units kite (mortars back off 34% of
+-- the time from what they outrange against 4% from what outranges them, at ~0.6 of range); heavies lead;
+-- artillery stays with its group; structures get shot as often as they're what's near (no siege habit);
+-- damaged units aren't pulled out more than healthy ones.
 D.micro = {
 	outrange = 0.9, -- an enemy with at least this fraction of our range isn't outranged: no kiting from it
+	kiteRange = 450, -- only units with at least this range kite (short-range kiters were rare in the data)
 	kinds = {
-		default = { hold = 0.8, kite = false },
-		raider = { hold = 0.6, kite = false },
-		assault = { hold = 0.7, kite = false, front = true },
-		heavy = { hold = 0.6, kite = false, front = true },
-		-- skirmishers (rockets, railguns): fight from 90% of their range, back off from what gets within 60%
-		skirmisher = { hold = 0.9, kite = 0.6 },
-		artillery = { hold = 0.95, kite = 0.7, siege = true, behind = 350 },
-		["long-range artillery"] = { hold = 0.95, kite = 0.7, siege = true, behind = 500 },
-		["mobile anti-air"] = { hold = 0.7, kite = false },
+		default = { hold = 0.73, kite = false },
+		raider = { hold = 0.67, kite = false },
+		assault = { hold = 0.73, kite = false, front = true },
+		heavy = { hold = 0.75, kite = false, front = true },
+		skirmisher = { hold = 0.72, kite = 0.6 },
+		artillery = { hold = 0.79, kite = 0.62 },
+		["long-range artillery"] = { hold = 0.79, kite = 0.62 },
+		["mobile anti-air"] = { hold = 0.62, kite = false },
+		gunship = { hold = 0.69, kite = false },
 	},
 	styles = {
 		balanced = { label = "Balanced", desc = "one army that fights where it wins; ranged units keep their range" },
@@ -234,7 +239,7 @@ D.micro = {
 		siege = {
 			label = "Siege",
 			desc = "artillery and skirmishers shell turrets and structures first, heavies screen them",
-			kinds = { skirmisher = { siege = true }, artillery = { siege = true, kite = 0.5 }, heavy = { front = true } },
+			kinds = { skirmisher = { siege = true }, artillery = { siege = true, kite = 0.5, behind = 250 }, heavy = { front = true } },
 		},
 		harass = {
 			label = "Harass",

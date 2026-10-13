@@ -48,8 +48,13 @@ type MicroKind struct {
 	Kite float64 `json:"kite"`
 	// KiteAt: distance over range when backing off from enemies it outranges (median)
 	KiteAt float64 `json:"kiteAt"`
+	// KiteBase: the share backing off when the close enemy outranges it instead: units move away for
+	// many reasons, kiting is backing off more from what they outrange (Kite - KiteBase)
+	KiteBase float64 `json:"kiteBase"`
 	// Close: of samples where the enemy outranges it, the share closing in
 	Close float64 `json:"close"`
+	// Retreat: share pulling away without firing, by health: under 0.35, 0.35-0.6, 0.6-0.85, over 0.85
+	Retreat [4]float64 `json:"retreat"`
 	// Ahead: elmos ahead (+) or behind (-) of its group toward the enemy (median, groups of 3+)
 	Ahead float64 `json:"ahead"`
 	// Siege: of firing samples with a unit target, the share shooting at structures, and how often a
@@ -88,7 +93,8 @@ func parseMicro(r io.Reader) ([]MicroSample, error) {
 	sc.Buffer(make([]byte, 1<<20), 1<<22)
 	for sc.Scan() {
 		line := sc.Bytes()
-		if !strings.Contains(string(line[:min(len(line), 40)]), `"micro"`) {
+		// the logger writes keys in any order
+		if !strings.Contains(string(line), `"type":"micro"`) {
 			continue
 		}
 		var m MicroSample
@@ -120,10 +126,22 @@ func share(n, of int) float64 {
 
 // MicroByKind sums samples up by kind (kinds with at least minSamples), most sampled first.
 func MicroByKind(samples []MicroSample, minSamples int) []MicroKind {
+	return MicroBy(samples, minSamples, func(s MicroSample) string { return s.Kind })
+}
+
+// MicroByName sums samples up by unit (e.g. "corstorm (skirmisher, range 550)").
+func MicroByName(samples []MicroSample, minSamples int) []MicroKind {
+	return MicroBy(samples, minSamples, func(s MicroSample) string {
+		return fmt.Sprintf("%s (%s, range %.0f)", s.Name, s.Kind, s.Range)
+	})
+}
+
+// MicroBy sums samples up by key (groups with at least minSamples), most sampled first.
+func MicroBy(samples []MicroSample, minSamples int, key func(MicroSample) string) []MicroKind {
 	by := map[string][]MicroSample{}
 	for _, s := range samples {
 		if s.Range > 0 {
-			by[s.Kind] = append(by[s.Kind], s)
+			by[key(s)] = append(by[key(s)], s)
 		}
 	}
 	var out []MicroKind
@@ -134,6 +152,8 @@ func MicroByKind(samples []MicroSample, minSamples int) []MicroKind {
 		k := MicroKind{Kind: kind, Samples: len(list)}
 		var hold, holdAll, kiteAt, ahead, retreatHP []float64
 		firing, outranged, backing, outrangedBy, closing, targeted, siege, staticNear, away := 0, 0, 0, 0, 0, 0, 0, 0, 0
+		longClose, longBacking := 0, 0
+		var hpN, hpAway [4]int
 		for _, s := range list {
 			ratio := s.Dist / s.Range
 			if s.Firing {
@@ -163,6 +183,25 @@ func MicroByKind(samples []MicroSample, minSamples int) []MicroKind {
 					kiteAt = append(kiteAt, ratio)
 				}
 			}
+			if !s.EStatic && s.ERange >= s.Range*1.1 && s.Dist < s.ERange*0.7 {
+				longClose++
+				if s.Approach < -0.3 {
+					longBacking++
+				}
+			}
+			b := 3
+			switch {
+			case s.HP < 0.35:
+				b = 0
+			case s.HP < 0.6:
+				b = 1
+			case s.HP < 0.85:
+				b = 2
+			}
+			hpN[b]++
+			if !s.Firing && s.Approach < -0.5 {
+				hpAway[b]++
+			}
 			if s.ERange >= s.Range*1.1 {
 				outrangedBy++
 				if s.Approach > 0.3 {
@@ -186,6 +225,10 @@ func MicroByKind(samples []MicroSample, minSamples int) []MicroKind {
 		k.Kite = share(backing, outranged)
 		k.KiteAt = microQ(kiteAt, 0.5)
 		k.Close = share(closing, outrangedBy)
+		k.KiteBase = share(longBacking, longClose)
+		for i := range hpN {
+			k.Retreat[i] = share(hpAway[i], hpN[i])
+		}
 		k.Ahead = microQ(ahead, 0.5)
 		k.Siege = share(siege, targeted)
 		k.StaticNear = share(staticNear, firing)
@@ -200,12 +243,12 @@ func MicroByKind(samples []MicroSample, minSamples int) []MicroKind {
 // MicroText is the kinds as a markdown table.
 func MicroText(kinds []MicroKind) string {
 	var b strings.Builder
-	b.WriteString("| Kind | Samples | Firing | Fights from (range, p25-p75) | Backs off from outranged | Backs off at | Closes on longer range | Ahead of group | Shoots structures (when near) | Retreats at health |\n")
+	b.WriteString("| Kind | Samples | Firing | Fights from (range, p25-p75) | Backs off: outranged / outranging enemy | Backs off at | Closes on longer range | Ahead of group | Shoots structures (when near) | Pulls out by health <.35 / <.6 / <.85 / more |\n")
 	b.WriteString("|---|---|---|---|---|---|---|---|---|---|\n")
 	for _, k := range kinds {
-		fmt.Fprintf(&b, "| %s | %d | %.0f%% | %.2f (%.2f-%.2f) | %.0f%% | %.2f | %.0f%% | %.0f | %.0f%% (%.0f%%) | %.2f (%.0f%% of samples) |\n",
-			k.Kind, k.Samples, 100*k.Firing, k.Hold, k.HoldP25, k.HoldP75, 100*k.Kite, k.KiteAt, 100*k.Close, k.Ahead,
-			100*k.Siege, 100*k.StaticNear, k.RetreatHP, 100*k.RetreatRate)
+		fmt.Fprintf(&b, "| %s | %d | %.0f%% | %.2f (%.2f-%.2f) | %.0f%% / %.0f%% | %.2f | %.0f%% | %.0f | %.0f%% (%.0f%%) | %.0f / %.0f / %.0f / %.0f%% |\n",
+			k.Kind, k.Samples, 100*k.Firing, k.Hold, k.HoldP25, k.HoldP75, 100*k.Kite, 100*k.KiteBase, k.KiteAt, 100*k.Close, k.Ahead,
+			100*k.Siege, 100*k.StaticNear, 100*k.Retreat[0], 100*k.Retreat[1], 100*k.Retreat[2], 100*k.Retreat[3])
 	}
 	return b.String()
 }
@@ -219,7 +262,8 @@ func MicroDoctrine(kinds []MicroKind) string {
 	b.WriteString("kinds = {\n")
 	for _, k := range kinds {
 		kite := "false"
-		if k.Kite >= 0.3 && k.KiteAt > 0 {
+		// kiting: backing off from what it outranges clearly more than from what outranges it
+		if k.Kite-k.KiteBase >= 0.1 && k.KiteAt > 0 {
 			kite = fmt.Sprintf("%.2f", k.KiteAt)
 		}
 		fmt.Fprintf(&b, "\t[%q] = { hold = %.2f, kite = %s", k.Kind, k.Hold, kite)

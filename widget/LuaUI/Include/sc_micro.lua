@@ -41,7 +41,7 @@ return function(ctx)
 	-- kiting: nil to keep fighting, or the distance from the enemy to back off to. Only from enemies we
 	-- outrange (against longer guns, closing in is the answer).
 	function M.kite(rule, ownRange, dist, enemyRange)
-		if not rule.kite or ownRange <= 0 then
+		if not rule.kite or ownRange < (D.micro.kiteRange or 0) then
 			return nil
 		end
 		if enemyRange and enemyRange >= ownRange * D.micro.outrange then
