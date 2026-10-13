@@ -77,3 +77,15 @@ for more fast units (`raid_share` keeps raiders in production) or more turrets (
 - the enemy has air and you have no anti-air option,
 - a push opportunity exists (you're much stronger) - suggest it in your sentence and act on it if your
   orders allow attacking.
+
+## Army styles (`set_army_style`)
+
+- **skirmish** when we field rockets, railguns or artillery (`skirmisher`/`artillery` in our counts) and they
+  field slow heavies or assault units: we hit them at range while they walk in.
+- **siege** when their strength is turrets (`groups` with a big `static` share, `defenses`): artillery and
+  skirmishers shell structures first while heavies screen.
+- **harass** in the long middle game when neither army can win a straight fight: ranged units raid their
+  outlying extractors from range.
+- **hold** when a known enemy army clearly outweighs ours: stay behind turrets until reinforcements arrive.
+- Leave it on **auto** unless the last fights showed the style is wrong (e.g. kiting units dying to faster
+  raiders: switch to balanced).

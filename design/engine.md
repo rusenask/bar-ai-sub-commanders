@@ -157,6 +157,24 @@ Every combat pass `Tactics.air` gives each wing one order; `Tactics.airUnit` mak
 
 Planes under 45% health fly home until 90%.
 
+## Unit doctrine and army styles (sc_micro.lua)
+
+Each kind of unit has rules (`D.micro.kinds`): the fraction of its range it fights from (`hold`), when it
+backs off (`kite`: an enemy it outranges within that fraction of its range), whether it leads (`front`),
+shells structures first (`siege`) or waits behind the rally point (`behind`). `Tactics.micro` applies them
+to each Army unit in an engagement: siege units ATTACK the most valuable structure in range (turrets 3x),
+kiting units MOVE back to `hold` x range from the nearest enemy they outrange (`Spring.GetUnitNearestEnemy`).
+
+Styles (`D.micro.styles`) change the rules and the raids: `balanced`; `skirmish` (kite earlier, assault at
+the edge of range); `siege` (skirmishers and artillery shell structures); `harass` (skirmishers and
+artillery join raid squads up to 2.5x the size); `hold` (no pushes or attacks). The player (panel, `sc
+style`), the strategist (`set_army_style`) or `auto` choose: defend plan -> hold; their known power 40%
+static -> siege; our army 35% ranged against theirs 50% heavy/assault -> skirmish; not pushing and 25%
+ranged -> harass; else balanced. An auto style holds a minute.
+
+The starting numbers are judgement; the plan is to measure them in strong players' replays (distance kept
+to the nearest enemy relative to weapon range, backing off while firing, per kind) with the data logger.
+
 ## Zones are optional
 
 A sub-commander without player-drawn zones gets **auto zones** recomputed by role: economy around our

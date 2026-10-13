@@ -209,6 +209,51 @@ D.air = {
 	t2Income = 70, -- from this income the Air Force asks for a tier 2 constructor (a T2 air plant)
 }
 
+-- how each kind of unit fights and the army styles that change it (sc_micro.lua). Starting values from
+-- how strong players use them; the replay logger's micro samples are to replace them (design/engine.md)
+D.micro = {
+	outrange = 0.9, -- an enemy with at least this fraction of our range isn't outranged: no kiting from it
+	kinds = {
+		default = { hold = 0.8, kite = false },
+		raider = { hold = 0.6, kite = false },
+		assault = { hold = 0.7, kite = false, front = true },
+		heavy = { hold = 0.6, kite = false, front = true },
+		-- skirmishers (rockets, railguns): fight from 90% of their range, back off from what gets within 60%
+		skirmisher = { hold = 0.9, kite = 0.6 },
+		artillery = { hold = 0.95, kite = 0.7, siege = true, behind = 350 },
+		["long-range artillery"] = { hold = 0.95, kite = 0.7, siege = true, behind = 500 },
+		["mobile anti-air"] = { hold = 0.7, kite = false },
+	},
+	styles = {
+		balanced = { label = "Balanced", desc = "one army that fights where it wins; ranged units keep their range" },
+		skirmish = {
+			label = "Skirmish",
+			desc = "poke at range: skirmishers and artillery kite early, assault units stay at the edge of range",
+			kinds = { skirmisher = { kite = 0.8, hold = 0.95 }, artillery = { kite = 0.85 }, assault = { hold = 0.85 } },
+		},
+		siege = {
+			label = "Siege",
+			desc = "artillery and skirmishers shell turrets and structures first, heavies screen them",
+			kinds = { skirmisher = { siege = true }, artillery = { siege = true, kite = 0.5 }, heavy = { front = true } },
+		},
+		harass = {
+			label = "Harass",
+			desc = "rockets, artillery and railguns join the raids and hit outlying economy from range",
+			raidKinds = { skirmisher = true, artillery = true },
+			raidMax = 2.5, -- raid squads up to this many times doctrine.raid.max
+		},
+		hold = { label = "Hold", desc = "no pushes or attacks: hold behind our turrets until it's clearly won", noAttack = true },
+	},
+	order = { "auto", "balanced", "skirmish", "siege", "harass", "hold" },
+	auto = {
+		siegeStatic = 0.4, -- their known power this much static: siege
+		skirmishRanged = 0.35, -- our army this much ranged ...
+		skirmishFront = 0.5, -- ... against an army this much heavy/assault: skirmish
+		harassRanged = 0.25, -- not pushing and this much ranged: harass
+		hold = 30 * 60, -- an auto style holds at least this long
+	},
+}
+
 -- autonomy levels: what a sub-commander does on its own
 D.autonomy = {
 	levels = { "light", "balanced", "full" },

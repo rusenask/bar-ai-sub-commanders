@@ -197,6 +197,11 @@ local function apply(msg)
 			return nil, "raids aren't available in this widget version"
 		end
 		sc.setRaids(sub.id, args.on and true or false)
+	elseif op == "set_army_style" then
+		if not (sc.setArmyStyle and sc.setArmyStyle(args.style)) then
+			return nil, "style is auto, balanced, skirmish, siege, harass or hold"
+		end
+		sc.noteAI(sub.id, "army style: " .. tostring(args.style))
 	elseif op == "set_commander" then
 		if not (sc.setCommander and sc.setCommander(args.set)) then
 			return nil, "set is a mode (auto, builder, defender, frontline) or a personality (careful, bold)"

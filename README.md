@@ -121,7 +121,7 @@ The selected sub-commander's zones show the lane grid faintly: structures stay o
 
 Everything also works as text commands: `/luaui sc help`, `sc new defense`, `sc assign [id]`,
 `sc release`, `sc zone [id]`, `sc autozones [id]`, `sc role army [id]`, `sc posture spend [id]`, `sc autonomy full [id]`, `sc focus`,
-`sc commander auto|builder|defender|frontline|careful|bold`,
+`sc commander auto|builder|defender|frontline|careful|bold`, `sc style auto|balanced|skirmish|siege|harass|hold`,
 `sc tell [id] <orders>`, `sc ai on|off [id]`, `sc pause`, `sc resume`, `sc list`, `sc select [id]`,
 `sc delete [id]`. Sub-commanders survive `/luaui reload` within a game.
 
@@ -258,6 +258,7 @@ sending anything.
 | `add_zone`, `clear_zones` | move or extend where it works (cleared = automatic zones) |
 | `set_autonomy` | light / balanced / full: how much the rules do on their own |
 | `set_commander` | the commander's mode (auto / builder / defender / frontline) and personality (careful / bold) |
+| `set_army_style` | how the Army's units fight: balanced / skirmish / siege / harass / hold / auto |
 | `request_help` | ask the team: defend a place, a constructor, combat production for the Army |
 | `get_structures` | its own structures with positions, flagging ones that block a factory exit |
 | `remove_structures` | its constructors reclaim those structures (never factories); red rings on the map |
@@ -385,7 +386,7 @@ Other widgets can drive sub-commanders through `WG.SubCommanders`: `list()`, `ge
 `enemyIntel()`, `buildOptions(id)`, `structures(id, kind, blockingOnly)`,
 `removeStructures(id, unitIDs)`, `mapView(id, view)`, `create(role, name)`, `remove(id)`, `assign(id, unitIDs)`,
 `release(unitIDs)`, `setRole`, `setPosture`, `setAutonomy(id, level)`, `setPaused`, `addZone(id, zone)`, `clearZones`,
-`setCommander(modeOrPersonality)`, `request({ kind, from, x, z, need, note })`, `teamReport()`,
+`setCommander(modeOrPersonality)`, `setArmyStyle(style)`, `request({ kind, from, x, z, need, note })`, `teamReport()`,
 `setFocus(id, unitDefNames)`, `setAI(id, on)`, `setDirective(id, text)`, `note(id, text)`,
 `noteAI(id, text)`, `setAIStatus(id, text)`, `ownerOf(unitID)`. Zones are
 `{ kind = "rect", x1, z1, x2, z2 }` or `{ kind = "circle", x, z, r }` in world coordinates.

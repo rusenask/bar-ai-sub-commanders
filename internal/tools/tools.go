@@ -37,6 +37,11 @@ type raidsArgs struct {
 	On    bool `json:"on" jsonschema:"true: fast units scout and raid; false: they stay with the army"`
 }
 
+type styleArgs struct {
+	SubID int    `json:"sub_id" jsonschema:"your sub-commander id"`
+	Style string `json:"style" jsonschema:"auto | balanced | skirmish | siege | harass | hold"`
+}
+
 type commanderArgs struct {
 	SubID int    `json:"sub_id" jsonschema:"your sub-commander id"`
 	Set   string `json:"set" jsonschema:"a mode (auto, builder, defender, frontline) or a personality (careful, bold)"`
@@ -297,6 +302,13 @@ func Handler(g *game.Server, guard Guard) http.Handler {
 		Description: "Armies only (on by default): the army's fast units form a raid squad that scouts the enemy's side and hits what it beats (constructors, extractors, generators), routing around their defences and coming home when a fight turns. Off: they stay with the army (e.g. when the base needs every unit).",
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in raidsArgs) (*mcp.CallToolResult, any, error) {
 		return act(ctx, in.SubID, "set_raids", map[string]any{"on": in.On}, fmt.Sprintf("raids on=%v", in.On)), nil, nil
+	})
+
+	mcp.AddTool(s, &mcp.Tool{
+		Name:        "set_army_style",
+		Description: "How the Army's units fight (team-wide; the current one is armyStyle in the team report). balanced: one army that fights where it wins, ranged units keep their range. skirmish: poke at range, skirmishers and artillery kite early, assault units stay at the edge of range (good with a ranged army against slow heavy or assault armies). siege: artillery and skirmishers shell turrets and structures first, heavies screen (against turtled bases and turret lines). harass: rockets, artillery and railguns join the raid squads and hit outlying economy from range (while neither side can win a straight fight). hold: no pushes or attacks, hold behind our turrets (when outnumbered). auto (default) picks from the team plan and both sides' composition. Change it for a reason you can name: what the enemy fields, what we field, what the last fights showed.",
+	}, func(ctx context.Context, _ *mcp.CallToolRequest, in styleArgs) (*mcp.CallToolResult, any, error) {
+		return act(ctx, in.SubID, "set_army_style", map[string]any{"style": in.Style}, "army style "+in.Style), nil, nil
 	})
 
 	mcp.AddTool(s, &mcp.Tool{

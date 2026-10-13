@@ -132,6 +132,8 @@ do
 	Engine.team = include("sc_team")({ doctrine = Engine.D })
 	Engine.com = include("sc_commander")({ doctrine = Engine.D })
 	Engine.air = include("sc_air")({ doctrine = Engine.D })
+	Engine.micro = include("sc_micro")({ doctrine = Engine.D })
+	Engine.armyStyle, Engine.armyStyleNow, Engine.armyStyleSince = "auto", "balanced", 0
 	Engine.comMode, Engine.comPersonality = "auto", "careful"
 end
 
@@ -3566,7 +3568,7 @@ function Tactics.raid(sub)
 		if st then
 			st.raid = nil
 		end
-		if d and Engine.prod.category(d) == "raider" and not spGetUnitIsBeingBuilt(u) and not (st and (st.retreating or st.manual)) then
+		if d and Engine.micro.raids(Engine.prod.category(d), Engine.armyStyleNow) and not spGetUnitIsBeingBuilt(u) and not (st and (st.retreating or st.manual)) then
 			local x, _, z = spGetUnitPosition(u)
 			if x then
 				raiders[#raiders + 1] = { id = u, x = x, z = z, cost = d.cost }
@@ -3574,8 +3576,9 @@ function Tactics.raid(sub)
 		end
 	end
 	local members, power = {}, 0
+	local raidMax = R.max * (Engine.micro.style(Engine.armyStyleNow).raidMax or 1)
 	for _, m in ipairs(raiders) do
-		if power + m.cost <= R.max then
+		if power + m.cost <= raidMax then
 			members[#members + 1] = m
 			power = power + m.cost
 		end
@@ -4021,6 +4024,112 @@ function Engine.refreshTeam()
 	end
 end
 
+-- the army's style (sc_micro.lua): the player's or strategist's choice, or with `auto` from the team plan
+-- and what both sides field (held doctrine.micro.auto.hold frames)
+function Engine.refreshStyle()
+	local want, why = Engine.armyStyle, "chosen"
+	if want == "auto" then
+		local power, static = 0, 0
+		for _, g in ipairs(Engine.tm.groups(frame, 10)) do
+			power, static = power + g.power, static + g.static
+		end
+		local k = Enemy.mix().kinds
+		local mobile = 0
+		for kind, n in pairs(k) do
+			if kind ~= "turret" and kind ~= "anti-air turret" then
+				mobile = mobile + n
+			end
+		end
+		local army = Engine.anyArmy()
+		local cp = army and army.counts.catPower or {}
+		local ourPower = army and army.counts.power or 0
+		want, why = Engine.micro.auto({
+			phase = Engine.team.plan.phase,
+			enemyStatic = power > 0 and static / power or 0,
+			enemyFront = mobile > 0 and ((k.heavy or 0) + (k.assault or 0) + (k["hover assault"] or 0)) / mobile or 0,
+			ourRanged = ourPower > 0 and ((cp.skirmisher or 0) + (cp.artillery or 0)) / ourPower or 0,
+		})
+		if want ~= Engine.armyStyleNow and frame - Engine.armyStyleSince < Engine.D.micro.auto.hold and want ~= "hold" then
+			return
+		end
+	end
+	if want ~= Engine.armyStyleNow then
+		Engine.armyStyleNow, Engine.armyStyleSince = want, frame
+		for _, s in ipairs(subs) do
+			if s.role == "army" then
+				log(s, sformat("army style: %s (%s)", Engine.micro.style(want).label, why))
+			end
+		end
+	end
+end
+
+function Engine.setArmyStyle(name)
+	if name ~= "auto" and not Engine.D.micro.styles[name] then
+		return false
+	end
+	Engine.armyStyle = name
+	Engine.armyStyleSince = -99999
+	Engine.refreshStyle()
+	return true
+end
+
+-- one unit of the Army in a fight, by its kind's doctrine under the army style (sc_micro.lua): siege
+-- units shoot structures in range first, ranged units keep their range from what they outrange. Returns
+-- true when it gave the unit an order.
+function Tactics.micro(unitID, d, st, x, z)
+	if st.kiteUntil and frame < st.kiteUntil then
+		return true
+	end
+	local rule = Engine.micro.rule(d.kind, Engine.armyStyleNow)
+	local range = d.range or 0
+	if rule.siege and range > 0 then
+		local best, bestScore
+		for _, u in ipairs(spGetUnitsInCylinder(x, z, range)) do
+			if isEnemyUnit(u) then
+				local ud = unitDef(u)
+				if ud and not ud.mobile then
+					-- turrets first (they shoot back), then what their economy runs on
+					local score = ud.cost * (ud.staticDef and 3 or 1)
+					if not bestScore or score > bestScore then
+						best, bestScore = u, score
+					end
+				end
+			end
+		end
+		if best then
+			if st.sieging ~= best or (spGetUnitCommandCount(unitID) or 0) == 0 then
+				order(unitID, CMD.ATTACK, { best })
+				st.sieging, st.engaged = best, nil
+				setTask(unitID, "siege", "shelling " .. (unitDef(best) and unitDef(best).human or "a structure"), true)
+			end
+			return true
+		end
+		st.sieging = nil
+	end
+	if rule.kite and range > 0 then
+		local e = Spring.GetUnitNearestEnemy(unitID, range, true)
+		local ex, _, ez
+		if e then
+			ex, _, ez = spGetUnitPosition(e)
+		end
+		if ex then
+			local ed = unitDef(e)
+			local dd = sqrt(dist2(x, z, ex, ez))
+			local back = Engine.micro.kite(rule, range, dd, ed and ed.range)
+			if back then
+				local dx, dz = x - ex, z - ez
+				local len = max(sqrt(dx * dx + dz * dz), 1)
+				local tx, tz = clampToMap(x + dx / len * (back - dd), z + dz / len * (back - dd))
+				order(unitID, CMD.MOVE, { tx, spGetGroundHeight(tx, tz), tz })
+				st.kiteUntil, st.engaged = frame + 30, nil
+				setTask(unitID, "kite", "keeping its range", true)
+				return true
+			end
+		end
+	end
+	return false
+end
+
 -- the commander (sc_commander.lua), each combat pass: its mode, D-gun shots, and at the front following
 -- the army. Returns true when it took the commander this pass.
 function Tactics.commander(sub, unitID, d, st)
@@ -4188,6 +4297,9 @@ function Tactics.squad(sub)
 	local home = target and Engine.inBase(target.x, target.z)
 	-- the team plan: no pushes or attacks while defending; a push plan lets a balanced army attack too
 	local phase = Engine.team.plan.phase
+	if Engine.micro.style(Engine.armyStyleNow).noAttack then
+		phase = "defend" -- the hold style: no pushes or attacks either
+	end
 	if not target and auto.push and sub.pushTarget and phase ~= "defend" then
 		local p = sub.pushTarget
 		target = { id = p.id, x = p.x, z = p.z, name = p.name }
@@ -4288,6 +4400,9 @@ local function thinkCombat(sub, unitID, d, st, threats)
 	if sub.role == "army" and not d.aaOnly and not d.air then
 		local so, sq = sub.squadOrder, sub.squad
 		if so and so.action == "engage" then
+			if Tactics.micro(unitID, d, st, x, z) then
+				return
+			end
 			if st.engaged ~= so.id or not busy or frame - (st.engagedFrame or 0) > 150 then
 				order(unitID, CMD.FIGHT, { so.x, spGetGroundHeight(so.x, so.z), so.z })
 				st.engaged, st.engagedFrame = so.id, frame
@@ -4305,6 +4420,13 @@ local function thinkCombat(sub, unitID, d, st, threats)
 			return
 		end
 		local rx, rz = sub.rallyX, sub.rallyZ
+		-- artillery waits behind the rally point (sc_micro.lua: behind)
+		local behind = rx and Engine.micro.rule(d.kind, Engine.armyStyleNow).behind
+		if behind and Engine.homeX then
+			local hdx, hdz = Engine.homeX - rx, Engine.homeZ - rz
+			local hl = max(sqrt(hdx * hdx + hdz * hdz), 1)
+			rx, rz = rx + hdx / hl * min(behind, hl), rz + hdz / hl * min(behind, hl)
+		end
 		if rx and dist2(x, z, rx, rz) > 260 * 260 and (not busy or (st.softUntil and frame > st.softUntil) or (so and so.action == "fallback")) then
 			local a = (unitID % 12) / 12 * 2 * pi
 			local gx, gz = clampToMap(rx + cos(a) * 120, rz + sin(a) * 120)
@@ -5558,6 +5680,9 @@ local function exportAPI()
 		setCommander = function(what)
 			return Engine.setCommander(what)
 		end,
+		setArmyStyle = function(name)
+			return Engine.setArmyStyle(name)
+		end,
 		-- a request to the team (sc_team.lua): { kind = "defend"|"constructor"|"production", from, x, z, need, note }
 		request = function(req)
 			if type(req) ~= "table" or not req.kind then
@@ -5792,6 +5917,10 @@ local function textCommand(_, line, words)
 			Engine.useAutoZones(sub)
 		elseif verb == "raids" then
 			Engine.setRaids(sub, words[2] ~= "off")
+		elseif verb == "style" then
+			if not Engine.setArmyStyle(words[2] or "") then
+				spEcho("Sub-Commanders: style is " .. tconcat(Engine.D.micro.order, ", "))
+			end
 		elseif verb == "commander" then
 			if not Engine.setCommander(words[2] or "") then
 				spEcho("Sub-Commanders: commander is auto, builder, defender, frontline, careful or bold")
@@ -5991,6 +6120,10 @@ local function drawActiveControls(sub, x1, x2, y, s)
 		row[2] = { Engine.raiding(sub) and "Raids: on" or "Raids: off", function()
 			Engine.setRaids(sub, not Engine.raiding(sub))
 		end, Engine.raiding(sub) and { 1, 0.75, 0.4 } or nil }
+		local now = Engine.micro.style(Engine.armyStyleNow).label
+		row[3] = { Engine.armyStyle == "auto" and ("Style: auto (" .. now .. ")") or ("Style: " .. now), function(button)
+			Engine.setArmyStyle(cycle(Engine.D.micro.order, Engine.armyStyle, button == 3 and -1 or 1))
+		end, Engine.armyStyle == "auto" and { 0.55, 1, 0.6 } or nil }
 	end
 	buttonRow(x1, x2, y, h, s, row, fs)
 	y = y - h - 4 * s
@@ -6974,6 +7107,7 @@ function Engine.teamReport()
 			return out
 		end)(),
 		commander = { mode = Engine.comMode, now = Engine.comModeNow, personality = Engine.comPersonality },
+		armyStyle = { setting = Engine.armyStyle, now = Engine.armyStyleNow, desc = Engine.micro.style(Engine.armyStyleNow).desc },
 		territory = Engine.pickets and {
 			exposedFrontierCells = Engine.terr.exposed, -- our edge cells enemies can walk to (cliffs, water, map edge excluded)
 			pickets = (function()
@@ -7199,6 +7333,7 @@ function widget:GameFrame(n)
 		end
 		Engine.noteApproaches(baseThreats)
 		Engine.refreshTeam()
+		Engine.refreshStyle()
 	end
 	if combatPass then
 		for _, sub in ipairs(subs) do
@@ -7287,6 +7422,9 @@ local function restore(game)
 		end
 		log(sub, "restored after reload")
 	end
+	if game.armyStyle then
+		Engine.setArmyStyle(game.armyStyle)
+	end
 	if game.commander then
 		Engine.setCommander(game.commander.mode or "auto")
 		Engine.setCommander(game.commander.personality or "careful")
@@ -7299,7 +7437,7 @@ function widget:GetConfigData()
 	local f = spGetGameFrame()
 	if f > 0 and #subs > 0 then
 		data.game = { map = Game.mapName, team = myTeam, frame = f, time = os and os.time and os.time() or nil, subs = serialize(),
-			commander = { mode = Engine.comMode, personality = Engine.comPersonality } }
+			commander = { mode = Engine.comMode, personality = Engine.comPersonality }, armyStyle = Engine.armyStyle }
 	end
 	return data
 end
