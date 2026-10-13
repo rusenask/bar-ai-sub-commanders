@@ -287,3 +287,8 @@ code (v16 mostly never reached the hand-off: its lab built Infestors). Re-measur
 - 4 wins in 36 (v23: 0 in 36), losses unchanged (18 / 18). Cortex is the weakest faction for us: its
   extractors stall at ~14 after minute 15 (Legion grows to 24 by 35), trades 0.52.
 - All factions lose 70-80 extractors a game to raids and rebuild them.
+- Extractors at 8 / 20 min (new compare column): Legion 11 / 18, Armada 14 / 12, Cortex 12.5 / 11.
+  Armada and Cortex lose their expansions to BARbarian's minute 15-25 pushes (Hammers and Rockos reach
+  the base: most of our constructor losses are within 1500 of home) and don't recover; at minute 20
+  Cortex has 5.5 constructors and 15 wind turbines a game to Legion's 7.6 and 51 (it builds advanced
+  solars and converters instead). Next: why Cortex/Armada pick that energy, and why Legion holds.

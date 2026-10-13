@@ -381,7 +381,9 @@ type Arm struct {
 
 // Compare writes a side-by-side table of test arms.
 func Compare(w io.Writer, arms []Arm) {
-	fmt.Fprintln(w, "| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 min | Army at 12 min |")
+	// extractors at 8 and 20 minutes: the opening, and whether expansion holds (v24: Cortex had more than
+	// Legion at 15 and half as many at 20, raided down)
+	fmt.Fprintln(w, "| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |")
 	fmt.Fprintln(w, "|---|---|---|---|---|---|---|---|---|---|")
 	for _, a := range arms {
 		var metal, killed, died, dealt, taken, builders float64
@@ -408,6 +410,7 @@ func Compare(w io.Writer, arms []Arm) {
 			ratio = dealt / taken
 		}
 		mex, haveMex := pace(a.Games, 8, "mex")
+		mex20, haveMex20 := pace(a.Games, 20, "mex")
 		army, haveArmy := pace(a.Games, 12, "army")
 		cell := func(v float64, have int) string {
 			if have == 0 {
@@ -416,6 +419,6 @@ func Compare(w io.Writer, arms []Arm) {
 			return fmtNum(v)
 		}
 		fmt.Fprintf(w, "| %s | %d | %s | %d | %s | %.0f / %.0f | %.2f | %.1f | %s | %s |\n", a.Label, len(a.Games), resultCounts(a.Games), lost25,
-			fmtNum(metal/n), killed/n, died/n, ratio, builders/n, cell(mex, haveMex), cell(army, haveArmy))
+			fmtNum(metal/n), killed/n, died/n, ratio, builders/n, cell(mex, haveMex)+" / "+cell(mex20, haveMex20), cell(army, haveArmy))
 	}
 }
