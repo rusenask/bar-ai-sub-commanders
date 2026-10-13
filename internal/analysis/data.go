@@ -178,7 +178,7 @@ func timelineWorthy(e Event) bool {
 	if e.Sub == "player" {
 		return true
 	}
-	for _, p := range []string{"engaging", "regrouping", "holding", "falling back", "raid:", "pushing", "push called off",
+	for _, p := range []string{"engaging", "regrouping", "holding", "falling back", "raid:", "response squad", "pushing", "push called off",
 		"destroyed", "commander pulled back", "constructor pulled back", "covering", "tuned", "autonomy", "raids ",
 		"another factory", "our first factory", "is being built for me", "gave up", "metal is overflowing"} {
 		if strings.Contains(e.Text, p) {

@@ -3235,6 +3235,78 @@ function Tactics.raid(sub)
 	end
 end
 
+-- the response squad (doctrine.responders): the Army's fastest units, up to a share of its power, wait at
+-- the centre of the base and intercept intruders anywhere in it (factories and the commander first); the
+-- main army keeps the front
+function Tactics.responders(sub)
+	sub.responseOrder, sub.respSquad = nil, nil
+	if sub.role ~= "army" or not Engine.homeX then
+		return
+	end
+	local R = Engine.D.responders
+	local cands = {}
+	for u in pairs(sub.units) do
+		local d = unitDef(u)
+		local st = ustate[u]
+		if st then
+			st.responder = nil
+		end
+		if d and d.combat and not d.aaOnly and not d.air and (d.speed or 0) >= R.speed and not spGetUnitIsBeingBuilt(u)
+			and not (st and (st.retreating or st.manual or st.raid)) then
+			local x, _, z = spGetUnitPosition(u)
+			if x then
+				cands[#cands + 1] = { id = u, x = x, z = z, cost = d.cost, speed = d.speed }
+			end
+		end
+	end
+	tsort(cands, function(a, b)
+		return a.speed > b.speed
+	end)
+	local limit = R.share * (sub.counts.power or 0)
+	local members, power = {}, 0
+	for _, m in ipairs(cands) do
+		if power + m.cost <= limit then
+			members[#members + 1] = m
+			power = power + m.cost
+		end
+	end
+	if power < R.min then
+		return
+	end
+	for _, m in ipairs(members) do
+		getState(m.id).responder = true
+	end
+	local S = Engine.squads
+	local rs = S.summarize(members)
+	sub.respSquad = rs
+	local best, bestD
+	for _, list in ipairs({ sub.threats, baseThreats }) do
+		for _, t in ipairs(list) do
+			if not t.air and Engine.inBase(t.x, t.z) then
+				local dd = sqrt(dist2(rs.x, rs.z, t.x, t.z)) - (Engine.nearVital(t.x, t.z) and 2500 or 0)
+				if not bestD or dd < bestD then
+					best, bestD = t, dd
+				end
+			end
+		end
+	end
+	if best then
+		local action, ratio = S.decide(rs, best.x, best.z, frame, { home = true, support = turretSupport(best.x, best.z, 700) })
+		if action == "engage" then
+			if sub.lastResponse ~= best.id then
+				sub.lastResponse = best.id
+				log(sub, sformat("response squad: intercepting a raid at %d,%d (%.1fx)", best.x, best.z, ratio))
+			end
+			sub.responseOrder = { action = "engage", id = best.id, x = best.x, z = best.z, ratio = ratio }
+			return
+		end
+	end
+	-- waiting: the centre of the base, out of known enemy reach
+	local hx, hz = Engine.homeX, Engine.homeZ
+	local sx, sz = Engine.tm.safePoint(hx, hz, hx, hz)
+	sub.responseOrder = { action = "wait", x = sx or hx, z = sz or hz }
+end
+
 -- the army as one squad (sc_squads.lua), once per combat pass: where its main body is, what it goes for,
 -- and whether to engage, regroup, hold or fall back
 function Tactics.squad(sub)
@@ -3245,7 +3317,7 @@ function Tactics.squad(sub)
 	for u in pairs(sub.units) do
 		local d = unitDef(u)
 		local st = ustate[u]
-		if d and d.combat and not d.aaOnly and not d.air and not spGetUnitIsBeingBuilt(u) and not (st and (st.retreating or st.manual or st.raid)) then
+		if d and d.combat and not d.aaOnly and not d.air and not spGetUnitIsBeingBuilt(u) and not (st and (st.retreating or st.manual or st.raid or st.responder)) then
 			local x, _, z = spGetUnitPosition(u)
 			if x then
 				members[#members + 1] = { id = u, x = x, z = z, cost = d.cost }
@@ -3266,8 +3338,10 @@ function Tactics.squad(sub)
 	local function consider(list, helping)
 		for _, t in ipairs(list) do
 			-- helping elsewhere: not where our turrets and guards already outgun the intruders (unless a
-			-- factory or the commander is in danger)
-			if not t.air and not (helping and not Engine.nearVital(t.x, t.z) and Engine.tm.influence(t.x, t.z) >= 1.5 * Engine.tm.enemyPower(t.x, t.z, 700, frame)) then
+			-- factory or the commander is in danger), nor raids in the base the response squad can handle
+			local rsq = sub.respSquad
+			local handled = rsq and Engine.inBase(t.x, t.z) and Engine.tm.enemyPower(t.x, t.z, 700, frame) < 0.8 * rsq.together
+			if not t.air and not handled and not (helping and not Engine.nearVital(t.x, t.z) and Engine.tm.influence(t.x, t.z) >= 1.5 * Engine.tm.enemyPower(t.x, t.z, 700, frame)) then
 				local dd = sqrt(dist2(sq.x, sq.z, t.x, t.z))
 				-- what they threaten counts more than how close they are: factories and the commander first
 				if Engine.nearVital(t.x, t.z) then
@@ -3377,6 +3451,24 @@ local function thinkCombat(sub, unitID, d, st, threats)
 			order(unitID, ro.action == "retreat" and CMD.MOVE or CMD.FIGHT, { last.x, spGetGroundHeight(last.x, last.z), last.z }, #route > 1 and { "shift" } or nil)
 			st.raidSeq = ro.seq
 			setTask(unitID, "raid", ro.action == "raid" and "raiding" or (ro.action == "explore" and "scouting" or "raid coming home"), true)
+		end
+		return
+	end
+	-- the response squad intercepts raids in the base, or waits at its centre (Tactics.responders)
+	local rso = sub.responseOrder
+	if st.responder and rso then
+		if rso.action == "engage" then
+			if st.engaged ~= rso.id or not busy or frame - (st.engagedFrame or 0) > 150 then
+				order(unitID, CMD.FIGHT, { rso.x, spGetGroundHeight(rso.x, rso.z), rso.z })
+				st.engaged, st.engagedFrame = rso.id, frame
+				setTask(unitID, "respond", "intercepting a raid", true)
+			end
+		elseif dist2(x, z, rso.x, rso.z) > 350 * 350 and (not busy or (st.softUntil and frame > st.softUntil)) then
+			local a = (unitID % 9) / 9 * 2 * pi
+			local gx, gz = clampToMap(rso.x + cos(a) * 160, rso.z + sin(a) * 160)
+			order(unitID, CMD.FIGHT, { gx, spGetGroundHeight(gx, gz), gz })
+			st.engaged = nil
+			setTask(unitID, "respond", "response squad: waiting in the base", true)
 		end
 		return
 	end
@@ -4209,6 +4301,7 @@ local function summarize(sub)
 		-- an army without a factory gets its units from the economy's (strong players run one lab)
 		fedBy = Engine.fedByName(sub),
 		raid = sub.raidOrder and { action = sub.raidOrder.action, target = { x = floor(sub.raidOrder.x), z = floor(sub.raidOrder.z) } } or nil,
+		response = sub.responseOrder and { action = sub.responseOrder.action, power = sub.respSquad and floor(sub.respSquad.together) or 0 } or nil,
 		squad = sub.squadOrder and { action = sub.squadOrder.action, ratio = floor(sub.squadOrder.ratio * 10) / 10, target = { x = floor(sub.squadOrder.x), z = floor(sub.squadOrder.z) } } or nil,
 		paused = sub.paused,
 		ai = sub.ai or false,
@@ -6216,6 +6309,7 @@ function widget:GameFrame(n)
 		for _, sub in ipairs(subs) do
 			Tactics.updatePush(sub)
 			Tactics.raid(sub)
+			Tactics.responders(sub)
 			Tactics.squad(sub)
 		end
 	end

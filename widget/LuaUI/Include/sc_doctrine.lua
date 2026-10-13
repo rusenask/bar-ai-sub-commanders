@@ -40,6 +40,15 @@ D.raid = {
 	reroute = 30 * 10, -- recompute the route this often
 }
 
+-- the Army's response squad: its fastest units wait at the centre of the base and intercept raids anywhere
+-- in it, so the main army holds the front instead of being dragged around by raiders (strong players keep
+-- such a force; raids from every side pulled our single squad back and forth)
+D.responders = {
+	share = 0.3, -- of the army's power, at most
+	min = 300, -- metal value before a response squad forms (below that the main army answers)
+	speed = 70, -- fast units only
+}
+
 -- threat map
 D.threat = {
 	cell = 256, -- elmos per cell

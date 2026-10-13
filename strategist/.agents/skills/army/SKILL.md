@@ -44,6 +44,15 @@ Keep a mix: pure raiders die to riot units and turrets, pure heavies get outrang
   players) and air stays small (5-10% of metal).
 - So: early numbers and map control, then weight; tech 2 isn't a race in a 1v1.
 
+## Raids from every side
+
+The army keeps a **response squad**: its fastest units (up to 30% of its power) wait at the centre of the
+base and intercept raids anywhere in it, factories and the commander first, while the main army holds
+the front (chasing raiders across the base with the whole army is what raiders want). Together with
+turrets at every extractor cluster and radar on every approach, and our own raids on their economy (which
+call their raiders home), that's how strong players handle raiding. If raids keep getting through, ask
+for more fast units (`raid_share` keeps raiders in production) or more turrets (Defense's budget).
+
 ## Hold or push
 
 - **Hold** (zone on our side, near our turrets and extractors) while we are weaker or still building up.
