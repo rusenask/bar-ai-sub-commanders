@@ -54,6 +54,18 @@ out wrong.
 - The strategist flip-flopped posture and read low metal storage as a stall; a 90 s posture cooldown and
   prompt fixes stopped it. (AI-1, AI-2)
 
+- Spending escalation has to wait for the surplus: growing the turret mix from 30 metal/s (v20) ate the
+  metal that would have overflowed into a second lab at balanced autonomy; one lab fed everything to the
+  Army, the Economy kept no guards, and the commander died alone in both games. Escalate above ~50
+  metal/s, and keep the commander's escort before feeding anyone.
+- A team request changes who gets production: the Army's production request made the Economy feed it
+  raiders from its second constructor on (v21b), so it never grew past 3 and the scripted player never
+  had a spare constructor for Intelligence, Air Defense or the Air Force. Constructors first.
+- Factions differ in what a plant makes: Legion's T1 aircraft plant has no scout plane, and "build a
+  scout first" stuck the Air Force on gunships (v21). Choose from what the factory can actually build.
+- The Air Force (v21c): fighters, gunships hunting raids, bombers striking around anti-air. First wins
+  against BARbarian medium came with it (v21 game 1, v21c game 2).
+
 ## Engine and widget traps
 
 - Widgets get no attacker in `UnitDamaged` (they do in `UnitDestroyed`); use `Spring.GetUnitExperience`
