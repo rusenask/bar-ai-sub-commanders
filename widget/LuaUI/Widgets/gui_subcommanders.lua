@@ -3326,7 +3326,19 @@ local function thinkCombat(sub, unitID, d, st, threats)
 		return
 	end
 	st.engaged = nil
-	-- the economy's guards screen the side approaches (pickets 2..n; the army holds the main front)
+	-- the commander's escort: two of the economy's guards stay with it (losing it loses the game; v7
+	-- lost 7 of 16 commanders once the guards left for the pickets)
+	if sub.role == "economy" and Engine.escort(sub, unitID) then
+		local com = Engine.commanderID
+		if st.escorting ~= com or not busy then
+			order(unitID, CMD.GUARD, { com })
+			st.escorting = com
+			setTask(unitID, "escort", "guarding the commander", true)
+		end
+		return
+	end
+	st.escorting = nil
+	-- the economy's other guards screen the side approaches (pickets 2..n; the army holds the main front)
 	local P = Engine.pickets
 	if sub.role == "economy" and P and #P > 1 then
 		local p = P[2 + (unitID % (#P - 1))]
@@ -3802,6 +3814,12 @@ function Tactics.guardCommander(sub, unitID, st)
 				end
 			end
 		end
+	end
+	-- out of known enemy reach toward home first (turrets now stand on the frontier pickets: the nearest
+	-- ones can be at the edge, closer to the enemy)
+	local sx, sz = Engine.tm.safePoint(x, z, Engine.homeX, Engine.homeZ)
+	if sx and dist2(x, z, sx, sz) > 150 * 150 then
+		bx, bz = sx, sz
 	end
 	if not bx then
 		local dx, dz = x - tx, z - tz
@@ -5642,6 +5660,7 @@ function Engine.refreshHome()
 					sx, sz, n = sx + x, sz + z, n + 1
 				else
 					cx, cz = x, z
+					Engine.commanderID = u
 				end
 			end
 		end
@@ -5872,6 +5891,36 @@ function Engine.approachText()
 	end
 	-- map z grows south: screen-north is -z
 	return sformat("most intruders lately came from the %s of our base (%.0f)", SECTOR_NAMES[s], n)
+end
+
+-- the two economy guards nearest the commander escort it (recomputed every combat pass)
+function Engine.escort(sub, unitID)
+	local com = Engine.commanderID
+	if not com or not isAlive(com) then
+		return false
+	end
+	if Engine.escortFrame ~= frame then
+		Engine.escortFrame, Engine.escorts = frame, {}
+		local cx, _, cz = spGetUnitPosition(com)
+		local list = {}
+		for u in pairs(sub.units) do
+			local d = unitDef(u)
+			local st = ustate[u]
+			if d and d.combat and not d.aaOnly and not (st and (st.retreating or st.manual)) then
+				local x, _, z = spGetUnitPosition(u)
+				if x and cx then
+					list[#list + 1] = { u = u, d = dist2(x, z, cx, cz) }
+				end
+			end
+		end
+		tsort(list, function(a, b)
+			return a.d < b.d
+		end)
+		for i = 1, min(2, #list) do
+			Engine.escorts[list[i].u] = true
+		end
+	end
+	return Engine.escorts[unitID] or false
 end
 
 -- is (x, z) close to something we can't afford to lose (a factory, the commander)?
