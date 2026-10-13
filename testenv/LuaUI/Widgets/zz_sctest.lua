@@ -4,7 +4,7 @@ function widget:GetInfo()
 end
 
 local scenario = (VFS.LoadFile("sctest_scenario.txt", VFS.RAW) or "eco"):gsub("%s+", "")
--- "SPEED LOCKSTEP" from run.sh: game speed override, and pause while the AI strategist thinks
+-- "SPEED LOCKSTEP" from run.sh: game speed override, and real time (1x) while the AI strategist thinks
 local speedOverride, lockstep = (VFS.LoadFile("sctest_speed.txt", VFS.RAW) or ""):match("^(%d*)%s*(%d*)")
 speedOverride, lockstep = tonumber(speedOverride), lockstep == "1"
 local myTeam = Spring.GetMyTeamID()
@@ -980,7 +980,7 @@ local function gameFrame(n)
 end
 
 
--- lockstep: the game waits for the strategist (Update runs while paused, GameFrame doesn't)
+-- lockstep: the game slows to real time while the strategist thinks (Update keeps running)
 local lockPaused, lockChecked = false, 0
 function widget:Update()
 	if not lockstep or not WG.SubCommanders or Spring.GetGameFrame() < 30 then
@@ -997,12 +997,13 @@ function widget:Update()
 			thinking = true
 		end
 	end
-	local _, _, paused = Spring.GetGameSpeed()
-	if thinking and not paused then
-		Spring.SendCommands("pause 1")
+	-- while the strategist thinks the game runs at real time, as it would in a real game; at full test
+	-- speed otherwise (pausing instead stopped the game nearly all the time once reviews got frequent)
+	if thinking and not lockPaused then
+		Spring.SendCommands("setspeed 1")
 		lockPaused = true
-	elseif not thinking and paused and lockPaused then
-		Spring.SendCommands("pause 0")
+	elseif not thinking and lockPaused then
+		Spring.SendCommands("setspeed " .. (speedOverride or 10))
 		lockPaused = false
 	end
 end

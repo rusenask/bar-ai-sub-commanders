@@ -34,6 +34,9 @@ widget reconnects by itself within a few seconds. Sub-commanders survive `/luaui
 - Test games connect to a separate test bridge on port 17878 (`make test-bridge`), not the Docker bridge on
   7878 that a real game uses. To exercise the bridge without BAR, use `bin/fakegame -addr 127.0.0.1:<port>`
   against a separate bridge container.
-- One test environment at a time: test games, batches, `testenv/collect.sh` and `testenv/replays.sh` share
-  `testenv/`. Check with `pgrep -fl "[r]un.sh|[r]eplays.sh|[c]ollect.sh"` first.
+- One batch at a time: a batch runs its games in parallel on separate write dirs (`testenv/workers/<n>`,
+  `WORKERS`, default 3; strategist batches use one, the test bridge serves one game). Single test games,
+  `testenv/collect.sh` and `testenv/replays.sh` use `testenv/` itself. Check with
+  `pgrep -fl "[b]atch.sh|[r]eplays.sh|[c]ollect.sh"` first, and don't edit `testenv/run.sh`,
+  `batch.sh` or the harness while a batch runs.
 - `MAPVIEW_OUT=/tmp/x go test ./internal/mapview` writes sample map pictures to look at.

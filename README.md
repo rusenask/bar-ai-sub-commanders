@@ -341,12 +341,14 @@ tasks: `DECIDER_ROUTES=fight=http://host:8011,unit=http://host:8012,turret=http:
   only, no strategist; profiles easy, medium, hard, hard_aggressive). It ends with
   `RESULT WIN|LOSS|TIMEOUT` and team stats.
 - Faster: `SPEED=15` runs any scenario at up to 15x (a 25-minute duel takes about two minutes here);
-  `LOCKSTEP=1` pauses the game while the strategist thinks, so it sees the game as often as at normal
-  speed; `MAP="Altair_Crossing_V4.1"` picks another map (names as in BAR's archive cache).
+  `LOCKSTEP=1` slows the game to real time while the strategist thinks, so it sees the game as it would
+  in a real one; `MAP="Altair_Crossing_V4.1"` picks another map (names as in BAR's archive cache);
+  `DUEL_MINUTES=40` plays longer. Test windows are small (800x500), never fullscreen.
 - `make test-batch GAMES=8 LABEL=my-change` plays several fast games (`BATCH_SCENARIO`, `AI_PROFILE`, `MAP`
-  as above) and keeps them in `testenv/batch/<date>-<label>/` with `meta.txt` (commit, settings) and
-  `report.md`; `WIDGET_SRC=/path/to/Widgets testenv/batch.sh ...` runs another version of the widgets, for
-  A/B comparisons. Results so far: [docs/research/test-games.md](docs/research/test-games.md).
+  as above), 3 at a time on separate write dirs (`WORKERS`; strategist batches 1), and keeps them in
+  `testenv/batch/<date>-<label>/` with `meta.txt` (commit, settings, how many ran) and `report.md`. A game
+  that didn't run is retried once; one that stalls is killed. `WIDGET_SRC=$(testenv/arm.sh name [commit])`
+  runs a frozen version of the widgets, for A/B comparisons. Results so far: [docs/research/test-games.md](docs/research/test-games.md).
 - `bin/fakegame` exercises the bridge and the model without starting BAR.
 
 ### Analysing games and improving

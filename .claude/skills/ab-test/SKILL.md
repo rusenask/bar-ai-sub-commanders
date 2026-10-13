@@ -29,11 +29,14 @@ WIDGET_SRC=/tmp/armB/Widgets LABEL=my-change testenv/batch.sh 8
 make compare ARMS="testenv/batch/<date>-baseline testenv/batch/<date>-my-change"
 ```
 
-Each batch prints a line per game, the summary and its findings. About 2 minutes per game at 15x.
+Each batch prints a line per game, the summary and its findings. Games run on `WORKERS` parallel write
+dirs (default 3: about 2x the throughput; 16 games of 25 minutes take ~15 min). A game that didn't run is
+retried once; `meta.txt` says `ran: N/M`, and a stalled game (no harness output for 2 minutes) is killed.
+Strategist arms (`BATCH_SCENARIO=duel LOCKSTEP=1 SPEED=10`) use one worker and a running
+`make test-bridge`; while a review is in flight the game runs at real time, not paused.
 `BATCH_SCENARIO=autopilot` lets the Sub-Commanders Autopilot widget play instead of the harness's scripted
 player (`MAP`, and the faction in `testenv/script_vsai.txt`, as needed); self-play against our own bot:
 `HOST_DIR=testenv SCENARIO=duelrules YOU=Legion BOT=Cortex play/vs.sh` (the host's log is the harness log).
-Strategist arms: `BATCH_SCENARIO=duel LOCKSTEP=1 SPEED=10` and a running `make test-bridge`.
 
 ## Judging
 

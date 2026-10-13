@@ -46,7 +46,7 @@ test-game:
 # make test-batch GAMES=5 BATCH_SCENARIO=duel AI_PROFILE=hard LABEL=my-change
 GAMES ?= 3
 test-batch:
-	LABEL="$(LABEL)" AI_PROFILE=$(or $(AI_PROFILE),medium) MAP="$(MAP)" SPEED=$(or $(SPEED),15) LOCKSTEP=$(LOCKSTEP) testenv/batch.sh $(GAMES) $(or $(BATCH_SCENARIO),duelrules) script_vsai.txt
+	LABEL="$(LABEL)" WORKERS="$(WORKERS)" DUEL_MINUTES="$(DUEL_MINUTES)" AI_PROFILE=$(or $(AI_PROFILE),medium) MAP="$(MAP)" SPEED=$(or $(SPEED),15) LOCKSTEP=$(LOCKSTEP) testenv/batch.sh $(GAMES) $(or $(BATCH_SCENARIO),duelrules) script_vsai.txt
 
 # play a local 1v1 against sub-commanders (a second BAR window joins as the bot); all settings optional:
 # make play-vs [YOU=Armada] [BOT=Legion] [MAP="..."] [BOT_AI=0] [BARB=ally:hard]
