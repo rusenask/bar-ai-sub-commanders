@@ -275,3 +275,15 @@ code (v16 mostly never reached the hand-off: its lab built Infestors). Re-measur
 
 - 36 games of 60 minutes in 13-16 minutes on 9 cpu-16 sandboxes. Armada and Cortex lose more than Legion;
   Cortex loses 36 constructors a game.
+
+## Sandboxes: v24 (finish games: scaled base-attack threshold, pushes only stop for real attacks)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261014-0133-sbx-v24-legion | 12 | 1 win, 7 timeout, 4 loss | 0 | 289.4k | 276 / 996 | 0.83 | 23.8 | 11 | 4.3k |
+| 20261014-0133-sbx-v24-armada (vs Cortex) | 12 | 3 win, 3 timeout, 6 loss | 1 | 152.9k | 205 / 689 | 0.92 | 15.7 | 14 | 4.3k |
+| 20261014-0133-sbx-v24-cortex (vs Armada) | 12 | 4 timeout, 8 loss | 1 | 117.8k | 106 / 712 | 0.52 | 27.2 | 12.5 | 3.1k |
+
+- 4 wins in 36 (v23: 0 in 36), losses unchanged (18 / 18). Cortex is the weakest faction for us: its
+  extractors stall at ~14 after minute 15 (Legion grows to 24 by 35), trades 0.52.
+- All factions lose 70-80 extractors a game to raids and rebuild them.
