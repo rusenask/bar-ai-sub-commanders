@@ -725,7 +725,8 @@ end
 -- Search outward from (ax, az) for a buildable spot inside the sub's zones, away from enemies seen there
 -- in the last seconds unless our own firepower covers it (threat map; older memories don't block building:
 -- in engine-v4 they kept raided bases from rebuilding energy).
--- opts: gap, rings, facing, samples, score(x, z) -> number (higher is better), underFire (allow threat)
+-- opts: gap, rings, facing, samples, score(x, z) -> number (higher is better), underFire (allow threat),
+-- anywhere (not limited to the sub's zones: radar serves the whole team)
 local function findBuildSpot(sub, defID, ax, az, opts)
 	opts = opts or {}
 	local d = defs[defID]
@@ -742,7 +743,7 @@ local function findBuildSpot(sub, defID, ax, az, opts)
 		for k = 0, n - 1 do
 			local a = offset + k / n * 2 * pi
 			local x, z = ax + cos(a) * ring * step, az + sin(a) * ring * step
-			if x > 64 and z > 64 and x < MAP_X - 64 and z < MAP_Z - 64 and inSubZones(sub, x, z) then
+			if x > 64 and z > 64 and x < MAP_X - 64 and z < MAP_Z - 64 and (opts.anywhere or inSubZones(sub, x, z)) then
 				local bx, by, bz = Spring.Pos2BuildPos(defID, x, spGetGroundHeight(x, z), z, facing)
 				if Spring.TestBuildOrder(defID, bx, by, bz, facing) > 0 and not nearMetalSpot(bx, bz, d) and not isBadSpot(bx, bz) and areaClear(d, bx, bz, gap, facing)
 					and (opts.underFire or Engine.tm.enemyPower(bx, bz, 600, frame, { fresh = true }) <= Engine.tm.influence(bx, bz)) then
@@ -1803,6 +1804,7 @@ local Intel = {}
 -- the highest buildable spot near (ax, az), among a few candidates
 function Intel.highSpot(sub, defID, ax, az, rings)
 	return findBuildSpot(sub, defID, ax, az, {
+		anywhere = true,
 		gap = 24,
 		rings = rings or 8,
 		samples = 8,
@@ -1836,9 +1838,12 @@ end
 -- points the radar net must cover: every zone's centre and its edge toward the enemy
 function Intel.watchPoints(sub)
 	local points = {}
-	-- the territory's pickets first: radar there sees raids coming from every side
+	-- radar behind each of the territory's pickets (a third of the way back toward home): it still sees
+	-- the approach (range ~2000) without standing where raids and artillery arrive (radars on the
+	-- frontier died 35 times in one game)
 	for _, p in ipairs(Engine.pickets or {}) do
-		points[#points + 1] = { p.x, p.z }
+		local hx, hz = Engine.homeX or p.x, Engine.homeZ or p.z
+		points[#points + 1] = { p.x + (hx - p.x) * 0.35, p.z + (hz - p.z) * 0.35 }
 	end
 	for _, zone in ipairs(sub.zones) do
 		local cx, cz = Zone.center(zone)
@@ -3597,7 +3602,7 @@ function Engine.updateAutoZones(sub)
 	if sub.role == "defense" and Engine.pickets and #Engine.pickets > 0 then
 		local zones = {}
 		for i, p in ipairs(Engine.pickets) do
-			if i <= 3 then
+			if i <= 4 then
 				local x, z = clampToMap(p.x, p.z)
 				zones[#zones + 1] = { kind = "circle", x = floor(x), z = floor(z), r = 600, auto = true }
 			end
@@ -5800,6 +5805,15 @@ function Engine.audit()
 	if Engine.homeX and frame > 30 * 180 and not Engine.radarNearHome() then
 		out[#out + 1] = "no radar covering the base: raids arrive unseen"
 	end
+	local blind = 0
+	for _, p in ipairs(Engine.pickets or {}) do
+		if not Intel.radarCovered(p.x, p.z, 0.9) then
+			blind = blind + 1
+		end
+	end
+	if frame > 30 * 360 and blind > 0 then
+		out[#out + 1] = sformat("%d of %d approaches (pickets) have no radar: flanking raids arrive unseen", blind, #Engine.pickets)
+	end
 	if Engine.minute() > 8 and combat >= 8 and raiders > combat * 0.5 then
 		out[#out + 1] = sformat("the army is %d%% raiders: cheap units feed their kills (raid_share)", floor(raiders / combat * 100))
 	end
@@ -5959,7 +5973,7 @@ function Engine.refreshTerritory()
 	end
 	Engine.terr.update(list, { Engine.enemyX or MAP_X / 2, Engine.enemyZ or MAP_Z / 2 })
 	local A = Engine.approach
-	Engine.pickets = Engine.terr.pickets(4, { Engine.homeX, Engine.homeZ }, { Engine.enemyX or MAP_X / 2, Engine.enemyZ or MAP_Z / 2 }, A and A.sectors)
+	Engine.pickets = Engine.terr.pickets(5, { Engine.homeX, Engine.homeZ }, { Engine.enemyX or MAP_X / 2, Engine.enemyZ or MAP_Z / 2 }, A and A.sectors)
 end
 
 -- turrets have a budget (strong players put their metal into the army): metal of turrets we have plus
