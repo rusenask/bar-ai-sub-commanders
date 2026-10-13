@@ -82,6 +82,7 @@ test-bridge:
 
 lint: test-lua
 	luac -p widget/LuaUI/Widgets/*.lua widget/LuaUI/Include/*.lua testenv/LuaUI/Widgets/*.lua
+	scripts/lua-globals.sh widget/LuaUI/Widgets/*.lua widget/LuaUI/Include/*.lua testenv/LuaUI/Widgets/zz_*.lua
 	go vet ./...
 
 # unit tests of the widget's engine modules (widget/LuaUI/Include) under plain Lua

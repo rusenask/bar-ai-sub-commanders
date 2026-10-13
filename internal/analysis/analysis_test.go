@@ -169,3 +169,18 @@ func TestBuildReportAndTimeline(t *testing.T) {
 		t.Errorf("text:\n%s", TimelineText(g))
 	}
 }
+
+func TestWidgetCrashFinding(t *testing.T) {
+	log := harnessLog + "\n[widget-error] [t=00:01:49][f=0040350] Error in GameFrame(): [string \"LuaUI/Widgets/gui_subcommanders.lua\"]:2425: attempt to call global 'addUnit' (a nil value)\n"
+	g, err := ParseGame("1.txt", strings.NewReader(log))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(g.Crashed) != 1 {
+		t.Fatalf("crashed %v", g.Crashed)
+	}
+	f := Findings([]*Game{g}, &Benchmark{})
+	if len(f) == 0 || f[0].Area != "crash" || !strings.Contains(f[0].Text, "addUnit") {
+		t.Errorf("findings %+v", f)
+	}
+}

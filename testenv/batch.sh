@@ -49,7 +49,15 @@ play() { # play <game> <worker>
 			local result us
 			result=$(grep -m1 "RESULT" "$DIR/$i.txt" | sed 's/^\[[0-9]*\] RESULT //')
 			us=$(grep -m1 "  us:" "$DIR/$i.txt" | sed -E 's/.*metalProduced=([0-9]+).*unitsKilled=([0-9]+) unitsDied=([0-9]+).*damageDealt=([0-9]+) damageReceived=([0-9]+).*/metal=\1 killed=\2 lost=\3 dealt=\4 taken=\5/')
-			local line="game $i: $result | $us | $(( $(date +%s) - start ))s$([ "$try" = 2 ] && echo ' (second try)')"
+			# our widgets' Lua errors (spring's log): BAR removes a widget that errors, and the game goes on
+			# without it, looking like a plain loss (v15-v17: "attempt to call global 'addUnit'")
+			local crash
+			crash=$(grep -E "Error in .*(gui_subcommanders|sc_[a-z]+\.lua)|Removed widget: Sub-Commanders" "$wdir/run.log" 2>/dev/null | head -5)
+			if [ -n "$crash" ]; then
+				echo "$crash" | sed 's/^/[widget-error] /' >> "$DIR/$i.txt"
+				cp "$wdir/run.log" "$DIR/$i-run.log"
+			fi
+			local line="game $i: $result | $us | $(( $(date +%s) - start ))s$([ "$try" = 2 ] && echo ' (second try)')$([ -n "$crash" ] && echo ' | WIDGET CRASHED')"
 			echo "$line"
 			echo "$i|$line" >> "$DIR/results.txt"
 			return
@@ -83,6 +91,8 @@ wins=$(grep -c "game [0-9]*: WIN" "$DIR/results.txt" 2>/dev/null)
 losses=$(grep -c "game [0-9]*: LOSS" "$DIR/results.txt" 2>/dev/null)
 timeouts=$(grep -c "game [0-9]*: TIMEOUT" "$DIR/results.txt" 2>/dev/null)
 echo "ran: $ran/$N" >> "$DIR/meta.txt"
+crashed=$(grep -c "WIDGET CRASHED" "$DIR/results.txt" 2>/dev/null)
+[ "$crashed" -gt 0 ] && echo "WARNING: the Sub-Commanders widget crashed in $crashed games (see [widget-error] lines, N-run.log): results are invalid" | tee -a "$DIR/meta.txt"
 [ "$ran" -lt "$N" ] && echo "WARNING: only $ran of $N games ran"
 echo "$SCENARIO vs $AI_PROFILE ${MAP:-All That Simmers}: $ran/$N ran: $wins won, $timeouts alive at $DUEL_MINUTES min, $losses lost" | tee -a "$DIR/meta.txt"
 (cd "$T/.." && go run ./cmd/gamereport -title "Batch $(basename "$DIR")" "$DIR") > "$DIR/report.md" 2>&1

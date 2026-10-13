@@ -51,6 +51,7 @@ type Game struct {
 	Killed  []Death
 	Player  []string       // the scripted player's actions, in order
 	Errors  []string       // harness errors
+	Crashed []string       // our widget's Lua errors (batch.sh's [widget-error] lines): BAR removed it
 	Logs    map[string]int // sub-commander log messages (numbers stripped) -> times seen
 	Events  []Event        // sub-commander log messages as they appeared (first sighting of each)
 }
@@ -99,6 +100,10 @@ func ParseGame(source string, r io.Reader) (*Game, error) {
 	sub := ""
 	for sc.Scan() {
 		line := sc.Text()
+		if strings.HasPrefix(line, "[widget-error] ") {
+			g.Crashed = append(g.Crashed, strings.TrimPrefix(line, "[widget-error] "))
+			continue
+		}
 		m := reFrame.FindStringSubmatch(line)
 		if m == nil {
 			continue

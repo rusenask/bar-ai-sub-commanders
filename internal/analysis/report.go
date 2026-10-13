@@ -73,6 +73,20 @@ func Findings(games []*Game, b *Benchmark) []Finding {
 	if n == 0 {
 		return nil
 	}
+	// the widget crashed: BAR removed it and the game went on without sub-commanders; nothing else in
+	// these games means anything until it's fixed
+	crashed := 0
+	for _, g := range games {
+		if len(g.Crashed) > 0 {
+			if crashed == 0 {
+				out = append(out, Finding{10, "crash", "widget error: " + g.Crashed[0]})
+			}
+			crashed++
+		}
+	}
+	if crashed > 0 {
+		out = append(out, Finding{10, "crash", fmt.Sprintf("the Sub-Commanders widget crashed in %d of %d games: those results are invalid", crashed, len(games))})
+	}
 	// economy pace: the worst minute per metric, where we're below the strong players' lower quartile
 	for _, m := range []string{"mex", "metalIncome", "factories", "builders", "army", "energyIncome"} {
 		var worst *Finding

@@ -2422,7 +2422,7 @@ function Engine.economyProduction(sub, facID, fd, cap)
 		end
 		for _, s in ipairs(subs) do
 			if s.role == "army" and not s.paused then
-				addUnit(s, facID)
+				Engine.addUnit(s, facID)
 				log(sub, fd.human .. ": T2 constructors done, handed to " .. s.name)
 				log(s, "received " .. fd.human .. " (tier 2 units)")
 				return nil, "handed to the army"
@@ -3920,6 +3920,10 @@ local function addUnit(sub, unitID, opts)
 	end
 	return true
 end
+
+-- for code above this point (economyProduction hands the T2 lab to the Army): calling the local there
+-- reads an undefined global, crashed the widget and BAR removed it (v15-v17 games played without it)
+Engine.addUnit = addUnit
 
 local function autoZone(sub, unitIDs)
 	if #sub.zones > 0 or sub.autoZones then

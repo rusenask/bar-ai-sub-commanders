@@ -73,7 +73,18 @@ out wrong.
 - When a multiplayer game desyncs, the engine writes `ServerGameState-*.txt` / `ClientGameState-*.txt` in
   the write dirs: diff them to see what differs, then look for Lua errors in the client's log.
 
+- Calling a `local function` above the line that defines it compiles to a *global* read: nil at run
+  time, so the first call errors and BAR removes the whole widget ("Removed widget: Sub-Commanders").
+  The game goes on with nobody controlling our units and looks like an ordinary loss. The T2 lab's
+  hand-off to the Army (`addUnit`, defined 1500 lines below) did this in v15-v18: most games after the
+  second T2 constructor were played without the widget. `make lint` now runs `scripts/lua-globals.sh`
+  (unknown globals fail), and batch.sh marks such games `WIDGET CRASHED` with the error in the game log.
+- Spring buffers its log (testenv/run.log) until it exits; the infolog stops after loading. Lua errors
+  only show up in run.log after the game, which the next game overwrites.
+
 ## Process traps
+- Watch the sub-commander status lines, not just the result: identical lines minutes apart (same counts,
+  same `spend=`, `threats=0` while the base burns) mean the widget stopped. (v18 game 2)
 
 - The test bridge (`scbridge-test`) keeps the decision-model routes it was started with: a "baseline" ran
   with the fight + turret models for hours. batch.sh records them in meta.txt now; restart it with

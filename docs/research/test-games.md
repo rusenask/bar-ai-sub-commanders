@@ -220,3 +220,9 @@ Reports in `testenv/batch/<dir>/report.md` (gamereport: pace against 26 strong p
   took the cheapest builder, the Infestor (212 built across the batch), handed to the army because the
   hand-off wasn't reset, so the lab never stopped; the army shrank from 13k to 7k and the minute-25 push
   wiped the base every game. Fixed in v17 (the real T2 constructor; hand-off reset first).
+
+**v15-v18 are invalid.** The T2 lab's hand-off to the Army called a local function before its definition
+(`attempt to call global 'addUnit'`): BAR removed the widget once the second T2 constructor was done
+(about minute 12-20), and the rest of each game was played without sub-commanders. Seen in v18 (game 2's
+status froze at minute 12; spring's log: `Removed widget: Sub-Commanders`); v15 and v17 used the same
+code (v16 mostly never reached the hand-off: its lab built Infestors). Re-measured in v19.
