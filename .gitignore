@@ -34,3 +34,4 @@ play/*
 !testenv/battles/
 !testenv/battles-air/
 !testenv/battles-siege/
+!testenv/battles-big/

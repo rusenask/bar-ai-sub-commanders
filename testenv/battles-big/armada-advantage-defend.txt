@@ -1,0 +1,10 @@
+# armada-advantage-defend
+us armstump 12
+us armrock 8
+us armham 12
+them armstump 6
+them armrock 4
+them armham 6
+distance 1500
+seconds 150
+attack 1

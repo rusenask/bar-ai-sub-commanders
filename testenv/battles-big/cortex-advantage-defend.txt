@@ -1,0 +1,10 @@
+# cortex-advantage-defend
+us corraid 12
+us corstorm 8
+us corthud 12
+them corraid 6
+them corstorm 4
+them corthud 6
+distance 1500
+seconds 150
+attack 1

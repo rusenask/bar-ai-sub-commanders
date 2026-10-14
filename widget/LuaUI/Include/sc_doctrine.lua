@@ -27,6 +27,13 @@ D.engage = {
 	minAttack = 1200, -- metal value of the smallest squad that attacks on its own (BARb quota.attack)
 	chase = 2600, -- an army chases intruders it drove off this far from home (if it still beats them)
 	raid = { 250, 900 }, -- [min, max] metal value of a raid squad (BARb quota.raid)
+	-- army units on BAR's "roam" move state: idle ones go for enemies in sight (false: the default
+	-- maneuver, which answers only what comes close; 23% of our units could shoot in our big fights)
+	roam = false,
+	-- engaging as a concave (sc_squads.lua arc): each unit to its own place on an arc facing the enemy, at
+	-- hold x its range (at least minDist), spacing elmos apart, no wider than maxAngle radians (on = false:
+	-- every unit fight-moves to the target's point)
+	arc = { on = false, hold = 0.85, minDist = 150, spacing = 70, maxAngle = 1.8 },
 	-- falling back within the enemy's reach: back off at this share of top speed, standing to shoot in
 	-- between (false: one move all the way to the rally point; 0.5 is being measured in games)
 	fallbackPace = false,

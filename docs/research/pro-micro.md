@@ -113,3 +113,40 @@ over ours in the 25 s after.
   retreat.
 - Our biggest losses (outmatched, moving in): groups of 8+ near our own base (141k metal lost at
   0.29), i.e. the base defence against BARbarian's pushes.
+
+## Formation and firepower (fight samples v9: positions of both sides, full view)
+
+Pros: 142 duels (`testenv/data/pro-form9`). Ours and BARbarian's: 24 of our games vs BARbarian medium,
+each replayed as a spectator with the logger (`testenv/batch/20261015-0004-sbx-ours-full/data`, team 0 ours, team 1 BARbarian).
+`scripts/formation_fit.py`: least squares of log2 trade on the log2 strength ratio and formation features
+(effects per standard deviation; ** = the 95% bootstrap interval leaves out 0).
+
+| Effect on log2 trade (+1 sd) | Pros (26.5k fights) | Ours (12.3k) | BARbarian (7.9k) |
+|---|---|---|---|
+| log2 strength ratio | +0.24 ** | +0.35 ** | +0.56 ** |
+| our share of units able to shoot | +0.18 ** | +0.12 ** | +0.23 ** |
+| our share exposed | -0.08 ** | -0.02 | +0.13 ** |
+| their share able to shoot | -0.02 | -0.11 ** | -0.11 ** |
+| our spread per sqrt(units) | +0.13 ** | +0.04 | +0.17 ** |
+| our width / depth | -0.01 | +0.04 ** | +0.12 ** |
+| their approach | -0.08 ** | -0.04 ** | -0.13 ** |
+| our turrets near | +0.08 ** | +0.03 | +0.18 ** |
+| their turrets near | -0.20 ** | -0.23 ** | -0.10 ** |
+| mean log2 strength ratio | +0.42 | **+1.84** | +0.57 |
+| mean log2 trade | +0.09 | **-0.17** | +0.22 |
+
+Our fights by strength ratio (share of each side's units able to shoot):
+
+| Ratio | Fights | Our units | Ours shooting | Theirs shooting | Approach | Trade |
+|---|---|---|---|---|---|---|
+| 0-0.67 | 2203 | 8 | 0.41 | 0.48 | +0.14 | 1.04 |
+| 0.67-1.5 | 1406 | 12 | 0.32 | 0.47 | +0.17 | 0.82 |
+| 1.5-3 | 1769 | 16 | 0.32 | 0.49 | +0.25 | 0.97 |
+| 3+ | 6912 | 35 | **0.23** | 0.45 | +0.30 | **0.80** |
+
+- We usually meet BARbarian 3.6x stronger and still lose more than we kill: our numbers don't become
+  firepower. In our big fights only 23% of our units can shoot against 45% of theirs (BARbarian's groups
+  of ~11 units: 36-40%). The share of a side's units able to shoot is a top predictor in every source.
+- Every engaging unit fight-moves to the same point: the blob funnels in and only its front fires. The
+  concave (sc_squads.lua arc) and BAR's roam move state are being tested on big-fight specs
+  (testenv/battles-big).

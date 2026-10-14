@@ -138,5 +138,48 @@ return function(ctx)
 		return nil
 	end
 
+	-- an arc facing the enemy: where each engaging unit goes so the squad meets them as a concave, not a
+	-- column converging on one point. members { id, x, z, range }, the enemy's centre (ex, ez). Each unit
+	-- stands at its own firing distance from the enemy (range x E.arc.hold, at least E.arc.minDist),
+	-- spaced E.arc.spacing apart across the line, in the order they already stand (no crossing paths),
+	-- the arc no wider than E.arc.maxAngle radians. Returns { [id] = { x, z } }.
+	function S.arc(members, ex, ez)
+		local A = E.arc
+		local n = #members
+		if n == 0 then
+			return {}
+		end
+		local cx, cz = 0, 0
+		for _, m in ipairs(members) do
+			cx, cz = cx + m.x, cz + m.z
+		end
+		cx, cz = cx / n, cz / n
+		-- the direction from the enemy toward us, and across it
+		local dx, dz = cx - ex, cz - ez
+		local len = math.max(math.sqrt(dx * dx + dz * dz), 1)
+		local fx, fz = dx / len, dz / len
+		local px, pz = -fz, fx
+		local order = {}
+		for i, m in ipairs(members) do
+			order[i] = { m = m, side = (m.x - cx) * px + (m.z - cz) * pz }
+		end
+		table.sort(order, function(a, b)
+			return a.side < b.side
+		end)
+		local out = {}
+		for i, o in ipairs(order) do
+			local m = o.m
+			local r = math.max((m.range or 0) * A.hold, A.minDist)
+			-- this unit's angle on the arc around the enemy: spacing along the arc at radius r
+			local step = math.min(A.spacing / r, A.maxAngle / math.max(n - 1, 1))
+			local ang = (i - (n + 1) / 2) * step
+			local c, s = math.cos(ang), math.sin(ang)
+			-- rotate the toward-us direction by ang
+			local ux, uz = fx * c + px * s, fz * c + pz * s
+			out[m.id] = { x = ex + ux * r, z = ez + uz * r }
+		end
+		return out
+	end
+
 	return S
 end

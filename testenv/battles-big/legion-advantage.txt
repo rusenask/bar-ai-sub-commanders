@@ -1,0 +1,9 @@
+# legion-advantage
+us legkark 8
+us legbal 8
+us legcen 12
+them legkark 4
+them legbal 4
+them legcen 6
+distance 1500
+seconds 150

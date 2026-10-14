@@ -4397,7 +4397,7 @@ function Tactics.squad(sub)
 		if d and d.combat and not d.aaOnly and not d.air and not spGetUnitIsBeingBuilt(u) and not (st and (st.retreating or st.manual or st.raid or st.responder)) then
 			local x, _, z = spGetUnitPosition(u)
 			if x then
-				members[#members + 1] = { id = u, x = x, z = z, cost = d.cost }
+				members[#members + 1] = { id = u, x = x, z = z, cost = d.cost, range = d.range }
 			end
 		end
 	end
@@ -4495,6 +4495,8 @@ function Tactics.squad(sub)
 	local engaged = prev and prev.id == target.id and prev.action == "engage"
 	local action, ratio = S.decide(sq, target.x, target.z, frame, { home = home, engaged = engaged, support = turretSupport(target.x, target.z, 700) })
 	sub.squadOrder = { action = action, id = target.id, x = target.x, z = target.z, ratio = ratio }
+	-- engaging as a concave: each unit's place on an arc facing the enemy (sc_squads.lua arc)
+	sub.arcSlots = (action == "engage" and Engine.D.engage.arc.on) and S.arc(members, target.x, target.z) or nil
 	if not prev or prev.action ~= action or prev.id ~= target.id then
 		log(sub, sformat(ACTION_TEXT[action], target.name, ratio))
 	end
@@ -4586,15 +4588,27 @@ local function thinkCombat(sub, unitID, d, st, threats)
 	end
 	-- the army acts as one squad (Tactics.squad)
 	if sub.role == "army" and not d.aaOnly and not d.air then
+		-- roam: an idle unit goes for enemies it sees (BAR's default only answers what comes close), so a
+		-- blob's back joins the fight its front is in
+		if Engine.D.engage.roam and not st.roamSet then
+			order(unitID, CMD.MOVE_STATE, { 2 })
+			st.roamSet = true
+		end
 		local so, sq = sub.squadOrder, sub.squad
 		if so and so.action == "engage" then
 			if Tactics.micro(unitID, d, st, x, z) then
 				return
 			end
-			if st.engaged ~= so.id or not busy or frame - (st.engagedFrame or 0) > 150 then
-				order(unitID, CMD.FIGHT, { so.x, spGetGroundHeight(so.x, so.z), so.z })
-				st.engaged, st.engagedFrame = so.id, frame
-				setTask(unitID, "engage", "engaging", true)
+			local slot = sub.arcSlots and sub.arcSlots[unitID]
+			local gx, gz = so.x, so.z
+			if slot then
+				gx, gz = clampToMap(slot.x, slot.z)
+			end
+			local moved = st.engageX and dist2(gx, gz, st.engageX, st.engageZ) > 150 * 150
+			if st.engaged ~= so.id or not busy or moved or frame - (st.engagedFrame or 0) > 150 then
+				order(unitID, CMD.FIGHT, { gx, spGetGroundHeight(gx, gz), gz })
+				st.engaged, st.engagedFrame, st.engageX, st.engageZ = so.id, frame, gx, gz
+				setTask(unitID, "engage", slot and "engaging (concave)" or "engaging", true)
 			end
 			return
 		end

@@ -46,6 +46,26 @@ return {
 		local nx = S.rally(500, 500, 3500, 3500)
 		T.ok(nx, "deterministic")
 	end,
+	arc_faces_the_enemy = function()
+		local tm = F.map()
+		local S = T.load("sc_squads")({ tm = tm, doctrine = F.doctrine })
+		-- five units in a column south of an enemy at the origin, range 400
+		local ms = {}
+		for i = 1, 5 do
+			ms[i] = { id = i, x = (i - 3) * 10, z = 1000 + i * 50, range = 400 }
+		end
+		local slots = S.arc(ms, 0, 0)
+		local r = 400 * F.doctrine.engage.arc.hold
+		local minX, maxX = 1e9, -1e9
+		for i = 1, 5 do
+			local p = slots[i]
+			T.near(math.sqrt(p.x * p.x + p.z * p.z), r, 1e-6, "each at its firing distance")
+			T.ok(p.z > 0, "on our side")
+			minX, maxX = math.min(minX, p.x), math.max(maxX, p.x)
+		end
+		T.ok(maxX - minX > 200, "spread across, not a column")
+		T.ok(slots[1].x < slots[5].x, "in the order they stand: no crossing")
+	end,
 	rally_without_intel_is_a_third_out = function()
 		local tm = F.map()
 		local S = T.load("sc_squads")({ tm = tm, doctrine = F.doctrine })
