@@ -24,6 +24,9 @@ services:
       # edit the agent/prompt without rebuilding: make restart
       - ./strategist:/app/strategist:ro
       - ${BAR_FILES:-${HOME}/Library/Application Support/Beyond-All-Reason-mac/LuaUI/Config/scbridge}:/bar-files
+      # learned doctrine per matchup (internal/learn): sent to each game; real results are recorded in it
+      - ./learn:/app/learn
+      - ./widget/LuaUI/Include:/app/widget/LuaUI/Include:ro
       # opencode sessions and provider package cache survive restarts
       - opencode-data:/root/.local/share/opencode
       - opencode-cache:/root/.cache/opencode

@@ -18,11 +18,13 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/rusenask/bar-ai-sub-commanders/internal/decider"
 	"github.com/rusenask/bar-ai-sub-commanders/internal/game"
+	"github.com/rusenask/bar-ai-sub-commanders/internal/learn"
 	"github.com/rusenask/bar-ai-sub-commanders/internal/opencode"
 	"github.com/rusenask/bar-ai-sub-commanders/internal/strategist"
 	"github.com/rusenask/bar-ai-sub-commanders/internal/tools"
@@ -38,6 +40,8 @@ func main() {
 func run() error {
 	var (
 		gameAddr    = flag.String("game-addr", "127.0.0.1:7878", "address the game widget connects to")
+		learnDir    = flag.String("learn-dir", "learn", "learned doctrine per matchup (internal/learn): sent to each game, real results recorded")
+		doctrine    = flag.String("doctrine", "widget/LuaUI/Include/sc_doctrine.lua", "the doctrine the learned rules belong to (rules and bounds)")
 		gameFiles   = flag.String("game-files", os.Getenv("SCBRIDGE_GAME_FILES"), "also serve the file transport in this directory (BAR's LuaUI/Config/scbridge: newer BAR versions take sockets away from widgets)")
 		mcpAddr     = flag.String("mcp-addr", "127.0.0.1:7879", "address of the MCP tool server (must match strategist/opencode.json)")
 		opencodeURL = flag.String("opencode-url", "", "use an already running `opencode serve` instead of starting one")
@@ -83,6 +87,37 @@ func run() error {
 	}
 	if router.Tasks, err = decider.ParseRoutes(*deciderRts, *deciderName); err != nil {
 		return err
+	}
+	if learn.Exists(*learnDir) {
+		if params, err := learn.ParamsFromDoctrine(*doctrine); err != nil {
+			log.Warn("learned rules off", "err", err)
+		} else {
+			g.OnHello = func(info *game.Info) map[string]any {
+				m := learn.Matchup(info.Faction, info.Enemies)
+				st, err := learn.Find(*learnDir, m, params)
+				if err != nil || st == nil || st.Generation == 0 {
+					log.Info("no learned rules", "matchup", m)
+					return nil
+				}
+				ov := st.MeanOverlay()
+				log.Info("learned rules", "store", st.Key, "generation", st.Generation, "moved", strings.Join(st.Changes(), ", "))
+				return map[string]any{"key": ov.Key, "generation": ov.Generation, "rules": ov.Rules}
+			}
+			g.OnGameOver = func(info *game.Info, summary map[string]any) {
+				if info == nil {
+					return
+				}
+				st, err := learn.Find(*learnDir, learn.Matchup(info.Faction, info.Enemies), params)
+				if err != nil || st == nil || st.Generation == 0 {
+					return
+				}
+				if err := st.RecordReal(*learnDir, summary, "real game on "+info.Map); err != nil {
+					log.Warn("record game", "err", err)
+				} else {
+					log.Info("game recorded for learning", "store", st.Key, "summary", summary)
+				}
+			}
+		}
 	}
 	if router.Enabled() {
 		g.Decide = router.Decide

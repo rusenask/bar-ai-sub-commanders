@@ -18,17 +18,19 @@ import (
 
 // Info describes the running game, sent once by the widget on connect.
 type Info struct {
-	Protocol int     `json:"protocol"`
-	Map      string  `json:"map"`
-	MapX     float64 `json:"mapX"`
-	MapZ     float64 `json:"mapZ"`
-	Team     int     `json:"team"`
-	Faction  string  `json:"faction"`
-	Player   string  `json:"player"`
-	Frame    int     `json:"frame"`
-	WindMin  float64 `json:"windMin"`
-	WindMax  float64 `json:"windMax"`
-	Tidal    float64 `json:"tidal"`
+	Protocol int      `json:"protocol"`
+	Map      string   `json:"map"`
+	MapX     float64  `json:"mapX"`
+	MapZ     float64  `json:"mapZ"`
+	Team     int      `json:"team"`
+	Faction  string   `json:"faction"`
+	Player   string   `json:"player"`
+	Frame    int      `json:"frame"`
+	WindMin  float64  `json:"windMin"`
+	WindMax  float64  `json:"windMax"`
+	Tidal    float64  `json:"tidal"`
+	Enemies  []string `json:"enemies,omitempty"` // the enemy teams' factions
+	AIs      []string `json:"ais,omitempty"`     // the enemy AIs' names
 }
 
 // LogEntry is one line of a sub-commander's activity log.
@@ -157,6 +159,10 @@ type Server struct {
 
 	// Decide, when set, serves the widget's requests to a decision model (set before Run).
 	Decide DecideFunc
+	// OnHello, when set, may answer a new game with a message's args of type "learned" (rules learned for
+	// this matchup, internal/learn); OnGameOver gets the game's summary (won, minutes, dealt, taken).
+	OnHello    func(info *Info) map[string]any
+	OnGameOver func(info *Info, summary map[string]any)
 
 	mu      sync.Mutex
 	conn    io.ReadWriteCloser // a TCP connection or a file session (files.go)
@@ -246,8 +252,16 @@ func (s *Server) handle(msg message) {
 			s.over = false
 			s.log.Info("game", "map", msg.Game.Map, "faction", msg.Game.Faction, "frame", msg.Game.Frame)
 		}
-		// tell the widget what the bridge offers
+		// tell the widget what the bridge offers, and what was learned for this matchup
 		go s.write(message{Type: "config", Args: map[string]any{"decider": s.Decide != nil}})
+		if s.OnHello != nil && msg.Game != nil {
+			info := msg.Game
+			go func() {
+				if args := s.OnHello(info); args != nil {
+					_ = s.write(message{Type: "learned", Args: args})
+				}
+			}()
+		}
 	case "decide":
 		if s.Decide != nil {
 			go s.decide(msg)
@@ -258,6 +272,10 @@ func (s *Server) handle(msg message) {
 		}
 	case "gameover":
 		s.over = true
+		if s.OnGameOver != nil && msg.Args != nil {
+			info := s.info
+			go s.OnGameOver(info, msg.Args)
+		}
 	case "result":
 		if ch, ok := s.pending[msg.ID]; ok {
 			delete(s.pending, msg.ID)

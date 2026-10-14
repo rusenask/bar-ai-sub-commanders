@@ -91,3 +91,31 @@ func TestLoadAddsNewParams(t *testing.T) {
 		t.Fatalf("%v %+v", err, s2)
 	}
 }
+
+func TestMatchupFindRecord(t *testing.T) {
+	if m := Matchup("Cortex", []string{"Armada", "armada", "Legion"}); m != "cortex-vs-armada+legion" {
+		t.Errorf("matchup %q", m)
+	}
+	dir := t.TempDir()
+	params := []Param{{Name: "a", Min: 0, Max: 1, Default: 0.5}}
+	small, big := New("cortex-vs-armada-easy", params), New("cortex-vs-armada-medium", params)
+	big.Trials = []Trial{{Score: 1}, {Score: 0}}
+	big.Generation = 2
+	small.Save(dir)
+	big.Save(dir)
+	st, err := Find(dir, "cortex-vs-armada", params)
+	if err != nil || st == nil || st.Key != "cortex-vs-armada-medium" {
+		t.Fatalf("find %v %+v", err, st)
+	}
+	if st, _ := Find(dir, "legion-vs-cortex", params); st != nil {
+		t.Error("no store for an unplayed matchup")
+	}
+	if err := st.RecordReal(dir, map[string]any{"won": true, "minutes": 35.0, "dealt": 2.0, "taken": 1.0}, "test"); err != nil {
+		t.Fatal(err)
+	}
+	again, _ := Load(dir, "cortex-vs-armada-medium", params)
+	last := again.Trials[len(again.Trials)-1]
+	if len(again.Trials) != 3 || last.Result != "WIN" || !last.Mean || last.Score <= 1 || again.Generation != 2 {
+		t.Errorf("recorded %+v gen %d", last, again.Generation)
+	}
+}

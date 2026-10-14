@@ -5684,6 +5684,10 @@ local function exportAPI()
 		setCommander = function(what)
 			return Engine.setCommander(what)
 		end,
+		-- rules learned from past games ({ key, generation, rules = { name = value } }; the bridge sends them)
+		applyLearned = function(data)
+			return Engine.applyLearned(data)
+		end,
 		setArmyStyle = function(name)
 			return Engine.setArmyStyle(name)
 		end,
@@ -7003,14 +7007,20 @@ end
 -- learned rules (internal/learn): at game start the widget reads LuaUI/Config/sc_learned.json (written by
 -- the bridge for real games, by the test runners for exploration games) and applies each rule within its
 -- doctrine bounds. Under the BAR 31614+ widget sandbox only LuaUI/ is readable: that's why it lives there.
-function Engine.applyLearned()
-	local text = VFS.LoadFile("LuaUI/Config/sc_learned.json", VFS.RAW)
-	if not text or not Json then
-		return
+function Engine.applyLearned(data)
+	if not data then
+		local text = VFS.LoadFile("LuaUI/Config/sc_learned.json", VFS.RAW)
+		if not text or not Json then
+			return
+		end
+		local ok
+		ok, data = pcall(Json.decode, text)
+		if not ok then
+			data = nil
+		end
 	end
-	local ok, data = pcall(Json.decode, text)
-	if not ok or type(data) ~= "table" or type(data.rules) ~= "table" then
-		spEcho("Sub-Commanders: LuaUI/Config/sc_learned.json is not valid")
+	if type(data) ~= "table" or type(data.rules) ~= "table" then
+		spEcho("Sub-Commanders: learned rules are not valid")
 		return
 	end
 	local n = 0

@@ -19,6 +19,18 @@ func TestFileTransport(t *testing.T) {
 	s := NewServer("127.0.0.1:0", slog.New(slog.NewTextHandler(io.Discard, nil)))
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	var over map[string]any
+	gotOver := make(chan struct{})
+	s.OnHello = func(info *Info) map[string]any {
+		if info.Faction == "Cortex" && len(info.Enemies) == 1 {
+			return map[string]any{"key": "cortex-vs-armada-medium", "rules": map[string]any{"engage_attack": 1.3}}
+		}
+		return nil
+	}
+	s.OnGameOver = func(info *Info, summary map[string]any) {
+		over = summary
+		close(gotOver)
+	}
 	go s.RunFiles(ctx, dir)
 
 	appendLine := func(name, line string) {
@@ -32,7 +44,7 @@ func TestFileTransport(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, "session.txt"), []byte("s1\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	appendLine("s1.w2b.jsonl", `{"type":"hello","game":{"map":"Testmap","faction":"Cortex","frame":30}}`)
+	appendLine("s1.w2b.jsonl", `{"type":"hello","game":{"map":"Testmap","faction":"Cortex","enemies":["Armada"],"frame":30}}`)
 
 	// the bridge answers hello with its config
 	waitFor := func(what string, cond func() bool) {
@@ -68,6 +80,14 @@ func TestFileTransport(t *testing.T) {
 		}
 		return false
 	})
+	waitFor("learned rules", func() bool {
+		for _, m := range readOut() {
+			if m["type"] == "learned" {
+				return true
+			}
+		}
+		return false
+	})
 	if info, _, online := s.Snapshot(); info == nil || info.Map != "Testmap" || !online {
 		t.Fatalf("snapshot %+v online=%v", info, online)
 	}
@@ -96,6 +116,16 @@ func TestFileTransport(t *testing.T) {
 	}
 	if string(got) != `{"done":true}` {
 		t.Errorf("result %s", got)
+	}
+
+	appendLine("s1.w2b.jsonl", `{"type":"gameover","args":{"won":true,"minutes":40}}`)
+	select {
+	case <-gotOver:
+	case <-time.After(5 * time.Second):
+		t.Fatal("no game over")
+	}
+	if over["won"] != true {
+		t.Errorf("summary %v", over)
 	}
 
 	// a new session replaces the old one

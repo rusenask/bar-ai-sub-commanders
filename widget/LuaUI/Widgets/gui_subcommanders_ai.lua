@@ -96,7 +96,22 @@ local function gameInfo()
 	local myTeam = Spring.GetMyTeamID()
 	local _, _, _, _, side = Spring.GetTeamInfo(myTeam, false)
 	local name = Spring.GetPlayerInfo(Spring.GetMyPlayerID(), false)
+	-- the enemies' factions and AIs: the bridge picks what was learned for this matchup (internal/learn)
+	local enemies, ais = {}, {}
+	local myAlly = Spring.GetMyAllyTeamID()
+	for _, t in ipairs(Spring.GetTeamList() or {}) do
+		local _, _, _, isAI, tside, ally = Spring.GetTeamInfo(t, false)
+		if ally ~= myAlly and t ~= Spring.GetGaiaTeamID() then
+			enemies[#enemies + 1] = tside
+			if isAI then
+				local _, aiName = Spring.GetAIInfo(t)
+				ais[#ais + 1] = aiName or "AI"
+			end
+		end
+	end
 	return {
+		enemies = enemies,
+		ais = ais,
 		protocol = PROTOCOL,
 		map = Game.mapName,
 		mapX = Game.mapSizeX,
@@ -312,6 +327,14 @@ local function handle(line)
 		Spring.Echo("Sub-Commanders AI: connected to bridge through " .. FILES)
 		sendState()
 	end
+	if msg.type == "learned" then
+		-- rules learned from past games of this matchup (internal/learn), for the whole team
+		local sc = SC()
+		if sc and sc.applyLearned and type(msg.args) == "table" then
+			sc.applyLearned(msg.args)
+		end
+		return
+	end
 	if msg.type == "config" then
 		decider.enabled = type(msg.args) == "table" and msg.args.decider == true
 		return
@@ -497,8 +520,21 @@ function widget:GameFrame(n)
 	end
 end
 
-function widget:GameOver()
-	send({ type = "gameover" })
+function widget:GameOver(winners)
+	-- what the bridge learns from: did we win, how long, the damage trade
+	local won = false
+	for _, a in ipairs(winners or {}) do
+		won = won or a == Spring.GetMyAllyTeamID()
+	end
+	local summary = { won = won, minutes = Spring.GetGameFrame() / 1800 }
+	local team = Spring.GetMyTeamID()
+	local n = Spring.GetTeamStatsHistory(team)
+	local stats = n and n > 0 and Spring.GetTeamStatsHistory(team, n)
+	local last = stats and stats[#stats]
+	if last then
+		summary.dealt, summary.taken, summary.metal = last.damageDealt, last.damageReceived, last.metalProduced
+	end
+	send({ type = "gameover", args = summary })
 end
 
 function widget:Initialize()
