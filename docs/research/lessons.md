@@ -78,6 +78,11 @@ out wrong.
 - Focus fire pays (v26): army units converging on the enemy in reach worth most per hit point left (armed
   first) traded 0.77 against 0.64 and lost a quarter fewer units for the same kills.
 
+- Learning 18 rules at once from 24 games a generation found no trend in 6 generations: one game's
+  result is mostly noise. Search fewer rules at a time (the few that moved the same way in every
+  matchup), measure the mean on many more games, and confirm what it found with a plain A/B before
+  shipping it.
+
 ## Engine and widget traps
 
 - Widgets get no attacker in `UnitDamaged` (they do in `UnitDestroyed`); use `Spring.GetUnitExperience`

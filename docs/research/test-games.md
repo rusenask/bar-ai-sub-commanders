@@ -312,3 +312,16 @@ code (v16 mostly never reached the hand-off: its lab built Infestors). Re-measur
 
 - Engaged army units shoot the enemy in reach worth most per hit point left (armed 3x): trades 0.64 ->
   0.77, units lost 998 -> 738 for the same kills; more undecided games turn into wins (1 -> 3).
+
+## First learning run (internal/learn): Armada and Cortex vs medium, 6 generations x 24 games, sandboxes
+
+| Matchup | Gen 1 | Gen 2 | Gen 3 | Gen 4 | Gen 5 | Gen 6 | (won / lost of 24) |
+|---|---|---|---|---|---|---|---|
+| armada-vs-cortex | 2 / 9 | 2 / 11 | 3 / 13 | 5 / 11 | 2 / 9 | 2 / 12 | |
+| cortex-vs-armada | 0 / 18 | 0 / 16 | 0 / 14 | 0 / 17 | 0 / 16 | 0 / 20 | |
+
+- No trend: the mean was measured on 4 games a generation, far too few against this much game-to-game
+  noise, and 18 rules moved at once. Both matchups moved the same way: constructor_share 1 -> 0.68-0.81
+  (more army early), responders_share 0.30 -> 0.23-0.25, defend_base_share 0.08 -> 0.056-0.063; tested
+  directly as an A/B on force (v27).
+- Ran on the widget before focus fire (frozen arm) and on slow sandboxes (~1x per game).
