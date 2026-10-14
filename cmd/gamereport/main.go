@@ -34,6 +34,7 @@ func main() {
 	benchDesc := flag.String("bench-desc", "strong players' 1v1s (both rated 30+, BAR replays)", "benchmark description")
 	playbookOut := flag.String("playbook-out", "docs/research/pro-playbook.md", "with -bench-from: where to write what strong players build and when")
 	asJSON := flag.Bool("json", false, "print JSON (report, compare, timeline) instead of markdown / text")
+	battles := flag.Bool("battles", false, "the games are battles (scenario battle): efficiency per spec")
 	roles := flag.String("roles", "", "directory of data logger JSONL files of team games: players' roles by side size")
 	micro := flag.String("micro", "", "directory of data logger JSONL files: per-kind unit behaviour and doctrine")
 	timeline := flag.Bool("timeline", false, "each argument is one game's harness log: show it minute by minute")
@@ -86,6 +87,10 @@ func main() {
 		if err := json.Unmarshal(data, bench); err != nil {
 			log.Fatal(err)
 		}
+	}
+	if *battles {
+		analysis.BattlesText(os.Stdout, load(flag.Args()))
+		return
 	}
 	if *timeline {
 		for _, g := range load(flag.Args()) {

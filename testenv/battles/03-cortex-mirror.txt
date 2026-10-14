@@ -1,0 +1,9 @@
+# cortex-mirror
+us corthud 6
+us corstorm 6
+us corak 6
+them corthud 6
+them corstorm 6
+them corak 6
+distance 700
+seconds 120

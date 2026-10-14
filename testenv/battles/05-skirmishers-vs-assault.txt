@@ -1,0 +1,6 @@
+# skirmishers-vs-assault
+us legbar 6
+us legrail 2
+them armham 12
+distance 900
+seconds 120

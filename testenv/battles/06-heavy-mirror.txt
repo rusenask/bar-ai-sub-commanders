@@ -1,0 +1,7 @@
+# heavy-mirror
+us legkark 6
+us leggat 3
+them legkark 6
+them leggat 3
+distance 700
+seconds 120

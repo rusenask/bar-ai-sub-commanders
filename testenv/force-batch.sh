@@ -50,6 +50,13 @@ cp "$T/springsettings.template.cfg" "$STAGE/springsettings.cfg"
 # SIDE / ENEMY_SIDE: the factions (team 0 ours, team 1 BARbarian's; default Legion vs Armada)
 sed -e "s/profile=[a-z_]*;/profile=$AI_PROFILE;/" -e "s/mapname=[^;]*;/mapname=${MAP:-All That Simmers v1.1.1};/" "$T/script_vsai.txt" |
 	awk -v us="${SIDE:-Legion}" -v them="${ENEMY_SIDE:-Armada}" '/side=/ { n++; sub(/side=[A-Za-z]+;/, "side=" (n == 1 ? us : them) ";") } { print }' > "$STAGE/script.txt"
+# battles (scenario battle, testenv/battles/): the enemy is NullAI (its units stand and fight back;
+# BARbarian pulls given units home), and each game takes the next spec (run_game.sh)
+if [ "$SCENARIO" = battle ]; then
+	sed -i '' -e 's/shortname=BARb;/shortname=NullAI;/' -e 's/version=stable;/version=0.1;/' "$STAGE/script.txt"
+	mkdir -p "$STAGE/battles" && cp "${BATTLES:-$T/battles}"/*.txt "$STAGE/battles/"
+	echo "battles: $(ls "$STAGE/battles" | tr '\n' ' ')" >> "$DIR/meta.txt"
+fi
 echo "$DUEL_MINUTES" > "$STAGE/sctest_minutes.txt"
 echo "$SCENARIO" > "$STAGE/sctest_scenario.txt"
 echo "$SPEED 0" > "$STAGE/sctest_speed.txt"

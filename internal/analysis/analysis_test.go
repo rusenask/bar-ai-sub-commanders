@@ -275,3 +275,19 @@ func TestVerdicts(t *testing.T) {
 		t.Errorf("no difference in the opening: %v", got["opening: metal lost"])
 	}
 }
+
+func TestBattles(t *testing.T) {
+	log := "[45] battle: us 3535 metal\n[885] BATTLE spec=armada-mirror result=WIN seconds=28 us_start=2000 us_left=1500 them_start=2000 them_left=0\n[885] RESULT WIN t=28s\n"
+	g, err := ParseGame("1.txt", strings.NewReader(log))
+	if err != nil || g.Battle == nil || g.Battle.Spec != "armada-mirror" {
+		t.Fatalf("%v %+v", err, g.Battle)
+	}
+	if e := g.Battle.Efficiency(); e != 4 {
+		t.Errorf("efficiency %v: their 100%% lost over our 25%%", e)
+	}
+	var b bytes.Buffer
+	BattlesText(&b, []*Game{g})
+	if !strings.Contains(b.String(), "| armada-mirror | 1 | 1 / 0 / 0 | 4.00 |") {
+		t.Errorf("table:\n%s", b.String())
+	}
+}

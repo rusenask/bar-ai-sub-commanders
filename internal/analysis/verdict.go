@@ -53,6 +53,19 @@ func reached(g *Game, from int) bool { return g.Seconds >= from*60 }
 
 func verdictMetrics() []metric {
 	ms := []metric{
+		// battles (scenario battle): how well we traded, as log2 so 2x better and 2x worse weigh the same
+		{"battle efficiency (log2)", true, func(g *Game) (float64, bool) {
+			if g.Battle == nil {
+				return 0, false
+			}
+			return math.Log2(math.Max(g.Battle.Efficiency(), 0.125)), true
+		}},
+		{"battle: our share lost", false, func(g *Game) (float64, bool) {
+			if g.Battle == nil || g.Battle.UsStart <= 0 {
+				return 0, false
+			}
+			return (g.Battle.UsStart - g.Battle.UsLeft) / g.Battle.UsStart, true
+		}},
 		{"score (win 1+, alive 0.5, loss by time; trades)", true, func(g *Game) (float64, bool) {
 			if g.Result == "" {
 				return 0, false
@@ -155,6 +168,9 @@ func Verdicts(arms []Arm) map[string][]VerdictRow {
 		for _, m := range verdictMetrics() {
 			a, b := values(base.Games, m), values(arm.Games, m)
 			row := VerdictRow{Metric: m.name, NBase: len(a), NArm: len(b), Verdict: "can't tell"}
+			if len(a) == 0 && len(b) == 0 {
+				continue // not this kind of batch (battle rows for games, game rows for battles)
+			}
 			if len(a) < 3 || len(b) < 3 {
 				row.Verdict = "too few games"
 				rows = append(rows, row)

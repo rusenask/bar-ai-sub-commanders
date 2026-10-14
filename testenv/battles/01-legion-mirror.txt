@@ -1,0 +1,9 @@
+# legion-mirror
+us legkark 4
+us legbal 4
+us legcen 4
+them legkark 4
+them legbal 4
+them legcen 4
+distance 700
+seconds 120

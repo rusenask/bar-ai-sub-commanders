@@ -10,6 +10,11 @@ for try in 1 2; do
 	rm -rf "$G"
 	cp -r "$B/template" "$G"
 	cd "$G" || exit 1
+	# battles: game i takes spec ((i-1) mod count) of the template's battles/
+	if [ -d battles ]; then
+		specs=(battles/*.txt)
+		mkdir -p LuaUI/Config && cp "${specs[$(( (I - 1) % ${#specs[@]} ))]}" LuaUI/Config/sctest_battle.txt
+	fi
 	SPRING_DATADIR="$HOME/bar-sim/data:$HOME/bar-sim/engine" timeout "$LIMIT" \
 		"$HOME/bar-sim/engine/spring-headless" --write-dir "$G" "$G/script.txt" > run.log 2>&1
 	echo "exit=$? try=$try" > exit.txt

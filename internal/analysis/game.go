@@ -54,6 +54,7 @@ type Game struct {
 	Crashed []string       // our widget's Lua errors (batch.sh's [widget-error] lines): BAR removed it
 	Logs    map[string]int // sub-commander log messages (numbers stripped) -> times seen
 	Events  []Event        // sub-commander log messages as they appeared (first sighting of each)
+	Battle  *Battle        // scenario battle: the engagement's outcome (battle.go)
 }
 
 // Event is a sub-commander's log message (or the scripted player's action) at a game time.
@@ -138,6 +139,8 @@ func ParseGame(source string, r io.Reader) (*Game, error) {
 			}
 			// a new status snapshot: the sub-commanders' logs that follow are compared with the last one
 			prevLogs, curLogs = curLogs, map[string]map[string]bool{}
+		case strings.HasPrefix(body, "BATTLE "):
+			g.Battle = parseBattle(body[7:])
 		case strings.HasPrefix(body, "RESULT "):
 			r := reResult.FindStringSubmatch(body)
 			if r != nil {

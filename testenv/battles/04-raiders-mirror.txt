@@ -1,0 +1,7 @@
+# raiders-mirror
+us leggob 12
+us leghades 4
+them leggob 12
+them leghades 4
+distance 800
+seconds 90

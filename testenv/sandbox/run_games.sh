@@ -13,6 +13,11 @@ one() {
 	for try in 1 2; do
 		rm -rf "$G"
 		cp -r /opt/bar/stage "$G"
+		# battles: game i takes spec ((i-1) mod count) of the stage's battles/
+		if [ -d "$G/battles" ]; then
+			specs=("$G"/battles/*.txt)
+			mkdir -p "$G/LuaUI/Config" && cp "${specs[$(( (i - 1) % ${#specs[@]} ))]}" "$G/LuaUI/Config/sctest_battle.txt"
+		fi
 		# a learning run: this game's rule set (internal/learn), read by the widget at start
 		[ -f "/opt/bar/overlays/g$i.json" ] && mkdir -p "$G/LuaUI/Config" && cp "/opt/bar/overlays/g$i.json" "$G/LuaUI/Config/sc_learned.json"
 		cd "$G" || return

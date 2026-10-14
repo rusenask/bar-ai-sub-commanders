@@ -31,3 +31,4 @@ play/*
 !testenv/force-replays.sh
 !testenv/sandbox/
 !testenv/collect-results.sh
+!testenv/battles/

@@ -105,7 +105,14 @@ def stage(args):
     parts = script.split("[team1]")
     parts[0] = re.sub(r"side=[A-Za-z]+;", f"side={args.side};", parts[0])
     parts[1] = re.sub(r"side=[A-Za-z]+;", f"side={args.enemy_side};", parts[1], count=1)
-    (d / "script.txt").write_text("[team1]".join(parts))
+    script = "[team1]".join(parts)
+    if args.scenario == "battle":
+        # the enemy stands and fights back (BARbarian pulls given units home); specs rotate by game number
+        script = script.replace("shortname=BARb;", "shortname=NullAI;").replace("version=stable;", "version=0.1;")
+        (d / "battles").mkdir()
+        for f in sorted(Path(args.battles).glob("*.txt")):
+            (d / "battles" / f.name).write_text(f.read_text())
+    (d / "script.txt").write_text(script)
     (d / "sctest_minutes.txt").write_text(f"{args.minutes}\n")
     (d / "sctest_scenario.txt").write_text(f"{args.scenario}\n")
     (d / "sctest_speed.txt").write_text("100 0\n")
@@ -133,6 +140,7 @@ def main():
     ap.add_argument("--map", default="All That Simmers v1.1.1")
     ap.add_argument("--side", default="Legion")
     ap.add_argument("--enemy-side", default="Armada")
+    ap.add_argument("--battles", default=str(T / "battles"), help="scenario battle: the specs (testenv/battles)")
     ap.add_argument("--learn", default="", help="a learning key (internal/learn): each game plays a sampled rule set, "
                     "each generation updates learn/<key>.json")
     ap.add_argument("--generations", type=int, default=1, help="with --learn: generations to run on the same sandboxes")

@@ -539,7 +539,111 @@ function widget:GameOver(winners)
 	duelResult(won and "WIN" or "LOSS")
 end
 
+--------------------------------------------------------------------------------
+-- battle: one engagement in isolation (testenv/battle-lab: micro, targeting, movement). Each side gets an
+-- army mid-map (cheats); ours goes to an Army sub-commander at full autonomy, BARbarian runs its own;
+-- full vision to count both. Ends when one side is down to 10% of its metal or at the time limit, with
+-- a BATTLE line (and the usual RESULT for the runners).
+-- Spec: sctest_battle.txt (LuaUI/Config/ first), lines "us <unit> <n>", "them <unit> <n>",
+-- "distance <elmos>", "seconds <n>".
+--------------------------------------------------------------------------------
+
+local battle = { us = {}, them = {}, distance = 700, seconds = 120, name = "default" }
+
+local function battleSpec()
+	local text = loadInput("sctest_battle.txt") or "us legkark 6\nus legbar 4\nus leggob 6\nthem armham 8\nthem armrock 4\nthem armpw 6\n"
+	for line in text:gmatch("[^\n]+") do
+		local side, name, n = line:match("^%s*(%a+)%s+([%w_]+)%s+(%d+)")
+		if side == "us" or side == "them" then
+			battle[side][#battle[side] + 1] = { name = name, n = tonumber(n) }
+		end
+		battle.name = line:match("^#%s*(%S+)") or battle.name
+		local k, v = line:match("^%s*(%a+)%s+(%d+)%s*$")
+		if k == "distance" or k == "seconds" then
+			battle[k] = tonumber(v)
+		end
+	end
+end
+
+local function battleValue(ids)
+	local v = 0
+	for u in pairs(ids) do
+		if Spring.ValidUnitID(u) and not Spring.GetUnitIsDead(u) then
+			local d = kinds[Spring.GetUnitDefID(u)]
+			v = v + (d and d.cost or 0)
+		end
+	end
+	return v
+end
+
+local function battleFrame(n)
+	local mx, mz = Game.mapSizeX / 2, Game.mapSizeZ / 2
+	local half = battle.distance / 2
+	if n == 12 then
+		battleSpec()
+		Spring.SendCommands("cheat 1", "globallos")
+		out(string.format("scenario battle: %d vs %d unit types, %d elmos apart, %d s", #battle.us, #battle.them, battle.distance, battle.seconds))
+	elseif n == 20 then
+		for _, u in ipairs(battle.us) do
+			if UnitDefNames[u.name] then
+				give(u.n, u.name, myTeam, mx - half, mz)
+			end
+		end
+		for _, u in ipairs(battle.them) do
+			if UnitDefNames[u.name] then
+				give(u.n, u.name, 1, mx + half, mz)
+			end
+		end
+	elseif n == 45 then
+		battle.ours, battle.theirs = {}, {}
+		local list = {}
+		for _, u in ipairs(Spring.GetUnitsInCylinder(mx - half, mz, 600, myTeam)) do
+			battle.ours[u] = true
+			list[#list + 1] = u
+		end
+		for _, u in ipairs(Spring.GetUnitsInCylinder(mx + half, mz, 600)) do
+			if Spring.GetUnitTeam(u) == 1 then
+				battle.theirs[u] = true
+			end
+		end
+		battle.start = n
+		battle.usStart, battle.themStart = battleValue(battle.ours), battleValue(battle.theirs)
+		local SC = WG.SubCommanders
+		ids.army = SC.create("army")
+		SC.assign(ids.army, list)
+		SC.setAutonomy(ids.army, "full")
+		if SC.setRaids then
+			SC.setRaids(ids.army, false)
+		end
+		SC.addZone(ids.army, { kind = "circle", x = mx, z = mz, r = battle.distance })
+		out(string.format("battle: us %.0f metal (%d units), them %.0f metal", battle.usStart, #list, battle.themStart))
+	elseif battle.start and n % 15 == 0 then
+		local us, them = battleValue(battle.ours), battleValue(battle.theirs)
+		local t = (n - battle.start) / 30
+		local over = us <= 0.1 * battle.usStart or them <= 0.1 * battle.themStart or t >= battle.seconds
+		if n % 300 == 0 or over then
+			local s = WG.SubCommanders and WG.SubCommanders.get(ids.army)
+			out(string.format("battle t=%ds us=%.0f them=%.0f | %s", t, us, them, s and (s.status or "") or ""))
+		end
+		if over and not duelState.done then
+			local result = (them <= 0.1 * battle.themStart and us > 0.1 * battle.usStart and "WIN")
+				or (us <= 0.1 * battle.usStart and them > 0.1 * battle.themStart and "LOSS") or "DRAW"
+			out(string.format("BATTLE spec=%s result=%s seconds=%d us_start=%.0f us_left=%.0f them_start=%.0f them_left=%.0f", battle.name, result, t,
+				battle.usStart, us, battle.themStart, them))
+			duelState.done = true
+			out("RESULT " .. (result == "DRAW" and "TIMEOUT" or result) .. string.format(" t=%ds", t))
+			out("  us:    " .. teamStats(myTeam))
+			out("DONE")
+			Spring.SendCommands("quitforce")
+		end
+	end
+end
+
 local function gameFrame(n)
+	if scenario == "battle" then
+		battleFrame(n)
+		return
+	end
 	if scenario == "replay" then
 		-- a recorded game (testenv/replays.sh): full view, fast, quit at the end
 		if n == 12 then

@@ -1,0 +1,9 @@
+# armada-mirror
+us armham 6
+us armrock 6
+us armpw 6
+them armham 6
+them armrock 6
+them armpw 6
+distance 700
+seconds 120
