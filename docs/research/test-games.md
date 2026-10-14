@@ -349,3 +349,23 @@ code (v16 mostly never reached the hand-off: its lab built Infestors). Re-measur
   (+0.9k [+26, +1.9k]), opening kills better, score -0.14 [-0.41, +0.12]. The units are anti-air by
   their weapons, but in our armies they still earned their place. The ground/air damage split stays for
   analysis (aaPrimary), production is as before.
+
+## Battle lab (scenario battle, force): focus fire on vs off, 36 battles each (6 specs x 6) — kept
+
+| Spec | Battles | Won / drawn / lost (off → on) | Efficiency off → on | Our share lost off → on |
+|---|---|---|---|---|
+| armada-mirror | 6 | 0/6/0 → 0/6/0 | 1.74 → 1.96 | 40% → 36% |
+| cortex-mirror | 6 | 5/1/0 → 6/0/0 | 3.16 → 4.52 | 33% → 21% |
+| heavy-mirror | 6 | 0/1/5 → 3/3/0 | 0.74 → 1.28 | 96% → 74% |
+| legion-mirror | 6 | 1/5/0 → 1/5/0 | 0.68 → 0.74 | 73% → 72% |
+| raiders-mirror | 6 | 0/2/4 → 2/0/4 | 0.63 → 0.86 | 95% → 91% |
+| skirmishers-vs-assault | 6 | 6/0/0 → 6/0/0 | 8.00 → 8.00 | 0% → 0% |
+
+- Batches 20261014-1257-battle-nofocus, 20261014-1301-battle-focus (3 min each at 6 parallel).
+- Pooled over specs the verdict was "can't tell" (efficiency +0.34 [-0.31, +0.98]): the specs differ far
+  more from each other than focus fire changes them. Compared within each spec (verdicts now stratify
+  battles by spec): efficiency (log2) +0.34 [+0.08, +0.60] **better**, our share lost -0.07 [-0.13,
+  -0.02] **better**, score +0.19 [+0.07, +0.31] **better**.
+- Seen in the logs: in mirrors the army mostly "holds" (0.5-0.8x), so focus fire (engage only) ran a
+  small part of the fight. The response squad took the fastest 30% of the army home, leaving the main
+  body at ~0.8x of an equal enemy.

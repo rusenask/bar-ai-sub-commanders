@@ -48,8 +48,9 @@ func StageNet(g *Game, from, to int) (float64, bool) {
 	return stageSum(g.Killed, from, to) - stageSum(g.Lost, from, to), reached(g, from)
 }
 
-// reached: the game lasted into the stage (a game lost at minute 8 says nothing about the late game)
-func reached(g *Game, from int) bool { return g.Seconds >= from*60 }
+// reached: the game lasted into the stage (a game lost at minute 8 says nothing about the late game);
+// battles have no stages
+func reached(g *Game, from int) bool { return g.Battle == nil && g.Seconds >= from*60 }
 
 func verdictMetrics() []metric {
 	ms := []metric{
@@ -88,14 +89,14 @@ func verdictMetrics() []metric {
 	ms = append(ms,
 		metric{"extractors at 20 min", true, func(g *Game) (float64, bool) {
 			e := At(g.Eco, 20)
-			if e == nil {
+			if e == nil || g.Battle != nil {
 				return 0, false
 			}
 			return e.Value("mex"), true
 		}},
 		metric{"army at 12 min", true, func(g *Game) (float64, bool) {
 			e := At(g.Eco, 12)
-			if e == nil {
+			if e == nil || g.Battle != nil {
 				return 0, false
 			}
 			return e.Value("army"), true
@@ -112,6 +113,58 @@ func values(games []*Game, m metric) []float64 {
 		}
 	}
 	return out
+}
+
+// strata groups a metric's values by battle spec ("" for games): specs differ far more from each other
+// than an arm changes them, so battles are compared within each spec
+func strata(games []*Game, m metric) map[string][]float64 {
+	out := map[string][]float64{}
+	for _, g := range games {
+		if v, ok := m.value(g); ok {
+			key := ""
+			if g.Battle != nil {
+				key = g.Battle.Spec
+			}
+			out[key] = append(out[key], v)
+		}
+	}
+	return out
+}
+
+// stratifiedInterval: the mean over strata (in both arms) of mean(b) - mean(a), with a 95% bootstrap
+// interval resampling within each stratum.
+func stratifiedInterval(a, b map[string][]float64, rng *rand.Rand) (diff, lo, hi float64, ok bool) {
+	var keys []string
+	for k := range a {
+		if len(a[k]) > 0 && len(b[k]) > 0 {
+			keys = append(keys, k)
+		}
+	}
+	if len(keys) == 0 {
+		return 0, 0, 0, false
+	}
+	sort.Strings(keys)
+	est := func(pick func([]float64) float64) float64 {
+		t := 0.0
+		for _, k := range keys {
+			t += pick(b[k]) - pick(a[k])
+		}
+		return t / float64(len(keys))
+	}
+	diff = est(meanOf)
+	const n = 2000
+	d := make([]float64, n)
+	for i := range d {
+		d[i] = est(func(v []float64) float64 {
+			r := 0.0
+			for range v {
+				r += v[rng.IntN(len(v))]
+			}
+			return r / float64(len(v))
+		})
+	}
+	sort.Float64s(d)
+	return diff, d[n*25/1000], d[n*975/1000], true
 }
 
 func meanOf(v []float64) float64 {
@@ -177,7 +230,17 @@ func Verdicts(arms []Arm) map[string][]VerdictRow {
 				continue
 			}
 			row.Base, row.Arm = meanOf(a), meanOf(b)
-			row.Lo, row.Hi = diffInterval(a, b, rng)
+			sa, sb := strata(base.Games, m), strata(arm.Games, m)
+			if len(sa) > 1 || len(sb) > 1 {
+				// battles: within each spec, then averaged (Arm = Base + the stratified difference)
+				diff, lo, hi, ok := stratifiedInterval(sa, sb, rng)
+				if ok {
+					row.Arm, row.Lo, row.Hi = row.Base+diff, lo, hi
+					row.Metric += " (within specs)"
+				}
+			} else {
+				row.Lo, row.Hi = diffInterval(a, b, rng)
+			}
 			switch {
 			case row.Lo > 0:
 				row.Verdict = map[bool]string{true: "better", false: "worse"}[m.higher]

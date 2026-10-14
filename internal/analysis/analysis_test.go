@@ -291,3 +291,35 @@ func TestBattles(t *testing.T) {
 		t.Errorf("table:\n%s", b.String())
 	}
 }
+
+// Two specs far apart (one we win big, one we lose) hide a steady gain in a pooled interval; within specs
+// it shows.
+func TestBattleVerdictsWithinSpecs(t *testing.T) {
+	arm := func(label string, gain float64) Arm {
+		a := Arm{Label: label}
+		for i := range 12 {
+			for _, spec := range []struct {
+				name string
+				left float64
+			}{{"easy", 0.95}, {"hard", 0.1}} {
+				left := spec.left + gain + 0.01*float64(i%3)
+				a.Games = append(a.Games, &Game{Result: "WIN", Seconds: 60,
+					Battle: &Battle{Spec: spec.name, UsStart: 1, UsLeft: left, ThemStart: 1, ThemLeft: 0.5}})
+			}
+		}
+		return a
+	}
+	rows := Verdicts([]Arm{arm("base", 0), arm("better", 0.04)})["better"]
+	got := map[string]string{}
+	for _, r := range rows {
+		got[r.Metric] = r.Verdict
+	}
+	if got["battle: our share lost (within specs)"] != "better" {
+		t.Errorf("verdicts %v", got)
+	}
+	for m := range got {
+		if strings.HasPrefix(m, "opening") || strings.HasPrefix(m, "extractors") {
+			t.Errorf("game rows for battles: %s", m)
+		}
+	}
+}
