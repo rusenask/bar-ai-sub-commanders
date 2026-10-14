@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net"
 	"sync"
@@ -158,7 +159,7 @@ type Server struct {
 	Decide DecideFunc
 
 	mu      sync.Mutex
-	conn    net.Conn
+	conn    io.ReadWriteCloser // a TCP connection or a file session (files.go)
 	info    *Info
 	state   *State
 	over    bool
@@ -190,18 +191,29 @@ func (s *Server) Run(ctx context.Context) error {
 			}
 			return err
 		}
-		s.mu.Lock()
-		if s.conn != nil {
-			s.conn.Close()
-		}
-		s.conn = conn
-		s.mu.Unlock()
-		go s.serve(conn)
+		s.attach(conn)
 	}
 }
 
-func (s *Server) serve(conn net.Conn) {
-	s.log.Info("game connected", "remote", conn.RemoteAddr())
+// attach makes conn the game's connection (replacing any other) and serves it.
+func (s *Server) attach(conn io.ReadWriteCloser) {
+	s.mu.Lock()
+	if s.conn != nil {
+		s.conn.Close()
+	}
+	s.conn = conn
+	s.mu.Unlock()
+	go s.serve(conn)
+}
+
+func (s *Server) serve(conn io.ReadWriteCloser) {
+	from := "?"
+	if c, ok := conn.(net.Conn); ok {
+		from = c.RemoteAddr().String()
+	} else if c, ok := conn.(fmt.Stringer); ok {
+		from = c.String()
+	}
+	s.log.Info("game connected", "from", from)
 	sc := bufio.NewScanner(conn)
 	sc.Buffer(make([]byte, 0, 64*1024), 16*1024*1024)
 	for sc.Scan() {
@@ -279,7 +291,9 @@ func (s *Server) write(msg message) error {
 	}
 	s.writeMu.Lock()
 	defer s.writeMu.Unlock()
-	conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
+	if d, ok := conn.(interface{ SetWriteDeadline(time.Time) error }); ok {
+		d.SetWriteDeadline(time.Now().Add(5 * time.Second))
+	}
 	_, err = conn.Write(append(b, '\n'))
 	return err
 }

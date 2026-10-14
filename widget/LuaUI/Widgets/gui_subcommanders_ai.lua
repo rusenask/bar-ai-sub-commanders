@@ -9,6 +9,9 @@
 --   bridge -> widget: action { id, sub, op, args }
 --
 -- Address: springsettings.cfg "SubCommandersBridge" (default 127.0.0.1:7878).
+-- BAR from game version test-31614 takes sockets away from user widgets: the link then runs through files
+-- in LuaUI/Config/scbridge/ (session.txt, <session>.w2b.jsonl, <session>.b2w.jsonl), which the bridge
+-- watches with -game-files (internal/game/files.go; compose.yaml mounts the folder).
 --------------------------------------------------------------------------------
 
 local widget = widget ---@type Widget
@@ -40,6 +43,12 @@ local inbuf, outbuf = "", ""
 local lastStateFrame = -STATE_EVERY
 local announcedOffline = false
 
+-- the file transport (no sockets): this game's session, its outgoing file, how far the incoming one is read
+local FILES = "LuaUI/Config/scbridge/"
+-- (springsettings.cfg SubCommandersBridgeFiles = 1 forces it, to test it on a BAR that still has sockets)
+local useFiles = not socket or Spring.GetConfigInt("SubCommandersBridgeFiles", 0) == 1
+local session, outFile, inOffset, lastHeard = nil, nil, 0, 0
+
 -- decision model behind the bridge (optional): requests waiting for an answer
 local decider = { enabled = false, nextID = 0, pending = {} }
 
@@ -64,6 +73,10 @@ end
 local function disconnect(reason)
 	if client then
 		client:close()
+	end
+	if outFile then
+		outFile:close()
+		outFile = nil
 	end
 	for id, cb in pairs(decider.pending) do
 		decider.pending[id] = nil
@@ -291,6 +304,14 @@ local function handle(line)
 		Spring.Echo("Sub-Commanders AI: bad message from bridge")
 		return
 	end
+	-- the file transport has no connection to watch: any message means the bridge is there
+	lastHeard = now()
+	if useFiles and link == "connecting" then
+		link = "online"
+		announcedOffline = false
+		Spring.Echo("Sub-Commanders AI: connected to bridge through " .. FILES)
+		sendState()
+	end
 	if msg.type == "config" then
 		decider.enabled = type(msg.args) == "table" and msg.args.decider == true
 		return
@@ -311,7 +332,50 @@ local function handle(line)
 	end
 end
 
+-- complete lines in inbuf go to handle()
+local function drain()
+	while true do
+		local nl = inbuf:find("\n", 1, true)
+		if not nl then
+			break
+		end
+		local line = inbuf:sub(1, nl - 1)
+		inbuf = inbuf:sub(nl + 1)
+		if #line > 0 then
+			handle(line)
+		end
+	end
+end
+
+-- the file transport: write what's queued, read what the bridge appended since last time; a bridge
+-- silent for 30 s (it pings every 10) is gone
+local function pumpFiles()
+	if #outbuf > 0 and outFile then
+		outFile:write(outbuf)
+		outFile:flush()
+		outbuf = ""
+	end
+	local f = io.open(FILES .. session .. ".b2w.jsonl", "r")
+	if f then
+		f:seek("set", inOffset)
+		local data = f:read("*a")
+		f:close()
+		if data and #data > 0 then
+			inOffset = inOffset + #data
+			inbuf = inbuf .. data
+			drain()
+		end
+	end
+	if link == "online" and now() - lastHeard > 30 then
+		disconnect("bridge silent")
+	end
+end
+
 local function pump()
+	if useFiles then
+		pumpFiles()
+		return
+	end
 	-- read
 	local data, err, partial = client:receive(65536)
 	local chunk = data or partial
@@ -347,6 +411,27 @@ local function pump()
 end
 
 local function tryConnect()
+	if useFiles then
+		-- a session per game; announcing it (again) makes the bridge (re)read our file from the start
+		Spring.CreateDir("LuaUI/Config/scbridge")
+		session = session or (tostring(os.time()) .. "-" .. tostring(math.random(100000, 999999)))
+		local f = io.open(FILES .. "session.txt", "w")
+		outFile = io.open(FILES .. session .. ".w2b.jsonl", "a")
+		if not f or not outFile then
+			if f then
+				f:close()
+			end
+			link, nextAttempt = "offline", now() + RETRY_SECONDS * 6
+			return
+		end
+		f:write(session)
+		f:close()
+		inOffset, inbuf, lastHeard = 0, "", now()
+		outFile:write(Json.encode({ type = "hello", game = gameInfo() }) .. "\n")
+		outFile:flush()
+		link = "connecting"
+		return
+	end
 	if not socket or not host then
 		return
 	end
@@ -394,6 +479,8 @@ function widget:Update()
 			announcedOffline = true
 			markOffline()
 		end
+	elseif link == "connecting" and useFiles then
+		pumpFiles()
 	elseif link == "connecting" then
 		checkConnected()
 	else
@@ -416,9 +503,7 @@ end
 
 function widget:Initialize()
 	if not socket then
-		Spring.Echo("Sub-Commanders AI: LuaSocket is disabled (LuaSocketEnabled = 0)")
-		widgetHandler:RemoveWidget()
-		return
+		Spring.Echo("Sub-Commanders AI: no sockets here (newer BAR or LuaSocketEnabled = 0): linking through " .. FILES)
 	end
 	if Spring.GetSpectatingState() then
 		widgetHandler:RemoveWidget()

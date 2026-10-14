@@ -265,6 +265,11 @@ sending anything.
 | `set_paused` | stop its automatic decisions |
 | `tell_player` | console message to you (at most one per 90 s) |
 
+**Newer BAR versions** (game version test-31614 and later) take network sockets away from user widgets.
+The AI link then goes through files in `LuaUI/Config/scbridge/` instead; `compose.yaml` mounts that
+folder into the bridge (`BAR_FILES` overrides the path, default the macOS BAR data folder). Set
+`SubCommandersBridgeFiles = 1` in `springsettings.cfg` to use the files on a BAR that still has sockets.
+
 Each sub-commander only accepts tool calls while its own review is running, and only while the AI is on.
 
 The strategist also loads **skills** from [`strategist/.agents/skills`](strategist/.agents/skills): a playbook

@@ -38,6 +38,7 @@ func main() {
 func run() error {
 	var (
 		gameAddr    = flag.String("game-addr", "127.0.0.1:7878", "address the game widget connects to")
+		gameFiles   = flag.String("game-files", os.Getenv("SCBRIDGE_GAME_FILES"), "also serve the file transport in this directory (BAR's LuaUI/Config/scbridge: newer BAR versions take sockets away from widgets)")
 		mcpAddr     = flag.String("mcp-addr", "127.0.0.1:7879", "address of the MCP tool server (must match strategist/opencode.json)")
 		opencodeURL = flag.String("opencode-url", "", "use an already running `opencode serve` instead of starting one")
 		opencodeBin = flag.String("opencode-bin", "opencode", "opencode binary")
@@ -109,6 +110,13 @@ func run() error {
 
 	errc := make(chan error, 1)
 	go func() { errc <- g.Run(ctx) }()
+	if *gameFiles != "" {
+		go func() {
+			if err := g.RunFiles(ctx, *gameFiles); err != nil {
+				log.Error("file transport", "err", err)
+			}
+		}()
+	}
 
 	var oc *opencode.Client
 	if *opencodeURL != "" {
