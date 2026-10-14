@@ -615,7 +615,9 @@ local function battleFrame(n)
 		out("RESULT TIMEOUT t=0s")
 		out("DONE")
 		Spring.SendCommands("quitforce")
-	elseif battle.given and n == battle.given + 25 then
+	elseif battle.given and not battle.start and n >= battle.given + 25 and (n % 15 == 0 or n >= battle.given + 300) then
+		-- the give goes through the server too: start once both armies are there (a busy sandbox took over
+		-- 25 frames), giving up after 10 s (the battle is then dropped as without armies)
 		battle.ours, battle.theirs = {}, {}
 		local list = {}
 		-- what was given: both sides' units around the battle, not the commanders at the start positions
@@ -633,8 +635,20 @@ local function battleFrame(n)
 			battle.ours[u] = true
 			list[#list + 1] = u
 		end
+		local theirs = 0
 		for _, u in ipairs(given(1, mx + half)) do
 			battle.theirs[u] = true
+			theirs = theirs + 1
+		end
+		local wantUs, wantThem = 0, 0
+		for _, u in ipairs(battle.us) do
+			wantUs = wantUs + (UnitDefNames[u.name] and u.n or 0)
+		end
+		for _, u in ipairs(battle.them) do
+			wantThem = wantThem + (UnitDefNames[u.name] and u.n or 0)
+		end
+		if (#list < wantUs or theirs < wantThem) and n < battle.given + 300 then
+			return -- not all there yet
 		end
 		battle.start = n
 		battle.usStart, battle.themStart = battleValue(battle.ours), battleValue(battle.theirs)
@@ -654,7 +668,14 @@ local function battleFrame(n)
 		if SC.setRaids then
 			SC.setRaids(ids.army, false)
 		end
-		SC.addZone(ids.army, { kind = "circle", x = mx, z = mz, r = battle.distance })
+		-- the army's area: both sides (we decide whether to attack), or with `attack` our half only (we
+		-- defend: they come to us; a zone over their side made them intruders from the start and our army
+		-- went at them before they pushed)
+		if battle.attack > 0 then
+			SC.addZone(ids.army, { kind = "circle", x = mx - half, z = mz, r = half + 200 })
+		else
+			SC.addZone(ids.army, { kind = "circle", x = mx, z = mz, r = battle.distance })
+		end
 		out(string.format("battle: us %.0f metal (%d units), them %.0f metal", battle.usStart, #list, battle.themStart))
 	elseif battle.start and n % 15 == 0 then
 		local us, them = battleValue(battle.ours), battleValue(battle.theirs)

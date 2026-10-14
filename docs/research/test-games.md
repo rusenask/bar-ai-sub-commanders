@@ -517,3 +517,13 @@ Siege specs (48 per arm) with three artillery specs; ground specs (72) as a chec
 - The "push" specs don't push: with `attack 1` the artillery group moved ~100 elmos in a minute and sat
   ~1450 from our squad, so they test standing artillery. The spec needs fixing before it can judge an
   artillery doctrine.
+
+## Battle lab: fire control, decisive run — kept (mode settarget is the default)
+
+- 144 per arm in sandboxes (20261014-1558-sbx-battle-fc2{attack,split,spread}): split +0.12 [-0.02,
+  +0.26], spread (killTime 1) +0.06 [-0.07, +0.21] vs attack orders.
+- Pooled with the earlier force and sandbox runs (287 vs 286 battles): split vs attack orders, efficiency
+  (log2) **+0.13 [+0.03, +0.24] better**, score **+0.07 [+0.01, +0.13] better**, share lost -0.01 can't
+  tell. Armada mirror 2.19 -> 3.13, Legion mirror 0.98 -> 1.17, heavy mirror 1.31 -> 1.38.
+- Two more battles without armies (the give took over 25 frames in a busy sandbox): the harness now waits
+  until both armies are complete, up to 10 s.

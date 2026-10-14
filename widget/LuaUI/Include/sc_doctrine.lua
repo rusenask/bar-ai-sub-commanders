@@ -231,7 +231,7 @@ D.micro = {
 	-- leaves its movement alone, and splits fire: a target gets shooters until their damage over killTime
 	-- seconds covers its health x overkill (false: everyone on the best). mode "attack": attack orders
 	-- while engaging, a target kept `every` frames (a kind with focus = false fights what's nearest)
-	focus = { on = true, armed = 3, every = 45, mode = "attack", fireEvery = 15, killTime = 2, overkill = 1.2 },
+	focus = { on = true, armed = 3, every = 45, mode = "settarget", fireEvery = 15, killTime = 2, overkill = 1.2 },
 	kinds = {
 		default = { hold = 0.73, kite = false },
 		raider = { hold = 0.67, kite = false },
