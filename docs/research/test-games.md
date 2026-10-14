@@ -704,3 +704,45 @@ Mean log2 efficiency, our category (rows) against theirs (columns); 4 battles pe
 
 - Paired: score -0.01 [-0.17, +0.16]; mid kills +2.7k [-0.4k, +5.7k], late losses +37k [-7k, +84k]; all
   can't tell. 48/48 ran, no crashes. Off; it returns with the turret line if that holds up.
+
+## Battle lab re-runs on flat sites (sandboxes, interleaved)
+
+Counter matrix, flat sites (arm A of 20261015-0212-sbx-il-re-khold, 264 battles):
+
+### arm: mean log2 efficiency, ours (rows) vs theirs (columns)
+
+| ours \ theirs | raider | assault | skirmisher | heavy | artillery |
+|---|---|---|---|---|---|
+| raider | -0.37 (4) | -1.92 (4) | -3.00 (4) | -2.74 (4) | -3.00 (4) |
+| assault | +2.10 (4) | -1.83 (4) | +2.56 (4) | -0.37 (4) | -0.00 (4) |
+| skirmisher | +0.13 (4) | -2.86 (4) | +0.25 (4) | -2.20 (4) | -3.00 (4) |
+| heavy | +2.23 (4) | -0.96 (4) | -1.66 (4) | +0.79 (4) | -1.50 (4) |
+| artillery | -0.91 (4) | -1.23 (4) | +1.32 (4) | -0.81 (4) | +0.38 (4) |
+
+### cor: mean log2 efficiency, ours (rows) vs theirs (columns)
+
+| ours \ theirs | raider | assault | skirmisher | heavy | artillery |
+|---|---|---|---|---|---|
+| raider | +0.29 (4) | -2.89 (4) | -3.00 (4) | -2.35 (4) | -1.39 (4) |
+| assault | +2.54 (4) | +0.36 (4) | +3.00 (4) | +1.06 (4) | +0.82 (4) |
+| skirmisher | -0.07 (4) | -2.89 (4) | +0.04 (4) | -2.74 (4) | -2.03 (4) |
+| heavy | +1.93 (4) | -2.46 (4) | -2.38 (4) | -1.32 (4) | +0.51 (4) |
+| artillery | +0.33 (4) | +0.10 (4) | +3.00 (4) | -1.33 (4) | +2.44 (4) |
+
+### leg: mean log2 efficiency, ours (rows) vs theirs (columns)
+
+| ours \ theirs | raider | assault | skirmisher | heavy |
+|---|---|---|---|---|
+| raider | -0.18 (4) | +0.49 (4) | -3.00 (4) | -2.17 (4) |
+| assault | -0.25 (4) | -0.93 (4) | +0.32 (4) | -3.00 (4) |
+| skirmisher | +2.92 (4) | +0.69 (4) | -0.51 (4) | +2.56 (4) |
+| heavy | +1.70 (4) | -0.65 (4) | -0.42 (4) | +0.10 (4) |
+
+| Change | Specs | Pairs | Efficiency (log2, paired) | Our share lost | Score |
+|---|---|---|---|---|---|
+| kiting while holding, unless screened by 2+ front-line units within 300 | counter matrix | 264 | **+0.19 [+0.04, +0.34] better** | **-0.03 better** | **+0.08 better** |
+| contact fallback (hold within 1200 of a threat -> fall back) + fall back to turrets | retreat | 48 | **+0.38 [+0.08, +0.68] better** | +0.00 | -0.00 |
+| the same | ground | 72 | **-0.47 [-0.78, -0.18] worse** | +0.12 worse | -0.15 worse |
+
+- Contact fallback at any ratio throws away mirror fights held at 0.5-0.8x; now only under 0.4x
+  (the retreat specs are 0.1-0.3x). Re-testing, and kiting while holding on ground specs.
