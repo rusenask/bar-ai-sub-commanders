@@ -17,6 +17,16 @@ out wrong.
   (engine-v2/v3 hard)
 - Offline model accuracy isn't game strength: the fight model (AUC 0.81) gave more kills and more lost
   games. (decision model arm F)
+- Battles differ far more between specs than a micro change moves them: pooled over 6 specs, focus fire
+  read "can't tell"; compared within each spec, it was clearly better with the same 36 battles a side.
+  Battle verdicts stratify by spec. (battle lab, focus on/off)
+- A learning run can look healthy and learn nothing: the staged rules (rule@mid) were never in the saved
+  store, so two generations moved nothing and every game counted as "the mean's own". Check that the
+  searched rules appear in `learn show` and that "the mean's games" differs from the average after the
+  first generation. (cortex-vs-armada-medium-mid)
+- Even working, game-level learning is noisy: mid-game metal net ranged -18k to +1k between games of
+  nearly the same rules, so 24 games a generation barely moves a 0.08-sigma search. Learn micro in the
+  battle lab; keep game-level search for a few rules with large effects.
 
 ## Playing BAR (what the games showed)
 

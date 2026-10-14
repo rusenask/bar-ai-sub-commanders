@@ -369,3 +369,29 @@ code (v16 mostly never reached the hand-off: its lab built Infestors). Re-measur
 - Seen in the logs: in mirrors the army mostly "holds" (0.5-0.8x), so focus fire (engage only) ran a
   small part of the fight. The response squad took the fastest 30% of the army home, leaving the main
   body at ~0.8x of an equal enemy.
+
+## Battle lab: response squad only from units at home, and micro while holding (36 battles each)
+
+| Arm | Won / drawn / lost | Efficiency (log2, within specs) | Our share lost | Score |
+|---|---|---|---|---|
+| 20261014-1310-battle-bbase (focus fire, as committed) | 20 / 12 / 4 | | | |
+| 20261014-1314-battle-bresp (responders from units in base) | 29 / 3 / 4 | -0.10 [-0.36, +0.15] can't tell | +0.09 [+0.03, +0.16] **worse** | +0.18 [+0.00, +0.34] **better** |
+| 20261014-1318-battle-bcontact (that + focus/kite while holding or regrouping) | 24 / 4 / 8 | -0.36 [-0.62, -0.10] **worse** | +0.15 [+0.07, +0.22] **worse** | +0.02 can't tell |
+
+- With the whole army in the fight (no 30% sent home) the army engages instead of holding at 0.8x: more
+  wins and shorter battles, but a larger share lost. Efficiency the same.
+- Micro while holding is worse: attack orders from the holding line pull units into the enemy one by one.
+  Removed.
+- The baseline itself moved a lot from the focus-fire batch of the same code (legion-mirror efficiency
+  0.74 there, 1.84 here): 6 battles per spec is noisy, use 72 per arm for small effects.
+
+## Learning run (sandboxes): Cortex vs Armada, mid-game rules only, 4 generations x 24 games — nothing learned
+
+- Key cortex-vs-armada-medium-mid, `-only engage_attack@mid,engage_hold@mid,responders_share@mid,turret_budget_scale@mid`,
+  scored on the mid game's metal net (killed minus lost, minutes 10-25, thousands). 96/96 games ran.
+- Generations 1-2 learned nothing because of a bug (staged rules weren't in the saved store; fixed in
+  b0a80b8, the store was rebuilt from its trials). After that the mean moved +0.05 (engage_attack@mid
+  1.2 -> 1.25, engage_hold@mid 0.8 -> 0.84) and the mean's own games scored -14.1 against -14.1 at the
+  start.
+- Scores ranged -44.8 to +7.0 (SD 10.3, median -15.7): the game's course swamps rule changes of this size.
+  Not validated, not served.
