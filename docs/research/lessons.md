@@ -17,6 +17,10 @@ out wrong.
   (engine-v2/v3 hard)
 - Offline model accuracy isn't game strength: the fight model (AUC 0.81) gave more kills and more lost
   games. (decision model arm F)
+- Lab wins in narrow scenarios don't add up to games: kiting while holding (+0.19 on the counter matrix)
+  and the contact fallback (+0.34..+0.59 on defend / retreat specs) were neutral to worse in 36 game pairs.
+  The concave, which won where most metal fights (big fights, +0.61), was the one that held in games.
+  Weigh a lab win by how much of a real game's fighting its specs stand for. (g34)
 - Look at the ground before trusting a lab: the battle site sat across a 200-elmo ridge and every spec
   1400+ wide measured armies that never met (assault "engaging" for 3 minutes without moving). The
   harness now picks a flat site and logs the heights; when a battle reads oddly, check `dist` and `goal`

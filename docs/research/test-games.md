@@ -769,3 +769,19 @@ Counter matrix, flat sites (arm A of 20261015-0212-sbx-il-re-khold, 264 battles)
 | kiting while holding (screened) | ground | 72 | -0.09 [-0.29, +0.11] | +0.01 | -0.02 |
 
 - Both into a whole-game test.
+
+## Whole games, interleaved: kiting while holding + contact fallback to turrets — not kept
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-0250-sbx-g34-retreat-kite-A (base) | 24 | 1 win, 12 timeout, 11 loss | 0 | 172.3k | 200 / 857 | 0.75 | 23.4 | 11 / 15 | 3.9k |
+| 20261015-0250-sbx-g34-retreat-kite-B (bundle) | 24 | 3 win, 7 timeout, 14 loss | 3 | 173.5k | 198 / 769 | 0.81 | 19.7 | 11 / 17 | 3.9k |
+| 20261015-0250-force4-g34-retreat-kite-A (base) | 12 | 3 win, 3 timeout, 6 loss | 1 | 186.8k | 189 / 659 | 0.78 | 14.2 | 12 / 17 | 4.5k |
+| 20261015-0250-force4-g34-retreat-kite-B (bundle) | 12 | 1 win, 7 timeout, 4 loss | 0 | 233.9k | 227 / 1003 | 0.78 | 23.2 | 13 / 16.5 | 4.1k |
+
+- Sandboxes: score -0.00 [-0.12, +0.12], opening kills worse; force: score -0.05 [-0.32, +0.20], late
+  metal lost +72k [+15k, +127k] **worse**. 72/72 ran, no crashes. Both stay off: better in isolated
+  battles, not in games.
+- What decides these games is macro (base arm's report): 6 factories lost per game, metal storage full
+  727 s while energy is near empty 598 s (income we can't spend), 23 constructors lost, the commander
+  dead in 11 of 24. Energy is next.
