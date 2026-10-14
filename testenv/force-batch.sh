@@ -29,6 +29,7 @@ if [ -n "$RESUME" ]; then
 fi
 if [ -z "$RESUME" ]; then
 SRC="${WIDGET_SRC:-$T/../widget/LuaUI/Widgets}"
+[ -f "$SRC/gui_subcommanders.lua" ] || { echo "force-batch.sh: no widgets in $SRC (WIDGET_SRC from a failed arm.sh?)" >&2; exit 1; }
 mkdir -p "$DIR"
 {
 	echo "label: $LABEL"

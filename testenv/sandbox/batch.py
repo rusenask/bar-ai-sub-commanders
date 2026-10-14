@@ -84,6 +84,8 @@ def stage(args):
     w.mkdir(parents=True)
     inc.mkdir(parents=True)
     src = Path(args.widgets) if args.widgets else ROOT / "widget/LuaUI/Widgets"
+    if not (src / "gui_subcommanders.lua").exists():
+        sys.exit(f"no widgets in {src} (WIDGET_SRC from a failed arm.sh?)")
     for f in src.glob("gui_subcommanders*.lua"):
         text = f.read_text()
         if args.scenario == "autopilot" and f.name == "gui_subcommanders_autopilot.lua":
