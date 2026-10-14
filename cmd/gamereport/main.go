@@ -67,6 +67,9 @@ func main() {
 			names = names[:25]
 		}
 		fmt.Printf("%d micro samples\n\n%s\nBy unit (most sampled):\n\n%s\nSuggested D.micro:\n\n%s", len(samples), analysis.MicroText(kinds), analysis.MicroText(names), analysis.MicroDoctrine(kinds))
+		if fire, err := analysis.ReadFire(*micro); err == nil && len(fire) > 0 {
+			fmt.Printf("\n%s", analysis.FireText(analysis.FireSummary(fire, 2, 1.2), 2, 1.2))
+		}
 		return
 	}
 	if *benchFrom != "" {

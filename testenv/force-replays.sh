@@ -1,5 +1,5 @@
 #!/bin/bash
-# usage: [PARALLEL=6] [SPEED=100] [PRESET=duel|team|ffa] testenv/force-replays.sh [outdir]
+# usage: [PARALLEL=6] [SPEED=100] [PRESET=duel|team|ffa] [TAG=name] testenv/force-replays.sh [outdir]
 # Plays every strong players' replay on the force host (~/bar-sim/demos, fetched there with
 # pro_replays.py: testenv/force/README.md) with the data logger, PARALLEL at a time, and copies the
 # samples to <outdir> (default testenv/data/pro), one <replay id>.jsonl each. Replays already logged on
@@ -10,6 +10,9 @@ HOST="${FORCE_HOST:-force}"
 PRESET="${PRESET:-duel}"
 # duels: ~/bar-sim/demos -> testenv/data/pro; team games / ffa: ~/bar-sim/demos-<preset> -> testenv/data/<preset>
 if [ "$PRESET" = duel ]; then DEMOS=bar-sim/demos PRODATA=bar-sim/prodata; LOCAL=pro; else DEMOS=bar-sim/demos-$PRESET PRODATA=bar-sim/prodata-$PRESET; LOCAL=$PRESET; fi
+# TAG: log the same replays again into a fresh set (a new logger) without touching the old data:
+# ~/bar-sim/prodata-<tag> on force, testenv/data/<local>-<tag> here
+if [ -n "$TAG" ]; then PRODATA=$PRODATA-$TAG; LOCAL=$LOCAL-$TAG; fi
 OUT="${1:-$T/data/$LOCAL}"
 PARALLEL="${PARALLEL:-6}"
 SPEED="${SPEED:-100}"

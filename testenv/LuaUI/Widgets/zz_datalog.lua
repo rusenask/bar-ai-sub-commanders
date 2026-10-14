@@ -9,6 +9,8 @@
 --   micro:  how a combat unit near an enemy moves and shoots (sampled): distance to the nearest armed enemy
 --           against both ranges, moving toward or away from it, firing, what it targets, how far ahead of
 --           or behind its group it stands: the per-kind doctrine of sc_micro.lua comes from these
+--   fire:   how a team's units in contact split their fire (each scan): per target they shoot, how many
+--           shoot it, their dps against its health, how many hold a set target (BAR's target-on-the-move)
 -- Enabled when datalog.txt exists in the write dir (testenv/collect.sh writes it).
 function widget:GetInfo()
 	return { name = "ZZ Decision Data Logger", layer = 101, enabled = true }
@@ -461,6 +463,55 @@ local function scanMicro(frame)
 	end
 end
 
+-- fire: every armed mobile unit of a team within 1.2x its range of an armed enemy, grouped by the unit it
+-- is shooting (weapon 1's target), with the set targets players gave
+local function scanFire(frame)
+	for team in pairs(teams) do
+		local byTarget, list = {}, {}
+		local contact, shooting, setTarget = 0, 0, 0
+		for _, u in ipairs(Spring.GetTeamUnits(team) or {}) do
+			local d = defs[Spring.GetUnitDefID(u) or -1]
+			if isArmedMobile(d) and d.range > 0 and not Spring.GetUnitIsBeingBuilt(u) then
+				local e = Spring.GetUnitNearestEnemy(u, d.range * 1.2, false)
+				local ed = e and defs[Spring.GetUnitDefID(e) or -1]
+				if ed and ed.armed then
+					contact = contact + 1
+					local set = Spring.GetUnitRulesParam(u, "unitTargetID") or 0
+					if set > 0 then
+						setTarget = setTarget + 1
+					end
+					local tType, _, target = Spring.GetUnitWeaponTarget(u, 1)
+					if tType == 1 and target then
+						shooting = shooting + 1
+						local t = byTarget[target]
+						if not t then
+							local td = defs[Spring.GetUnitDefID(target) or -1]
+							local hp, maxHp = Spring.GetUnitHealth(target)
+							t = { hp = floor(hp or 0), maxHp = floor(maxHp or 0), cost = td and cost(td) or 0, armed = td and td.armed or false,
+								mobile = td and td.mobile or false, n = 0, dps = 0, set = 0 }
+							byTarget[target] = t
+							list[#list + 1] = t
+						end
+						t.n, t.dps = t.n + 1, t.dps + d.dps
+						if set == target then
+							t.set = t.set + 1
+						end
+					end
+				end
+			end
+		end
+		if contact >= 3 then
+			for _, t in ipairs(list) do
+				t.dps = floor(t.dps + 0.5)
+			end
+			while #list > 40 do
+				list[#list] = nil
+			end
+			write({ type = "fire", game = gameKey, frame = frame, team = team, contact = contact, shooting = shooting, setTarget = setTarget, targets = list })
+		end
+	end
+end
+
 local function settleFights(frame)
 	for i = #pendingFights, 1, -1 do
 		local f = pendingFights[i]
@@ -508,6 +559,9 @@ function widget:GameFrame(n)
 	end
 	if n % MICRO_EVERY == 45 then
 		scanMicro(n)
+	end
+	if n % MICRO_EVERY == 0 then
+		scanFire(n)
 	end
 	if n % 1800 == 0 and n > 0 then
 		logEconomy(n)
@@ -560,7 +614,7 @@ function widget:Initialize()
 	math.randomseed(os.time())
 	gameKey = os.date("%Y%m%d-%H%M%S") .. "-" .. math.random(1000, 9999)
 	out = openOutput("datalog.jsonl")
-	write({ type = "start", game = gameKey, map = Game.mapName, mapX = Game.mapSizeX, mapZ = Game.mapSizeZ, version = 5 })
+	write({ type = "start", game = gameKey, map = Game.mapName, mapX = Game.mapSizeX, mapZ = Game.mapSizeZ, version = 6 })
 	-- who is allied with whom (team games: roles within a side), and each team's faction
 	local list = {}
 	for t, ally in pairs(teams) do

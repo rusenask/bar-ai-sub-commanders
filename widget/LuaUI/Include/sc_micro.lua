@@ -67,6 +67,67 @@ return function(ctx)
 		return best
 	end
 
+	-- fire control: which of our units shoots which enemy. shooters { id, x, z, range, dps, aa }, targets
+	-- { id, x, z, hp, cost, armed, air, radius }. Targets are taken best first (focusTarget's score); each
+	-- gets shooters in reach (those with the fewest other choices first) until their damage over
+	-- focus.killTime covers its health x focus.overkill, and the rest spill over to the next target, as a
+	-- player splits fire so no shots are wasted on the dying. Shooters left over (everything in their reach
+	-- is covered) join the best target they reach. Returns { [shooterID] = targetID }.
+	function M.allocate(shooters, targets)
+		local F = D.micro.focus
+		local function score(t)
+			return (t.cost or 0) / math.max(t.hp or 1, 1) * (t.armed and F.armed or 1)
+		end
+		table.sort(targets, function(a, b)
+			return score(a) > score(b)
+		end)
+		local reach, options = {}, {}
+		for _, s in ipairs(shooters) do
+			local r, n = {}, 0
+			for ti, t in ipairs(targets) do
+				local reachDist = s.range + (t.radius or 0)
+				if (t.air or false) == (s.aa or false) and (s.x - t.x) ^ 2 + (s.z - t.z) ^ 2 <= reachDist * reachDist then
+					r[ti], n = true, n + 1
+				end
+			end
+			reach[s.id], options[s.id] = r, n
+		end
+		local out, committed = {}, {}
+		for ti, t in ipairs(targets) do
+			local cands = {}
+			for _, s in ipairs(shooters) do
+				if not out[s.id] and reach[s.id][ti] then
+					cands[#cands + 1] = s
+				end
+			end
+			table.sort(cands, function(a, b)
+				if options[a.id] ~= options[b.id] then
+					return options[a.id] < options[b.id]
+				end
+				return (a.dps or 0) > (b.dps or 0)
+			end)
+			committed[ti] = 0
+			for _, s in ipairs(cands) do
+				if F.overkill and committed[ti] >= (t.hp or 0) * F.overkill then
+					break
+				end
+				out[s.id] = t.id
+				committed[ti] = committed[ti] + (s.dps or 0) * (F.killTime or 2)
+			end
+		end
+		for _, s in ipairs(shooters) do
+			if not out[s.id] then
+				for ti, t in ipairs(targets) do
+					if reach[s.id][ti] then
+						out[s.id] = t.id
+						break
+					end
+				end
+			end
+		end
+		return out
+	end
+
 	-- may a unit of this kind join raids under the style?
 	function M.raids(category, styleName)
 		local kinds = M.style(styleName).raidKinds

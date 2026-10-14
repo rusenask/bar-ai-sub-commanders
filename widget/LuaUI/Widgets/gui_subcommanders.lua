@@ -4135,7 +4135,7 @@ function Tactics.micro(unitID, d, st, x, z)
 	-- focus fire (sc_micro.lua): every unit in reach of the same enemies converges on the one worth most
 	-- per hit point left, armed ones first
 	local F = Engine.D.micro.focus
-	if F.on and rule.focus ~= false and range > 0 and (not st.focusUntil or frame >= st.focusUntil or not isAlive(st.focus or -1)) then
+	if F.on and F.mode == "attack" and rule.focus ~= false and range > 0 and (not st.focusUntil or frame >= st.focusUntil or not isAlive(st.focus or -1)) then
 		local cands = {}
 		for _, u in ipairs(spGetUnitsInCylinder(x, z, range)) do
 			if isEnemyUnit(u) then
@@ -4155,10 +4155,59 @@ function Tactics.micro(unitID, d, st, x, z)
 			return true
 		end
 		st.focus = nil
-	elseif F.on and st.focus and frame < st.focusUntil then
+	elseif F.on and F.mode == "attack" and st.focus and frame < st.focusUntil then
 		return true
 	end
 	return false
+end
+
+-- fire control (sc_micro.lua allocate), every doctrine.micro.focus.fireEvery frames: each army unit gets
+-- a priority target with BAR's set-target command (unit_target_on_the_move: used when in range, kept
+-- through move orders), so units keep fighting, rallying, kiting or falling back while they shoot it.
+Engine.CMD_SET_TARGET = (GameCMD and GameCMD.UNIT_SET_TARGET) or 34923
+Engine.CMD_CANCEL_TARGET = (GameCMD and GameCMD.UNIT_CANCEL_TARGET) or 34924
+
+function Engine.fireControl(sub)
+	if sub.role ~= "army" then
+		return
+	end
+	local shooters, targets, seen = {}, {}, {}
+	for u in pairs(sub.units) do
+		local d = unitDef(u)
+		local st = ustate[u]
+		if d and d.combat and not d.air and (d.range or 0) > 0 and not spGetUnitIsBeingBuilt(u) and not (st and (st.manual or st.sieging)) then
+			local x, _, z = spGetUnitPosition(u)
+			if x then
+				shooters[#shooters + 1] = { id = u, x = x, z = z, range = d.range, dps = (d.aaOnly and d.airDps or d.groundDps) or 0, aa = d.aaOnly or false }
+				for _, e in ipairs(spGetUnitsInCylinder(x, z, d.range + 100)) do
+					if not seen[e] and isEnemyUnit(e) then
+						seen[e] = true
+						local ud = unitDef(e)
+						local hp = Spring.GetUnitHealth(e)
+						local ex, _, ez = spGetUnitPosition(e)
+						if ud and hp and ex and (ud.armed or ud.mex > 0 or ud.builder) then
+							targets[#targets + 1] = { id = e, x = ex, z = ez, hp = hp, cost = ud.cost, armed = ud.armed and not ud.aaOnly,
+								air = ud.air or false, radius = Spring.GetUnitRadius(e) or 0 }
+						end
+					end
+				end
+			end
+		end
+	end
+	if #targets == 0 then
+		return
+	end
+	local plan = Engine.micro.allocate(shooters, targets)
+	for _, s in ipairs(shooters) do
+		local t = plan[s.id]
+		-- what the gadget holds (a stop order clears it): reorder only what differs
+		local cur = Spring.GetUnitRulesParam(s.id, "unitTargetID")
+		if t and cur ~= t then
+			order(s.id, Engine.CMD_SET_TARGET, { t })
+		elseif not t and cur and cur > 0 then
+			order(s.id, Engine.CMD_CANCEL_TARGET, {})
+		end
+	end
 end
 
 -- the commander (sc_commander.lua), each combat pass: its mode, D-gun shots, and at the front following
@@ -7447,6 +7496,12 @@ function widget:GameFrame(n)
 			Tactics.air(sub)
 			Tactics.responders(sub)
 			Tactics.squad(sub)
+		end
+	end
+	local F = Engine.D.micro.focus
+	if F.on and F.mode == "settarget" and n % (F.fireEvery or 15) == 0 then
+		for _, sub in ipairs(subs) do
+			Engine.fireControl(sub)
 		end
 	end
 	local budget = MAX_THINKS_PER_PASS

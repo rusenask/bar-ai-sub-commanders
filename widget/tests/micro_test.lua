@@ -44,6 +44,49 @@ return {
 		s.phase = "defend"
 		T.eq(M.auto(s), "hold")
 	end,
+	fire_control = function()
+		local M = micro()
+		local focus = F.doctrine.micro.focus
+		local saved = { overkill = focus.overkill, killTime = focus.killTime }
+		focus.overkill, focus.killTime = 1.2, 2
+		-- three shooters with 100 dps each, two targets in reach of all: the best one needs two of them
+		-- (hp 300 x 1.2 = 360 <= 2 x 100 x 2 s), the third spills over
+		local shooters = {
+			{ id = 1, x = 0, z = 0, range = 500, dps = 100 },
+			{ id = 2, x = 10, z = 0, range = 500, dps = 100 },
+			{ id = 3, x = 20, z = 0, range = 500, dps = 100 },
+		}
+		local targets = {
+			{ id = 10, x = 300, z = 0, hp = 300, cost = 300, armed = true },
+			{ id = 11, x = 300, z = 50, hp = 900, cost = 300, armed = true },
+		}
+		local a = M.allocate(shooters, targets)
+		local on10, on11 = 0, 0
+		for _, t in pairs(a) do
+			on10 = on10 + (t == 10 and 1 or 0)
+			on11 = on11 + (t == 11 and 1 or 0)
+		end
+		T.eq(on10, 2)
+		T.eq(on11, 1)
+		-- one shooter reaches only the second target: it takes it, the others keep the first
+		shooters[3].x = 800
+		targets[2].x = 1200
+		shooters[3].range = 500
+		a = M.allocate(shooters, targets)
+		T.eq(a[3], 11)
+		T.eq(a[1], 10)
+		-- planes only for anti-air, ground for the rest
+		a = M.allocate({ { id = 1, x = 0, z = 0, range = 500, dps = 100 } }, { { id = 20, x = 10, z = 0, hp = 100, cost = 50, air = true } })
+		T.eq(a[1], nil)
+		-- no overkill limit: everyone on the best
+		focus.overkill = false
+		shooters[3].x, targets[2].x = 20, 300
+		a = M.allocate(shooters, targets)
+		T.eq(a[1], 10)
+		T.eq(a[2], 10)
+		T.eq(a[3], 10)
+		focus.overkill, focus.killTime = saved.overkill, saved.killTime
+	end,
 	focus_fire = function()
 		local M = micro()
 		local t = M.focusTarget({

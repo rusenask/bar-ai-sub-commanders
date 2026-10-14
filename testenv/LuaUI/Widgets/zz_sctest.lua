@@ -587,7 +587,10 @@ local function battleFrame(n)
 			Spring.SendCommands("godmode 3") -- order their units too (attack)
 		end
 		out(string.format("scenario battle: %d vs %d unit types, %d elmos apart, %d s", #battle.us, #battle.them, battle.distance, battle.seconds))
-	elseif n == 20 then
+	elseif not battle.given and n > 12 and Spring.IsCheatingEnabled() then
+		-- give once cheats are on: "cheat 1" goes through the server and took 14 frames in a busy sandbox,
+		-- and gives before it were refused (the battle ran without armies)
+		battle.given = n
 		for _, u in ipairs(battle.us) do
 			if UnitDefNames[u.name] then
 				give(u.n, u.name, myTeam, mx - half, mz)
@@ -598,7 +601,13 @@ local function battleFrame(n)
 				give(u.n, u.name, 1, mx + half, mz)
 			end
 		end
-	elseif n == 45 then
+	elseif not battle.given and n > 12 + 30 * 20 then
+		out(string.format("BATTLE spec=%s result=VOID seconds=0 us_start=0 us_left=0 them_start=0 them_left=0", battle.name))
+		out("HARNESS ERROR battle: cheats never came on, no armies given")
+		out("RESULT TIMEOUT t=0s")
+		out("DONE")
+		Spring.SendCommands("quitforce")
+	elseif battle.given and n == battle.given + 25 then
 		battle.ours, battle.theirs = {}, {}
 		local list = {}
 		for _, u in ipairs(Spring.GetUnitsInCylinder(mx - half, mz, 600, myTeam)) do
@@ -636,7 +645,17 @@ local function battleFrame(n)
 		local over = us <= 0.1 * battle.usStart or them <= 0.1 * battle.themStart or t >= battle.seconds
 		if n % 300 == 0 or over then
 			local s = WG.SubCommanders and WG.SubCommanders.get(ids.army)
-			out(string.format("battle t=%ds us=%.0f them=%.0f | %s", t, us, them, s and (s.status or "") or ""))
+			-- how many of ours hold a set target (fire control) right now
+			local targeted, alive = 0, 0
+			for u in pairs(battle.ours) do
+				if Spring.ValidUnitID(u) and not Spring.GetUnitIsDead(u) then
+					alive = alive + 1
+					if (Spring.GetUnitRulesParam(u, "unitTargetID") or 0) > 0 then
+						targeted = targeted + 1
+					end
+				end
+			end
+			out(string.format("battle t=%ds us=%.0f them=%.0f targeted=%d/%d | %s", t, us, them, targeted, alive, s and (s.status or "") or ""))
 		end
 		if over and not duelState.done then
 			local result = (them <= 0.1 * battle.themStart and us > 0.1 * battle.usStart and "WIN")

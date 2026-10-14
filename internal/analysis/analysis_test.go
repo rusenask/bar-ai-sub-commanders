@@ -323,3 +323,24 @@ func TestBattleVerdictsWithinSpecs(t *testing.T) {
 		}
 	}
 }
+
+func TestFire(t *testing.T) {
+	log := `{"type":"fire","contact":4,"shooting":4,"setTarget":2,"targets":[{"hp":100,"cost":50,"armed":true,"n":3,"dps":150,"set":2},{"hp":1000,"cost":300,"armed":true,"n":1,"dps":50,"set":0}]}` + "\n"
+	fs, err := parseFire(strings.NewReader(log))
+	if err != nil || len(fs) != 1 {
+		t.Fatalf("%v %v", err, fs)
+	}
+	s := FireSummary(fs, 2, 1.2)
+	// 3 shots at a target covered 3x (150 x 2 / 100), 1 shot alone at one covered 0.1x
+	if s.OverShare != 0.75 || s.SoloShare != 0.25 || s.SetTargetShare != 0.5 || s.ShootersPerTgt != 2 || s.OverShareSet != 1 {
+		t.Errorf("%+v", s)
+	}
+}
+
+func TestVoidBattleLeftOut(t *testing.T) {
+	log := "[60] BATTLE spec=armada-mirror result=DRAW seconds=0 us_start=0 us_left=0 them_start=0 them_left=0\n[60] RESULT TIMEOUT t=0s\n"
+	g, err := ParseGame("1.txt", strings.NewReader(log))
+	if err != nil || g.Battle != nil || g.Result != "" || len(g.Errors) != 1 {
+		t.Fatalf("%v %+v %q %v", err, g.Battle, g.Result, g.Errors)
+	}
+}

@@ -220,9 +220,12 @@ D.air = {
 D.micro = {
 	outrange = 0.9, -- an enemy with at least this fraction of our range isn't outranged: no kiting from it
 	kiteRange = 450, -- only units with at least this range kite (short-range kiters were rare in the data)
-	-- focus fire (Tactics.micro): armed enemies count this much more; a target is kept this many frames
-	-- (a kind with focus = false fights what's nearest)
-	focus = { on = true, armed = 3, every = 45 },
+	-- focus fire: armed enemies count this much more. mode "settarget": fire control (Engine.fireControl,
+	-- every `fireEvery` frames) gives each army unit a priority target with BAR's set-target command, which
+	-- leaves its movement alone, and splits fire: a target gets shooters until their damage over killTime
+	-- seconds covers its health x overkill (false: everyone on the best). mode "attack": attack orders
+	-- while engaging, a target kept `every` frames (a kind with focus = false fights what's nearest)
+	focus = { on = true, armed = 3, every = 45, mode = "attack", fireEvery = 15, killTime = 2, overkill = 1.2 },
 	kinds = {
 		default = { hold = 0.73, kite = false },
 		raider = { hold = 0.67, kite = false },

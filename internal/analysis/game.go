@@ -95,6 +95,7 @@ func ParseGame(source string, r io.Reader) (*Game, error) {
 	sc.Buffer(make([]byte, 1<<20), 1<<20)
 	ecoLines := false
 	var incomes []Eco                        // from the 30 s status lines, for logs without eco lines
+	voidBattle := false                      // a battle whose armies were never given
 	prevLogs := map[string]map[string]bool{} // sub -> messages in its previous snapshot
 	subName := map[string]string{}           // sub id -> "Army 3"
 	curLogs := map[string]map[string]bool{}
@@ -141,9 +142,15 @@ func ParseGame(source string, r io.Reader) (*Game, error) {
 			prevLogs, curLogs = curLogs, map[string]map[string]bool{}
 		case strings.HasPrefix(body, "BATTLE "):
 			g.Battle = parseBattle(body[7:])
+			if g.Battle.UsStart <= 0 || g.Battle.ThemStart <= 0 || g.Battle.Result == "VOID" {
+				// the armies were never given (cheats came on late): not a battle, left out of everything
+				g.Errors = append(g.Errors, "HARNESS ERROR battle without armies: "+body[7:])
+				g.Battle = nil
+				voidBattle = true
+			}
 		case strings.HasPrefix(body, "RESULT "):
 			r := reResult.FindStringSubmatch(body)
-			if r != nil {
+			if r != nil && !voidBattle {
 				g.Result, g.Detail = r[1], strings.TrimSpace(r[2])
 				g.Seconds, _ = strconv.Atoi(r[3])
 			}
