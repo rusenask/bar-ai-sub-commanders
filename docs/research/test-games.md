@@ -439,3 +439,10 @@ code (v16 mostly never reached the hand-off: its lab built Infestors). Re-measur
   the switch (`focus = false` in a micro kind) stays for later tests.
 - Per-spec efficiencies moved by up to 0.5 between arms of near-identical code (raiders-mirror 0.78 /
   0.92 / 1.25): 8 battles per spec only show effects of about 0.2 log2 or more.
+
+## Battle lab (sandboxes): pacing (a unit 250 elmos ahead of the squad, not in contact, waits) — no change
+
+- 20261014-1407-sbx-battle-pbase vs 20261014-1408-sbx-battle-pace: efficiency +0.04 [-0.12, +0.20], share
+  lost -0.01, score -0.04, all can't tell. Battles start with both armies bunched 700 elmos apart, so
+  there is little to pace; a test of it needs a spec with a long approach (mixed speeds, 2000+ elmos).
+  Removed.
