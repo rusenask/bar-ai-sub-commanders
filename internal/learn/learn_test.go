@@ -134,22 +134,40 @@ func TestMissingRulesAreIgnored(t *testing.T) {
 	}
 }
 
-func TestLessons(t *testing.T) {
+func TestLessonBook(t *testing.T) {
 	dir := t.TempDir()
-	if Lessons(dir, "cortex-vs-armada") != "" {
-		t.Fatal("none yet")
+	b := LoadBook(dir, "cortex-vs-armada")
+	b.Apply([]Op{{Op: "create", Stage: "mid", Text: "hold the army at the turret line until minute 15"},
+		{Op: "create", Stage: "opening", Text: "first lab before the third extractor"},
+		{Op: "create", Stage: "nonsense", Text: "a lesson for any stage"}}, "g1")
+	if len(b.Lessons) != 3 || b.Lessons[2].Stage != "all" {
+		t.Fatalf("created %+v", b.Lessons)
 	}
-	for i := range MaxLessons + 3 {
-		if err := AddLesson(dir, "cortex-vs-armada", "game", "lesson "+string(rune('a'+i))); err != nil {
-			t.Fatal(err)
-		}
+	b.Apply([]Op{{Op: "confirm", ID: 1}, {Op: "contradict", ID: 2}, {Op: "merge", IDs: []int{2, 3}, Stage: "opening", Text: "merged"}, {Op: "update", ID: 99}}, "g2")
+	if len(b.Lessons) != 2 || b.Lessons[0].Confirmed != 2 || b.Lessons[1].Text != "merged" || b.Lessons[1].Contradicted != 1 {
+		t.Fatalf("after g2 %+v", b.Lessons)
 	}
-	got := Lessons(dir, "cortex-vs-armada")
-	if n := strings.Count(got, "## game"); n != MaxLessons {
-		t.Errorf("%d entries kept", n)
+	// evidence against wins
+	b.Apply([]Op{{Op: "contradict", ID: 1}, {Op: "contradict", ID: 1}, {Op: "contradict", ID: 1}}, "g3")
+	if b.find(1) >= 0 {
+		t.Error("a lesson contradicted 3 times against 2 confirmations is dropped")
 	}
-	if !strings.HasPrefix(got, "## game") || !strings.Contains(got, "lesson "+string(rune('a'+MaxLessons+2))) {
-		t.Errorf("newest first:\n%s", got[:80])
+	// the cap
+	for range MaxLessons + 4 {
+		b.Apply([]Op{{Op: "create", Stage: "late", Text: "x"}}, "g4")
+	}
+	if len(b.Lessons) != MaxLessons {
+		t.Errorf("%d lessons, cap %d", len(b.Lessons), MaxLessons)
+	}
+	if err := b.Save(dir); err != nil {
+		t.Fatal(err)
+	}
+	again := LoadBook(dir, "cortex-vs-armada")
+	if len(again.Lessons) != MaxLessons || !strings.Contains(again.Markdown(), "## late") {
+		t.Error("saved and rendered")
+	}
+	if got := again.ForStage("opening", 5); len(got) != 1 || got[0].Text != "merged" {
+		t.Errorf("for the opening: %+v", got)
 	}
 }
 

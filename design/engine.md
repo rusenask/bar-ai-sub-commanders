@@ -190,6 +190,24 @@ The bridge follows the segments and deletes each finished one, removes a session
 session starts, deletes files older than a day at start, and pings every 10 s (the widget drops a bridge
 silent for 30 s). Checked in a headless game on force with `cmd/linkcheck` over both transports.
 
+## Learning (internal/learn) and judging (make compare verdicts)
+
+Three ways the team improves across games, all judged the same way:
+
+- **Learned rules**: a cross-entropy search over D.tunable per matchup (`learn/<matchup>.json`), in
+  sandboxes; a rule can be learned per stage (`engage_attack@mid`, applied by the widget from minute 10
+  to 25) and games scored on that stage (`-score mid`). Only rules that won an A/B (`learn validate`)
+  reach real games through the bridge.
+- **Lessons**: after each game the strategist's debrief edits a lesson book per matchup
+  (`learn/lessons/<matchup>.json`, at most 15, each tagged with a stage, confirmed / contradicted by later
+  games, with the games it came from); every report carries the strongest lessons for the current
+  stage. Contradicted more than confirmed and a lesson goes.
+- **Code changes**: A/B batches.
+
+Judging: `make compare` gives each arm's difference from the baseline with a 95% bootstrap interval, per
+stage (opening < 10 min, mid 10-25, late 25+): better, worse, or can't tell. Keep a change when its stage
+says better and nothing says worse.
+
 ## Zones are optional
 
 A sub-commander without player-drawn zones gets **auto zones** recomputed by role: economy around our

@@ -237,11 +237,7 @@ func (s *Strategist) review(ctx context.Context, info *game.Info, state *game.St
 		s.log.Info("strategist session", "sub", sub.Name, "session", id)
 	}
 
-	lessons := ""
-	if first {
-		lessons = s.lessonsFor(info)
-	}
-	prompt := report(info, state, sub, ss, reason, first, lessons)
+	prompt := report(info, state, sub, ss, reason, first, s.lessonsFor(info, state.Frame))
 	ctx, cancel := context.WithTimeoutCause(ctx, s.cfg.TurnTimeout, errors.New("strategist turn took too long"))
 	defer cancel()
 	start := time.Now()
@@ -370,12 +366,12 @@ func report(info *game.Info, state *game.State, sub game.Sub, ss *subState, reas
 		fmt.Fprintf(&b, "Wind %.0f-%.0f (average about %.0f; wind turbines pay off above ~7), tidal %.0f.\n", info.WindMin, info.WindMax, (info.WindMin+info.WindMax)/2, info.Tidal)
 		fmt.Fprintf(&b, "Always pass sub_id=%d to tools. You will get a report like this whenever something happens or every so often.\n", sub.ID)
 		fmt.Fprintf(&b, "This is your first report: load the %q skill (and any other skill you need), then look at the map once with get_map_view before deciding.\n", sub.Role)
-		if lessons != "" {
-			fmt.Fprintf(&b, "Lessons the team wrote after earlier games of this matchup (newest first; weigh them, they are not orders):\n%s\n", lessons)
-		}
 		b.WriteString("\n")
 	}
 	fmt.Fprintf(&b, "## Report at %s (why now: %s)\n", clock(state.Frame), reason)
+	if lessons != "" {
+		fmt.Fprintf(&b, "Lessons from earlier games of this matchup for this stage of the game (%s; +confirmed/-contradicted by later games; weigh them, they are not orders):\n%s", stageOf(state.Frame), lessons)
+	}
 	if sub.Directive != "" {
 		fmt.Fprintf(&b, "Player's standing orders: %q\n", sub.Directive)
 	} else {

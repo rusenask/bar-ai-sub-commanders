@@ -53,3 +53,16 @@ func TestPaceLine(t *testing.T) {
 		t.Error("no pace in the first two minutes")
 	}
 }
+
+func TestParseOps(t *testing.T) {
+	ops, err := parseOps("Here you go:\n```json\n[{\"op\":\"confirm\",\"id\":2},{\"op\":\"create\",\"text\":\"x\",\"stage\":\"mid\"}]\n```")
+	if err != nil || len(ops) != 2 || ops[0].Op != "confirm" || ops[1].Stage != "mid" {
+		t.Fatalf("%v %+v", err, ops)
+	}
+	if _, err := parseOps("nothing to add"); err == nil {
+		t.Error("no array is an error (the book stays as it was)")
+	}
+	if stageOf(30*60*5) != "opening" || stageOf(30*60*12) != "mid" || stageOf(30*60*40) != "late" {
+		t.Error("stages")
+	}
+}
