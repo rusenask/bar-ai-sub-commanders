@@ -109,6 +109,7 @@ D.production = {
 	opening = { "constructor", "constructor", "raider", "raider", "constructor" },
 	-- combat units the economy lab sends to an Army sub-commander that has no factory of its own
 	feedArmy = true,
+	constructorScale = 1, -- multiplies the tiers' constructor shares (tunable: constructor_share)
 }
 
 -- counter-response (BARb hard response.json): our kind -> enemy kinds it answers, with weights, and the
@@ -288,6 +289,9 @@ D.tunable = {
 	chase_distance = { D.engage, "chase", 0, 5000, "how far from home an army chases intruders it drove off", "army" },
 	retreat_fighter = { D.retreat, "fighter", 0.2, 0.7, "health at which a fighting unit leaves the fight (higher = fewer losses, fewer kills)", "army" },
 	response_weight = { D, "responseWeight", 0, 1, "how much production follows counters to what the enemy fields", "army" },
+	constructor_share = { D.production, "constructorScale", 0.4, 2, "multiplies the share of production that is constructors (lower = more army early)", "economy" },
+	responders_share = { D.responders, "share", 0.1, 0.6, "share of the army's power in the base response squad", "army" },
+	defend_base_share = { D.team, "defendBaseShare", 0.02, 0.25, "enemy metal in the base, as a share of our army, that makes the team defend", "army" },
 }
 D.tuneEvery = 30 * 120 -- one change per rule per this many frames
 D.tuneStep = 0.5 -- a change moves a rule at most this fraction of its current value (or of its range near 0)

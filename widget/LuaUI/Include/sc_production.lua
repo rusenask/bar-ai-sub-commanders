@@ -82,7 +82,9 @@ return function(ctx)
 	function P.desired(income, enemyKinds)
 		local t = P.tier(income)
 		local want = {}
-		local combatShare = 1 - (t.constructor or 0)
+		-- constructorScale (tunable: constructor_share) moves production between constructors and army
+		local cons = math.min(0.9, (t.constructor or 0) * (D.production.constructorScale or 1))
+		local combatShare = 1 - cons
 		local resp = P.response(enemyKinds)
 		local hasResp = next(resp) ~= nil
 		local w = hasResp and D.responseWeight or 0
@@ -90,9 +92,9 @@ return function(ctx)
 		for _, s in pairs(resp) do
 			respSum = respSum + s
 		end
-		want.constructor = t.constructor or 0
+		want.constructor = cons
 		for _, c in ipairs(COMBAT) do
-			local tierPart = (t[c] or 0) / max(combatShare, 1e-9)
+			local tierPart = (t[c] or 0) / max(1 - (t.constructor or 0), 1e-9)
 			local respPart = respSum > 0 and (resp[c] or 0) / respSum or 0
 			want[c] = combatShare * ((1 - w) * tierPart + w * respPart)
 		end
