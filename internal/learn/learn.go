@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -81,6 +82,32 @@ func (s *Store) ServedOverlay() (Overlay, bool) {
 		return Overlay{}, false
 	}
 	return Overlay{Key: s.Key, Generation: s.Validated.Generation, Rules: s.Validated.Rules}, true
+}
+
+// Stages a rule can be learned for separately ("engage_attack@mid"; the widget applies it in that stage).
+var Stages = []string{"opening", "mid", "late"}
+
+// ensureStaged adds the "rule@stage" parameters named in Active, starting from the rule's mean.
+func (s *Store) ensureStaged() {
+	have := map[string]bool{}
+	for _, p := range s.Params {
+		have[p.Name] = true
+	}
+	for _, name := range s.Active {
+		base, stage, ok := strings.Cut(name, "@")
+		if !ok || have[name] || !slices.Contains(Stages, stage) {
+			continue
+		}
+		for _, p := range s.Params {
+			if p.Name == base {
+				sp := p
+				sp.Name, sp.Default = name, s.Mean[base]
+				s.Params = append(s.Params, sp)
+				s.Mean[name], s.Sigma[name] = s.Mean[base], StartSigma
+				have[name] = true
+			}
+		}
+	}
 }
 
 func (s *Store) active(name string) bool {
@@ -228,6 +255,7 @@ func clamp(v, lo, hi float64) float64 { return math.Max(lo, math.Min(hi, v)) }
 // Sample draws n rule sets for the next games: every MeanEvery-th is the mean itself (to measure it), the
 // rest Gaussian around it on the active rules, clamped to the bounds.
 func (s *Store) Sample(n int, rng *rand.Rand) []map[string]float64 {
+	s.ensureStaged()
 	every := s.MeanEvery
 	if every <= 0 {
 		every = 6

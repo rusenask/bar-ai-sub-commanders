@@ -39,6 +39,7 @@ func main() {
 	samples := fs.String("samples", "", "update: the directory sample wrote")
 	limit := fs.Float64("minutes", 60, "update: the games' length")
 	only := fs.String("only", "", "sample: search only these rules (comma-separated; kept in the store; \"all\" clears it)")
+	scoreBy := fs.String("score", "result", "update: what a game is scored on: result (win/alive/loss, trades) or a stage (opening, mid, late: enemy metal killed minus metal lost in it, in thousands)")
 	evidence := fs.String("evidence", "", "validate: the A/B batches that show the mean beats the defaults")
 	meanEvery := fs.Int("mean-every", 0, "sample: every this many games play the mean itself (kept in the store)")
 	_ = fs.Parse(os.Args[2:])
@@ -98,8 +99,20 @@ func main() {
 				continue
 			}
 			s := analysis.Summarize(g)
-			trials = append(trials, learn.Trial{Rules: ov.Rules, Result: g.Result, Minutes: s.Minutes,
-				Score: learn.Score(g.Result, s.Minutes, s.DealtTaken, *limit), Source: fh.Name(), At: time.Now()})
+			score := learn.Score(g.Result, s.Minutes, s.DealtTaken, *limit)
+			if *scoreBy != "result" {
+				st, ok := stageByName(*scoreBy)
+				if !ok {
+					log.Fatalf("-score: result, opening, mid or late")
+				}
+				net, reached := analysis.StageNet(g, st.From, st.To)
+				if !reached {
+					fmt.Printf("game %s: ended before the %s: left out\n", i, *scoreBy)
+					continue
+				}
+				score = net / 1000
+			}
+			trials = append(trials, learn.Trial{Rules: ov.Rules, Result: g.Result, Minutes: s.Minutes, Score: score, Source: fh.Name(), At: time.Now()})
 		}
 		sum := store.Update(trials)
 		if err := store.Save(*dir); err != nil {
@@ -129,6 +142,18 @@ func main() {
 	default:
 		log.Fatalf("unknown command %q", cmd)
 	}
+}
+
+func stageByName(name string) (struct {
+	Name     string
+	From, To int
+}, bool) {
+	for _, st := range analysis.Stages {
+		if st.Name == name {
+			return st, true
+		}
+	}
+	return analysis.Stages[0], false
 }
 
 func writeJSON(path string, v any) {

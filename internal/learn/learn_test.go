@@ -153,6 +153,21 @@ func TestLessons(t *testing.T) {
 	}
 }
 
+func TestStagedRules(t *testing.T) {
+	s := New("k", []Param{{Name: "a", Min: 0, Max: 10, Default: 5}, {Name: "b", Min: 0, Max: 10, Default: 4}})
+	s.Active = []string{"a@mid", "nope@x"}
+	rs := s.Sample(6, rand.New(rand.NewPCG(1, 1)))
+	if _, ok := rs[1]["a@mid"]; !ok || rs[0]["a@mid"] != 5 {
+		t.Fatalf("staged rule: %v", rs[:2])
+	}
+	if rs[1]["a"] != 5 || rs[1]["b"] != 4 {
+		t.Error("only the staged rule is searched")
+	}
+	if _, ok := s.MeanOverlay().Rules["a@mid"]; !ok {
+		t.Error("the overlay carries it")
+	}
+}
+
 func TestActiveRulesOnly(t *testing.T) {
 	s := New("k", []Param{{Name: "a", Min: 0, Max: 10, Default: 5}, {Name: "b", Min: 0, Max: 10, Default: 5}})
 	s.Active, s.MeanEvery = []string{"a"}, 3

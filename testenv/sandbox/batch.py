@@ -138,6 +138,8 @@ def main():
     ap.add_argument("--generations", type=int, default=1, help="with --learn: generations to run on the same sandboxes")
     ap.add_argument("--learn-only", default="", help="with --learn: search only these rules (comma-separated)")
     ap.add_argument("--mean-every", type=int, default=0, help="with --learn: every this many games play the mean")
+    ap.add_argument("--learn-score", default="result", help="with --learn: score games on the result or a stage "
+                    "(opening, mid, late: enemy metal killed minus lost in it); use the stage the searched rules are for")
     args = ap.parse_args()
     Sandbox.configure(api_key=key())
     commit = subprocess.run(["git", "-C", str(ROOT), "rev-parse", "--short", "HEAD"], capture_output=True, text=True).stdout.strip()
@@ -273,7 +275,7 @@ def main():
                             args.opponent, args.map, str(args.minutes)])
             if args.learn:
                 subprocess.run(["go", "run", "./cmd/learn", "update", "-key", args.learn, "-batch", str(out), "-samples", str(overlays),
-                                "-minutes", str(args.minutes)], cwd=ROOT)
+                                "-minutes", str(args.minutes), "-score", args.learn_score], cwd=ROOT)
     finally:
         for sb in boxes:
             if sb is not None:

@@ -7049,16 +7049,51 @@ function Engine.applyLearned(data)
 		spEcho("Sub-Commanders: learned rules are not valid")
 		return
 	end
-	local n = 0
+	-- "rule" applies all game; "rule@opening" / "@mid" / "@late" only in that stage (Engine.learnedStage)
+	local n, stages, base = 0, {}, {}
 	for key, value in pairs(data.rules) do
-		local t = Engine.D.tunable[key]
+		local name, stage = key:match("^([%w_]+)@(%a+)$")
+		local t = Engine.D.tunable[name or key]
 		if t and tonumber(value) then
-			t[1][t[2]] = max(t[3], min(t[4], tonumber(value)))
+			local v = max(t[3], min(t[4], tonumber(value)))
+			if stage then
+				stages[stage] = stages[stage] or {}
+				stages[stage][name] = v
+			else
+				t[1][t[2]] = v
+			end
 			n = n + 1
 		end
 	end
-	Engine.learned = { key = data.key, generation = data.generation, rules = n }
+	-- each staged rule's all-game value, to go back to outside its stage
+	for _, rules in pairs(stages) do
+		for name in pairs(rules) do
+			local t = Engine.D.tunable[name]
+			base[name] = t[1][t[2]]
+		end
+	end
+	Engine.learned = { key = data.key, generation = data.generation, rules = n, stages = stages, base = base, stage = nil }
 	spEcho(sformat("Sub-Commanders: %d learned rules (%s, generation %s)", n, tostring(data.key), tostring(data.generation)))
+end
+
+-- learned rules for one stage of the game (opening < 10 min, mid 10-25, late 25+): strong players
+-- play the stages differently, and a rule that pays in one can cost in another (make compare's verdicts)
+function Engine.learnedStage()
+	local L = Engine.learned
+	if not L or not L.stages or not next(L.stages) then
+		return
+	end
+	local m = Engine.minute()
+	local stage = (m < 10 and "opening") or (m < 25 and "mid") or "late"
+	if stage == L.stage then
+		return
+	end
+	L.stage = stage
+	for name, v in pairs(L.base) do
+		local t = Engine.D.tunable[name]
+		local sv = L.stages[stage] and L.stages[stage][name]
+		t[1][t[2]] = sv or v
+	end
 end
 
 function Engine.rules()
@@ -7400,6 +7435,7 @@ function widget:GameFrame(n)
 		Engine.noteApproaches(baseThreats)
 		Engine.refreshTeam()
 		Engine.refreshStyle()
+		Engine.learnedStage()
 	end
 	if combatPass then
 		for _, sub in ipairs(subs) do

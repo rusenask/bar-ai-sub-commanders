@@ -42,6 +42,12 @@ func stageSum(deaths []Death, from, to int) float64 {
 	return t
 }
 
+// StageNet is enemy metal killed minus metal lost in a stage (minutes [from, to)), and whether the game
+// lasted into it: what a rule learned for that stage is scored on (cmd/learn update -score <stage>).
+func StageNet(g *Game, from, to int) (float64, bool) {
+	return stageSum(g.Killed, from, to) - stageSum(g.Lost, from, to), reached(g, from)
+}
+
 // reached: the game lasted into the stage (a game lost at minute 8 says nothing about the late game)
 func reached(g *Game, from int) bool { return g.Seconds >= from*60 }
 
