@@ -24,6 +24,10 @@ out wrong.
   at 0.8x) traded best and "keep the whole army in the fight" read worse; once a third of the specs had
   the enemy attack, the same change read clearly better. Give every lab both sides of a fight.
   (battle lab, defend specs)
+- The battle lab can't see what a fight costs elsewhere: keeping the fastest 30% with the army won
+  battles (+0.24) and lost expansions in games (extractors at 20 min 25.5 -> 16.9), because the response
+  squad stopped forming. Anything that changes who fights (squads, responders, raids) goes to games after
+  the lab; only how a given group fights (targeting, kiting, movement) can be settled in the lab. (v29)
 - Micro that helps while engaging can hurt elsewhere: focus fire while holding pulled units off the line
   into the enemy one by one (efficiency -0.36). (battle lab, contact arm)
 - A learning run can look healthy and learn nothing: the staged rules (rule@mid) were never in the saved

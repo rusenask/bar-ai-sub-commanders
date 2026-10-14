@@ -3920,6 +3920,8 @@ function Tactics.responders(sub)
 		if d and d.combat and not d.aaOnly and not d.air and (d.speed or 0) >= R.speed and not spGetUnitIsBeingBuilt(u)
 			and not (st and (st.retreating or st.manual or st.raid)) then
 			local x, _, z = spGetUnitPosition(u)
+			-- from anywhere, not only units at home: v29 (only home units) won battles but lost expansions
+			-- (extractors at 20 min 25.5 -> 16.9): the army waits outside the base, so no squad formed
 			if x then
 				cands[#cands + 1] = { id = u, x = x, z = z, cost = d.cost, speed = d.speed }
 			end
@@ -4133,7 +4135,7 @@ function Tactics.micro(unitID, d, st, x, z)
 	-- focus fire (sc_micro.lua): every unit in reach of the same enemies converges on the one worth most
 	-- per hit point left, armed ones first
 	local F = Engine.D.micro.focus
-	if F.on and range > 0 and (not st.focusUntil or frame >= st.focusUntil or not isAlive(st.focus or -1)) then
+	if F.on and rule.focus ~= false and range > 0 and (not st.focusUntil or frame >= st.focusUntil or not isAlive(st.focus or -1)) then
 		local cands = {}
 		for _, u in ipairs(spGetUnitsInCylinder(x, z, range)) do
 			if isEnemyUnit(u) then

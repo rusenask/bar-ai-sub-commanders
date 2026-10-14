@@ -446,3 +446,16 @@ code (v16 mostly never reached the hand-off: its lab built Infestors). Re-measur
   lost -0.01, score -0.04, all can't tell. Battles start with both armies bunched 700 elmos apart, so
   there is little to pace; a test of it needs a spec with a long approach (mixed speeds, 2000+ elmos).
   Removed.
+
+## force: response squad only from units at home (v29), 12 games each, Legion vs Armada medium, 60 min — reverted
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261014-1355-force4-v29-base | 12 | 3 win, 7 timeout, 2 loss | 1 | 308.0k | 221 / 1057 | 0.64 | 18.6 | 11.5 / 25.5 | 4.7k |
+| 20261014-1415-force4-v29-resp | 12 | 1 win, 6 timeout, 5 loss | 0 | 229.7k | 184 / 979 | 0.69 | 20.1 | 11.5 / 14.5 | 4.4k |
+
+- Verdicts: extractors at 20 min 25.5 -> 16.9 [-14.3, -2.75] **worse**; score -0.15 [-0.37, +0.06] can't
+  tell; the rest can't tell. 24/24 ran, no crashes.
+- The lab's best change (+0.24 in battles) cost the economy in games: the army waits at a rally point
+  outside the base, so with only home units eligible the response squad seldom formed and raids took the
+  expansions.
