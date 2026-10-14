@@ -41,6 +41,10 @@ widget reconnects by itself within a few seconds. Sub-commanders survive `/luaui
   up to 100x: [testenv/force/README.md](testenv/force/README.md)); the laptop stays free. Local batches
   (`testenv/batch.sh`) are for watching games.
 
+- Micro (targeting, focus fire, kiting, movement, retreats) is measured in the **battle lab**: one
+  engagement in isolation, ~16 s each (`SCENARIO=battle testenv/force-batch.sh 36 battle`, specs in
+  [testenv/battles](testenv/battles/README.md), `gamereport -battles`). Whole games are for economy,
+  macro and anything that depends on the game's course.
 - Test games connect to a separate test bridge on port 17878 (`make test-bridge`), not the Docker bridge on
   7878 that a real game uses. To exercise the bridge without BAR, use `bin/fakegame -addr 127.0.0.1:<port>`
   against a separate bridge container.

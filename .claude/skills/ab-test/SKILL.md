@@ -38,6 +38,19 @@ means the interval holds zero: the arms may be the same. Read it like this:
   drop it if it was a long shot. Don't call 3 wins against 1 an improvement on its own.
 - Any **worse** = revert, or restrict the change to the stage where it helps.
 
+## Micro changes: the battle lab first
+
+A change to how units fight (targeting, focus fire, kiting, approach, retreats) is tested in battles, not
+games: 36 battles (6 specs x 6) take a few minutes on force and the verdict has a "battle efficiency" row.
+
+```sh
+SCENARIO=battle DUEL_MINUTES=4 PARALLEL=6 WIDGET_SRC=$(testenv/arm.sh mine) LABEL=battle-mine testenv/force-batch.sh 36 battle
+go run ./cmd/gamereport -battles testenv/batch/<dir>      # efficiency per spec
+```
+
+Then confirm in whole games that it holds up (micro that wins battles can still lose games: chasing,
+over-committing).
+
 ## Running
 
 On the force host (default: headless, 6 at a time, 16 games of 60 minutes in about half an hour; the
