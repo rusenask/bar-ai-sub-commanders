@@ -34,6 +34,9 @@ D.engage = {
 	-- holding with our turrets within radius of the rally point (minValue metal of them): the line stands
 	-- `ahead` elmos in front of them, toward the threat (false: off)
 	turretLine = false,
+	-- a squad that would hold against a threat this close to its centre (elmos) falls back instead
+	-- (false: holds)
+	contactFallback = false,
 	-- falling back to our turrets within radius of the unit (minValue metal) instead of the rally point
 	retreatToTurrets = false,
 	-- holding in a line: the squad's places on an arc around a point this far out in front of the rally
@@ -255,7 +258,8 @@ D.micro = {
 	-- seconds covers its health x overkill (false: everyone on the best). mode "attack": attack orders
 	-- while engaging, a target kept `every` frames (a kind with focus = false fights what's nearest)
 	focus = { on = true, armed = 3, every = 45, mode = "attack", fireEvery = 15, killTime = 2, overkill = 1.2 },
-	-- kiting while the squad holds, not only while it engages (Tactics.kite; false: engaging only)
+	-- kiting while the squad holds, not only while it engages (Tactics.kite), unless at least `screen` of
+	-- our assault, heavy or raider units are within screenRadius (false: engaging only)
 	kiteHolding = false,
 	-- dodging (Engine.dodge, every `every` frames; off: in the lab it cost fire and saved no units, see
 	-- test-games.md): enemy shells and missiles slower than maxSpeed

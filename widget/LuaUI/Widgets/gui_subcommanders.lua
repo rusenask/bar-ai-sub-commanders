@@ -4508,6 +4508,13 @@ function Tactics.squad(sub)
 	end
 	local engaged = prev and prev.id == target.id and prev.action == "engage"
 	local action, ratio = S.decide(sq, target.x, target.z, frame, { home = home, engaged = engaged, support = turretSupport(target.x, target.z, 700) })
+	-- outmatched with them already on us: holding means standing where they arrive (lab, retreat specs:
+	-- half the army lost in the open at 0.1x); fall back instead (doctrine.engage.contactFallback, elmos
+	-- from the squad's centre that count as on us)
+	local CF = Engine.D.engage.contactFallback
+	if CF and action == "hold" and dist2(sq.x, sq.z, target.x, target.z) < CF * CF then
+		action = "fallback"
+	end
 	sub.squadOrder = { action = action, id = target.id, x = target.x, z = target.z, ratio = ratio }
 	-- engaging as a concave: each unit's place on an arc facing the enemy (sc_squads.lua arc)
 	sub.arcSlots = (action == "engage" and Engine.D.engage.arc.on) and Engine.siegeSlots(members, target, S.arc(members, target.x, target.z)) or nil
@@ -4759,7 +4766,17 @@ local function thinkCombat(sub, unitID, d, st, threats)
 			if st.kiteUntil and frame < st.kiteUntil then
 				return
 			end
-			if Tactics.kite(unitID, d, st, x, z) then
+			-- screened by our front line (2+ assault, heavy or raider units close by): stay and shoot over
+			-- it (lab: kiting skirmishers left mixed armies' fronts alone, Cortex mirror 5.8 -> 3.8)
+			local screen = 0
+			local K = Engine.D.micro.kiteHolding
+			for _, u in ipairs(spGetUnitsInCylinder(x, z, K.screenRadius, myTeam)) do
+				local ud = u ~= unitID and unitDef(u)
+				if ud and ud.mobile and not ud.air and (ud.kind == "assault" or ud.kind == "heavy" or ud.kind == "raider") then
+					screen = screen + 1
+				end
+			end
+			if screen < K.screen and Tactics.kite(unitID, d, st, x, z) then
 				return
 			end
 		end
