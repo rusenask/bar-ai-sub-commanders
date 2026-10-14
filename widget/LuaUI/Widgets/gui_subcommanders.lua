@@ -4090,6 +4090,37 @@ end
 -- one unit of the Army in a fight, by its kind's doctrine under the army style (sc_micro.lua): siege
 -- units shoot structures in range first, ranged units keep their range from what they outrange. Returns
 -- true when it gave the unit an order.
+-- kiting (sc_micro.lua kite): a unit that outranges the nearest enemy and lets it come within its kite
+-- distance backs off to where it fights from. Returns true when it took the unit this pass.
+function Tactics.kite(unitID, d, st, x, z, rule)
+	rule = rule or Engine.micro.rule(d.kind, Engine.armyStyleNow)
+	local range = d.range or 0
+	if not rule.kite or range <= 0 then
+		return false
+	end
+	local e = Spring.GetUnitNearestEnemy(unitID, range, true)
+	local ex, _, ez
+	if e then
+		ex, _, ez = spGetUnitPosition(e)
+	end
+	if not ex then
+		return false
+	end
+	local ed = unitDef(e)
+	local dd = sqrt(dist2(x, z, ex, ez))
+	local back = Engine.micro.kite(rule, range, dd, ed and ed.range)
+	if not back then
+		return false
+	end
+	local dx, dz = x - ex, z - ez
+	local len = max(sqrt(dx * dx + dz * dz), 1)
+	local tx, tz = clampToMap(x + dx / len * (back - dd), z + dz / len * (back - dd))
+	order(unitID, CMD.MOVE, { tx, spGetGroundHeight(tx, tz), tz })
+	st.kiteUntil, st.engaged = frame + 30, nil
+	setTask(unitID, "kite", "keeping its range", true)
+	return true
+end
+
 function Tactics.micro(unitID, d, st, x, z)
 	if st.kiteUntil and frame < st.kiteUntil then
 		return true
@@ -4120,26 +4151,8 @@ function Tactics.micro(unitID, d, st, x, z)
 		end
 		st.sieging = nil
 	end
-	if rule.kite and range > 0 then
-		local e = Spring.GetUnitNearestEnemy(unitID, range, true)
-		local ex, _, ez
-		if e then
-			ex, _, ez = spGetUnitPosition(e)
-		end
-		if ex then
-			local ed = unitDef(e)
-			local dd = sqrt(dist2(x, z, ex, ez))
-			local back = Engine.micro.kite(rule, range, dd, ed and ed.range)
-			if back then
-				local dx, dz = x - ex, z - ez
-				local len = max(sqrt(dx * dx + dz * dz), 1)
-				local tx, tz = clampToMap(x + dx / len * (back - dd), z + dz / len * (back - dd))
-				order(unitID, CMD.MOVE, { tx, spGetGroundHeight(tx, tz), tz })
-				st.kiteUntil, st.engaged = frame + 30, nil
-				setTask(unitID, "kite", "keeping its range", true)
-				return true
-			end
-		end
+	if Tactics.kite(unitID, d, st, x, z, rule) then
+		return true
 	end
 	-- focus fire (sc_micro.lua): every unit in reach of the same enemies converges on the one worth most
 	-- per hit point left, armed ones first
@@ -4740,6 +4753,16 @@ local function thinkCombat(sub, unitID, d, st, threats)
 			return
 		end
 		st.engaged = nil
+		-- kiting while holding too (doctrine.micro.kiteHolding): enemies come to a holding squad, and its
+		-- skirmishers stood still (lab: Janus lost 2.9 log2 to assault units it outranges 2x)
+		if Engine.D.micro.kiteHolding and not (so and so.action == "fallback") then
+			if st.kiteUntil and frame < st.kiteUntil then
+				return
+			end
+			if Tactics.kite(unitID, d, st, x, z) then
+				return
+			end
+		end
 		if so and so.action == "regroup" and sq and sq.x then
 			if dist2(x, z, sq.x, sq.z) > (Engine.D.engage.cohesion * 0.6) ^ 2 and (not busy or frame - (st.regroupFrame or 0) > 150) then
 				order(unitID, CMD.MOVE, { sq.x, spGetGroundHeight(sq.x, sq.z), sq.z })

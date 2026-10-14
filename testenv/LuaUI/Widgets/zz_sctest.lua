@@ -687,6 +687,7 @@ local function battleFrame(n)
 			-- how many of ours hold a set target (fire control) right now
 			-- and how far ours are from their side's centre (on average), with their current orders
 			local targeted, alive, far, cmds = 0, 0, 0, {}
+			local goalSum, goalN = 0, 0
 			for u in pairs(battle.ours) do
 				if Spring.ValidUnitID(u) and not Spring.GetUnitIsDead(u) then
 					alive = alive + 1
@@ -698,6 +699,11 @@ local function battleFrame(n)
 					local c = Spring.GetUnitCommands(u, 1)
 					local id = c and c[1] and c[1].id or 0
 					cmds[id] = (cmds[id] or 0) + 1
+					-- where its order goes: distance of a move / fight goal from their side's centre
+					local p = c and c[1] and c[1].params
+					if p and #p >= 3 and (id == CMD.MOVE or id == CMD.FIGHT) then
+						goalSum, goalN = goalSum + math.sqrt((p[1] - (mx + half)) ^ 2 + (p[3] - mz) ^ 2), goalN + 1
+					end
 				end
 			end
 			local cl = {}
@@ -705,8 +711,8 @@ local function battleFrame(n)
 				cl[#cl + 1] = (CMD[id] or tostring(id)) .. "x" .. k
 			end
 			table.sort(cl)
-			out(string.format("battle t=%ds us=%.0f them=%.0f targeted=%d/%d dodges=%d dist=%.0f cmds=%s | %s", t, us, them, targeted, alive,
-				s and s.dodges or 0, alive > 0 and far / alive or 0, table.concat(cl, ","), s and (s.status or "") or ""))
+			out(string.format("battle t=%ds us=%.0f them=%.0f targeted=%d/%d dodges=%d dist=%.0f goal=%.0f cmds=%s | %s", t, us, them, targeted, alive,
+				s and s.dodges or 0, alive > 0 and far / alive or 0, goalN > 0 and goalSum / goalN or -1, table.concat(cl, ","), s and (s.status or "") or ""))
 		end
 		if over and not duelState.done then
 			local result = (them <= 0.1 * battle.themStart and us > 0.1 * battle.usStart and "WIN")

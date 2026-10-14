@@ -255,6 +255,8 @@ D.micro = {
 	-- seconds covers its health x overkill (false: everyone on the best). mode "attack": attack orders
 	-- while engaging, a target kept `every` frames (a kind with focus = false fights what's nearest)
 	focus = { on = true, armed = 3, every = 45, mode = "attack", fireEvery = 15, killTime = 2, overkill = 1.2 },
+	-- kiting while the squad holds, not only while it engages (Tactics.kite; false: engaging only)
+	kiteHolding = false,
 	-- dodging (Engine.dodge, every `every` frames; off: in the lab it cost fire and saved no units, see
 	-- test-games.md): enemy shells and missiles slower than maxSpeed
 	-- (elmos/frame) with a blast of at least minBlast (Shellshocker shells: 37.5; light cannons 24 aren't
