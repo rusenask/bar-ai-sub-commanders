@@ -17,6 +17,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"path/filepath"
 	"sort"
@@ -37,6 +38,7 @@ func main() {
 	battles := flag.Bool("battles", false, "the games are battles (scenario battle): efficiency per spec")
 	roles := flag.String("roles", "", "directory of data logger JSONL files of team games: players' roles by side size")
 	micro := flag.String("micro", "", "directory of data logger JSONL files: per-kind unit behaviour and doctrine")
+	formation := flag.String("formation", "", "comma-separated label=dir[:team] of data logger dirs (v8+): formation profiles and what they do to the trade")
 	team := flag.Int("team", -1, "with -micro: only this team's fight samples in the commit table (0: ours in our own games)")
 	timeline := flag.Bool("timeline", false, "each argument is one game's harness log: show it minute by minute")
 	flag.Parse()
@@ -51,6 +53,37 @@ func main() {
 			return
 		}
 		fmt.Printf("%d players\n\n%s", len(players), analysis.RolesText(players))
+		return
+	}
+	if *formation != "" {
+		fmt.Print(analysis.FormationProfileHeader)
+		var all []struct {
+			label string
+			fs    []analysis.FormSample
+		}
+		for _, spec := range strings.Split(*formation, ",") {
+			label, dir, _ := strings.Cut(spec, "=")
+			tm := -1
+			if d, t, ok := strings.Cut(dir, ":"); ok {
+				dir = d
+				fmt.Sscan(t, &tm)
+			}
+			fs, err := analysis.ReadFormation(dir, tm)
+			if err != nil {
+				log.Fatal(err)
+			}
+			fmt.Print(analysis.FormationProfile(label, fs))
+			all = append(all, struct {
+				label string
+				fs    []analysis.FormSample
+			}{label, fs})
+		}
+		for _, a := range all {
+			fmt.Printf("\n### %s\n\n%s\n%s\n%s", a.label,
+				analysis.FormationBins(a.fs, "Shooting advantage (share able to shoot, ours - theirs)", func(f analysis.FormSample) float64 { return f.Advantage() }, []float64{-1, -0.5, -0.25, -0.1, 0.1, 0.25, 0.5, 1.01}),
+				analysis.FormationBins(a.fs, "Width / depth (line vs column)", func(f analysis.FormSample) float64 { return f.OwnForm.Width / math.Max(f.OwnForm.Depth, 1) }, []float64{0, 0.5, 0.8, 1.25, 2, 4, math.Inf(1)}),
+				analysis.FormationBins(a.fs, "Spread per sqrt(units) (elmos)", func(f analysis.FormSample) float64 { return f.OwnForm.Spread / math.Sqrt(float64(f.OwnForm.N)) }, []float64{0, 40, 70, 100, 150, 250, math.Inf(1)}))
+		}
 		return
 	}
 	if *micro != "" {

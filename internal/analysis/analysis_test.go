@@ -380,3 +380,24 @@ func TestPairedVerdicts(t *testing.T) {
 	}
 	t.Errorf("no paired better verdict: %+v", rows)
 }
+
+func TestFormation(t *testing.T) {
+	log := `{"type":"fight","team":0,"own":{"value":100},"ownTurrets":{"value":0},"enemy":{"value":100},"enemyTurrets":{"value":0},"ownForm":{"spread":200,"width":300,"depth":100,"inRange":0.8,"exposed":0.4,"n":9},"enemyForm":{"spread":100,"width":50,"depth":150,"inRange":0.3,"exposed":0.7,"n":9},"ownLost":50,"enemyLost":150}
+{"type":"fight","team":1,"own":{"value":100},"ownTurrets":{"value":0},"enemy":{"value":100},"enemyTurrets":{"value":0},"ownForm":{"spread":100,"width":50,"depth":150,"inRange":0.3,"exposed":0.7,"n":9},"enemyForm":{"spread":200,"width":300,"depth":100,"inRange":0.8,"exposed":0.4,"n":9},"ownLost":150,"enemyLost":50}
+{"type":"fight","team":0,"own":{"value":100},"enemy":{"value":100},"ownApproach":0.5}
+`
+	fs, err := parseFormation(strings.NewReader(log), -1)
+	if err != nil || len(fs) != 2 {
+		t.Fatalf("%v %d (the v7 sample is left out)", err, len(fs))
+	}
+	if ours, _ := parseFormation(strings.NewReader(log), 0); len(ours) != 1 || ours[0].Advantage() != 0.5 {
+		t.Errorf("team filter / advantage: %+v", ours)
+	}
+	bins := FormationBins(fs, "adv", func(f FormSample) float64 { return f.Advantage() }, []float64{-1, 0, 1.01})
+	if !strings.Contains(bins, "| -1-0 | 1 | 1.00 | 0.33 |") || !strings.Contains(bins, "| 0-1 | 1 | 1.00 | 3.00 |") {
+		t.Errorf("bins:\n%s", bins)
+	}
+	if !strings.Contains(FormationProfile("x", fs), "| x | 2 / 2 |") {
+		t.Errorf("profile: %s", FormationProfile("x", fs))
+	}
+}
