@@ -746,3 +746,17 @@ Counter matrix, flat sites (arm A of 20261015-0212-sbx-il-re-khold, 264 battles)
 
 - Contact fallback at any ratio throws away mirror fights held at 0.5-0.8x; now only under 0.4x
   (the retreat specs are 0.1-0.3x). Re-testing, and kiting while holding on ground specs.
+
+## Battle lab re-runs on flat sites (force, interleaved)
+
+| Change | Specs | Pairs | Efficiency (log2, paired) | Our share lost | Score |
+|---|---|---|---|---|---|
+| concave engagement | big fights | 72 | **+0.61 [+0.49, +0.74] better** | **-0.11 better** | better |
+| assault with artillery (stand outside their turrets' reach until they're down) | assault | 48 | -0.06 [-0.21, +0.07] | +0.01 | 0.00 |
+| hold line at our turrets | defend with turrets | 48 | +0.27 [+0.14, +0.41] | **+0.10 worse** | **-0.21 worse** |
+
+- The concave holds on flat ground (Legion advantage 2.24 -> 5.52, Cortex defend 3.87 -> 5.57): on.
+- On a flat site our army takes the fortified position every time either way (24/24 wins): the standoff
+  rule adds nothing; off.
+- Defending with turrets against a 2x army that reaches us: we lose ~80% either way (efficiency 0.22);
+  the line at the turrets loses more battles (20 v 3). Off. Next: the contact fallback to the turrets.
