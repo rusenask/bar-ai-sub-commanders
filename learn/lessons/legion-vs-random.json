@@ -1,0 +1,61 @@
+{
+ "matchup": "legion-vs-random",
+ "nextId": 6,
+ "lessons": [
+  {
+   "id": 1,
+   "stage": "late",
+   "text": "At a push-phase with a huge army lead, keep turret_budget_scale honest: the audit flagged 7708 metal of turrets against a 2622 budget while we only had 2 labs with 4 construction turrets - scale the lab with construction turrets (nanos_per_lab) before adding more static defence.",
+   "confirmed": 1,
+   "contradicted": 0,
+   "games": [
+    "2026-10-14T15:05 All That Simmers v1.1.1 won"
+   ],
+   "updated": "2026-10-14T15:05:51.025180045Z"
+  },
+  {
+   "id": 2,
+   "stage": "mid",
+   "text": "When the audit says 'N factories but only M construction turrets: scale one lab with turrets before adding labs', lower max_factories and raise construction_turret_rate/nanos_per_lab so income goes into build power and units instead of extra factories and turrets.",
+   "confirmed": 1,
+   "contradicted": 0,
+   "games": [
+    "2026-10-14T15:05 All That Simmers v1.1.1 won"
+   ],
+   "updated": "2026-10-14T15:05:51.025180045Z"
+  },
+  {
+   "id": 3,
+   "stage": "mid",
+   "text": "On All That Simmers the enemy masses from the south and south-east - Intelligence's blind southern approach kept drawing defend requests, so put radar/pickets and a guard there early rather than letting raiders only scout it.",
+   "confirmed": 1,
+   "contradicted": 0,
+   "games": [
+    "2026-10-14T15:05 All That Simmers v1.1.1 won"
+   ],
+   "updated": "2026-10-14T15:05:51.025180045Z"
+  },
+  {
+   "id": 4,
+   "stage": "all",
+   "text": "Argue for keeping economy posture balanced through T2: delivering the T2 lab and converters without conserving let metal stay fully spent into a 67-minute win - do not drop to conserve just because storage is thin.",
+   "confirmed": 1,
+   "contradicted": 0,
+   "games": [
+    "2026-10-14T15:05 All That Simmers v1.1.1 won"
+   ],
+   "updated": "2026-10-14T15:05:51.025180045Z"
+  },
+  {
+   "id": 5,
+   "stage": "late",
+   "text": "When we clearly outweigh the enemy in a push phase, let armyStyle go to skirmish/auto and keep money in mobile units; static turret value far above budget starves the army that is supposed to convert the lead.",
+   "confirmed": 1,
+   "contradicted": 0,
+   "games": [
+    "2026-10-14T15:05 All That Simmers v1.1.1 won"
+   ],
+   "updated": "2026-10-14T15:05:51.025180045Z"
+  }
+ ]
+}

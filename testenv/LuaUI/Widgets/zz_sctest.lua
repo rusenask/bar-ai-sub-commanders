@@ -704,8 +704,8 @@ local function battleFrame(n)
 				cl[#cl + 1] = (CMD[id] or tostring(id)) .. "x" .. k
 			end
 			table.sort(cl)
-			out(string.format("battle t=%ds us=%.0f them=%.0f targeted=%d/%d dist=%.0f cmds=%s | %s", t, us, them, targeted, alive,
-				alive > 0 and far / alive or 0, table.concat(cl, ","), s and (s.status or "") or ""))
+			out(string.format("battle t=%ds us=%.0f them=%.0f targeted=%d/%d dodges=%d dist=%.0f cmds=%s | %s", t, us, them, targeted, alive,
+				s and s.dodges or 0, alive > 0 and far / alive or 0, table.concat(cl, ","), s and (s.status or "") or ""))
 		end
 		if over and not duelState.done then
 			local result = (them <= 0.1 * battle.themStart and us > 0.1 * battle.usStart and "WIN")
