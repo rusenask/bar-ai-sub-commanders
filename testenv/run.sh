@@ -18,7 +18,11 @@ BAR="$HOME/Library/Application Support/Beyond-All-Reason-mac"
 ICD="$RES/vulkan/icd.d/kosmickrisp_mesa_icd.aarch64.json"
 export EGL_PLATFORM=surfaceless VK_ICD_FILENAMES="$ICD" VK_DRIVER_FILES="$ICD" GALLIUM_DRIVER=zink \
        MESA_LOADER_DRIVER_OVERRIDE=zink MESA_GL_VERSION_OVERRIDE=4.6 DYLD_FALLBACK_LIBRARY_PATH="$APP/Frameworks"
-rm -f "$W/infolog.txt" "$W/sctest_out.txt"
+# BAR from test-31614 lets widgets read only under LuaUI/ and write under LuaUI/Config/: the harness
+# reads its inputs there first and writes there when the root is refused; inputs go to both places
+rm -f "$W/infolog.txt" "$W/sctest_out.txt" "$W/LuaUI/Config/sctest_out.txt"
+mkdir -p "$W/LuaUI/Config"
+for f in sctest_scenario.txt sctest_speed.txt sctest_minutes.txt; do rm -f "$W/LuaUI/Config/$f"; done
 [ -f "$W/springsettings.cfg" ] || cp "$T/springsettings.template.cfg" "$W/springsettings.cfg"
 # a small window, never fullscreen: BAR rewrites springsettings.cfg and can drop these, so set them each run
 setcfg() { # setcfg <key> <value>
@@ -50,12 +54,12 @@ cp "${WIDGET_SRC:-$T/../widget/LuaUI/Widgets}"/../Include/sc_*.lua "$W/LuaUI/Inc
 [ "$W" != "$T" ] && cp "$T"/LuaUI/Widgets/zz_*.lua "$W/LuaUI/Widgets/"
 # the autopilot scenario plays the team with the Sub-Commanders Autopilot widget (off by default)
 [ "$3" = autopilot ] && sed -i '' 's/enabled = false,/enabled = true,/' "$W/LuaUI/Widgets/gui_subcommanders_autopilot.lua"
-[ -n "$3" ] && echo "$3" > "$W/sctest_scenario.txt"
+[ -n "$3" ] && echo "$3" > "$W/sctest_scenario.txt" && cp "$W/sctest_scenario.txt" "$W/LuaUI/Config/"
 # SPEED=10 runs the game that fast (as far as the machine keeps up); LOCKSTEP=1 pauses it while the
 # AI strategist is thinking, so it sees the game as often as at normal speed
-echo "${SPEED:-} ${LOCKSTEP:-0}" > "$W/sctest_speed.txt"
+echo "${SPEED:-} ${LOCKSTEP:-0}" > "$W/sctest_speed.txt" && cp "$W/sctest_speed.txt" "$W/LuaUI/Config/"
 # duels last DUEL_MINUTES (default 60: at 45 games were still being decided, some won after 40)
-echo "${DUEL_MINUTES:-60}" > "$W/sctest_minutes.txt"
+echo "${DUEL_MINUTES:-60}" > "$W/sctest_minutes.txt" && cp "$W/sctest_minutes.txt" "$W/LuaUI/Config/"
 cd "$W"
 # fresh widget state each run: re-enable and forget saved sub-commanders
 python3 - "$W/LuaUI/Config/BYAR.lua" <<'PY'
@@ -87,6 +91,7 @@ launched=$(date +%s)
 while kill -0 "$pid" 2>/dev/null; do
 	sleep 5
 	# loading hangs too (seen with several games loading at once): no harness output within LOADMAX
+	[ -f "$W/LuaUI/Config/sctest_out.txt" ] && [ ! -f "$W/sctest_out.txt" ] && ln -s "LuaUI/Config/sctest_out.txt" "$W/sctest_out.txt"
 	if [ ! -f "$W/sctest_out.txt" ] && [ $(( $(date +%s) - launched )) -gt "${LOADMAX:-150}" ]; then
 		echo "stalled: the game didn't start within ${LOADMAX:-150}s" >> "$W/run.log"
 		kill "$pid" 2>/dev/null
@@ -94,7 +99,7 @@ while kill -0 "$pid" 2>/dev/null; do
 		break
 	fi
 	if [ -f "$W/sctest_out.txt" ]; then
-		age=$(( $(date +%s) - $(stat -f %m "$W/sctest_out.txt") ))
+		age=$(( $(date +%s) - $(stat -L -f %m "$W/sctest_out.txt") ))
 		if [ "$age" -gt "$STALL" ]; then
 			echo "stalled: no harness output for ${age}s" >> "$W/run.log"
 			kill "$pid" 2>/dev/null

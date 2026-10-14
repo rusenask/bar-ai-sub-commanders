@@ -50,6 +50,7 @@ sed -e "s/profile=[a-z_]*;/profile=$AI_PROFILE;/" -e "s/mapname=[^;]*;/mapname=$
 echo "$DUEL_MINUTES" > "$STAGE/sctest_minutes.txt"
 echo "$SCENARIO" > "$STAGE/sctest_scenario.txt"
 echo "$SPEED 0" > "$STAGE/sctest_speed.txt"
+mkdir -p "$STAGE/LuaUI/Config" && cp "$STAGE"/sctest_*.txt "$STAGE/LuaUI/Config/" # BAR 31614+ reads only under LuaUI/
 R="bar-sim/batches/$STAMP-$LABEL"
 ssh "$HOST" "mkdir -p $R"
 rsync -a "$STAGE/" "$HOST:$R/template/"

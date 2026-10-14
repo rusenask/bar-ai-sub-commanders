@@ -16,6 +16,7 @@ one() {
 		cd "$G" || return
 		SPRING_DATADIR=/opt/bar/data:/opt/bar/engine timeout "$LIMIT" /opt/bar/engine/spring-headless --write-dir "$G" "$G/script.txt" > run.log 2>&1
 		echo "exit=$? try=$try" > exit.txt
+		[ -s sctest_out.txt ] || cp LuaUI/Config/sctest_out.txt . 2>/dev/null # BAR 31614+: widgets write under LuaUI/Config
 		grep -q "RESULT" sctest_out.txt 2>/dev/null && break
 	done
 }

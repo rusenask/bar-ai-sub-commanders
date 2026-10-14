@@ -17,10 +17,17 @@ start=$(date +%s)
 sudo -n unshare -n -- bash -c "ip link set lo up && exec sudo -n -u $USER env HOME=$HOME \
 	SPRING_DATADIR=$HOME/bar-sim/data:$HOME/bar-sim/engine timeout $LIMIT \
 	$HOME/bar-sim/engine/spring-headless --write-dir $W $DEMO" > run.log 2>&1
+code=$?
+[ -s datalog.jsonl ] || cp LuaUI/Config/datalog.jsonl . 2>/dev/null # BAR 31614+: widgets write under LuaUI/Config
 if [ -s datalog.jsonl ] && grep -q '"type":"end"' datalog.jsonl; then
 	cp datalog.jsonl "$OUT/$id.jsonl"
 	echo "$id: $(grep -c '"type":"micro"' datalog.jsonl) micro, $(grep -c '"type":"fight"' datalog.jsonl) fights | $(($(date +%s) - start))s"
 else
-	echo "$id: no data ($(grep -m1 -iE 'error|missing|not found' run.log | cut -c1-140))"
+	# why: the exit code (124 = the time limit) and the first line that matters; the log is kept in
+	# $OUT/../replay-failed/<id>.log (the old report took the first "error" line: a harmless config warning)
+	why=$(grep -m1 -E "Fatal|Dependent archive|outside the write paths|attempt to|Error in|segmentation|terminate" run.log | cut -c1-160)
+	mkdir -p "$OUT/../replay-failed"
+	cp run.log "$OUT/../replay-failed/$id.log"
+	echo "$id: no data (exit $code${why:+: $why})"
 fi
 rm -rf "$W"

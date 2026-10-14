@@ -106,6 +106,10 @@ def stage(args):
     (d / "sctest_minutes.txt").write_text(f"{args.minutes}\n")
     (d / "sctest_scenario.txt").write_text(f"{args.scenario}\n")
     (d / "sctest_speed.txt").write_text("100 0\n")
+    # BAR from test-31614 lets widgets read only under LuaUI/: the inputs there too
+    (d / "LuaUI/Config").mkdir(parents=True, exist_ok=True)
+    for name in ("sctest_minutes.txt", "sctest_scenario.txt", "sctest_speed.txt"):
+        (d / "LuaUI/Config" / name).write_text((d / name).read_text())
     buf = io.BytesIO()
     with tarfile.open(fileobj=buf, mode="w:gz") as tar:
         tar.add(d, arcname=".")

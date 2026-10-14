@@ -33,6 +33,12 @@ go run ./cmd/decidedata -in testenv/data/pro -out /tmp/sets-pro
 `fight`, `unit`, `turret` (outcomes), `build` / `turretbuild` (what a factory or constructor started and
 the options it had: imitation labels), `eco` (per minute, per team). Both players are logged (full view).
 
+## Failures
+
+`testenv/force-replays.sh` ends with the number of replays that produced no data; each keeps its log in
+`~/bar-sim/replay-failed/<id>.log` on force with the exit code (124 = time limit) and the first line that
+matters. Group them (by game version, length, team size) and find the cause before using the data.
+
 ## Caveats
 
 - Rated duels are almost all Armada and Cortex; Legion is rare.

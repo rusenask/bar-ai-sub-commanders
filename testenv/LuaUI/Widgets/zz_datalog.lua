@@ -14,7 +14,16 @@ function widget:GetInfo()
 	return { name = "ZZ Decision Data Logger", layer = 101, enabled = true }
 end
 
-local enabled = VFS.LoadFile("datalog.txt", VFS.RAW) ~= nil
+-- BAR from test-31614 sandboxes user widgets: they read only under LuaUI/ and write only under
+-- LuaUI/Config/ (and LuaUI/Widgets/). Inputs come from LuaUI/Config/ first, the write dir's root second;
+-- output goes to the root where allowed, else LuaUI/Config/ (the scripts look in both).
+local function loadInput(name)
+	return VFS.LoadFile("LuaUI/Config/" .. name, VFS.RAW) or VFS.LoadFile(name, VFS.RAW)
+end
+local function openOutput(name)
+	return io and io.open and (io.open(name, "w") or io.open("LuaUI/Config/" .. name, "w"))
+end
+local enabled = loadInput("datalog.txt") ~= nil
 local defs
 local out
 local gameKey
@@ -550,7 +559,7 @@ function widget:Initialize()
 	end
 	math.randomseed(os.time())
 	gameKey = os.date("%Y%m%d-%H%M%S") .. "-" .. math.random(1000, 9999)
-	out = io.open("datalog.jsonl", "w")
+	out = openOutput("datalog.jsonl")
 	write({ type = "start", game = gameKey, map = Game.mapName, mapX = Game.mapSizeX, mapZ = Game.mapSizeZ, version = 5 })
 	-- who is allied with whom (team games: roles within a side), and each team's faction
 	local list = {}

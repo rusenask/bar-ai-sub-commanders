@@ -21,6 +21,11 @@ description: Run and judge A/B test batches of BAR games for a sub-commander cha
   difference is small. Run the baseline in the same session (BARbarian and the engine change).
 - **Same conditions.** Same scenario, opponent, map and speed in both arms (`meta.txt` records them).
 
+## Failures first
+
+Before comparing arms: every game ran (`ran: N/M`), no `WIDGET CRASHED`, no sandbox errors in `meta.txt`.
+For each failure read its log and name the cause; a batch with silent failures is a biased batch.
+
 ## Running
 
 On the force host (default: headless, 6 at a time, 16 games of 60 minutes in about half an hour; the

@@ -3,9 +3,18 @@ function widget:GetInfo()
 	return { name = "ZZ SubCommander Test", layer = 100, enabled = true }
 end
 
-local scenario = (VFS.LoadFile("sctest_scenario.txt", VFS.RAW) or "eco"):gsub("%s+", "")
+-- BAR from test-31614 sandboxes user widgets: they read only under LuaUI/ and write only under
+-- LuaUI/Config/ (and LuaUI/Widgets/). Inputs come from LuaUI/Config/ first, the write dir's root second;
+-- output goes to the root where allowed, else LuaUI/Config/ (the scripts look in both).
+local function loadInput(name)
+	return VFS.LoadFile("LuaUI/Config/" .. name, VFS.RAW) or VFS.LoadFile(name, VFS.RAW)
+end
+local function openOutput(name)
+	return io and io.open and (io.open(name, "w") or io.open("LuaUI/Config/" .. name, "w"))
+end
+local scenario = (loadInput("sctest_scenario.txt") or "eco"):gsub("%s+", "")
 -- "SPEED LOCKSTEP" from run.sh: game speed override, and real time (1x) while the AI strategist thinks
-local speedOverride, lockstep = (VFS.LoadFile("sctest_speed.txt", VFS.RAW) or ""):match("^(%d*)%s*(%d*)")
+local speedOverride, lockstep = (loadInput("sctest_speed.txt") or ""):match("^(%d*)%s*(%d*)")
 speedOverride, lockstep = tonumber(speedOverride), lockstep == "1"
 local myTeam = Spring.GetMyTeamID()
 local startOffset -- frame our commander appeared (scenario time 0)
@@ -29,9 +38,9 @@ end
 -- the Sub-Commanders Autopilot widget playing the team (autopilot; run.sh enables it)
 local isDuel = scenario == "duel" or scenario == "duelrules" or scenario == "autopilot"
 -- duels last DUEL_MINUTES (run.sh writes sctest_minutes.txt; default 25)
-local duelMinutes = tonumber((VFS.LoadFile("sctest_minutes.txt", VFS.RAW) or ""):match("%d+")) or 25
+local duelMinutes = tonumber((loadInput("sctest_minutes.txt") or ""):match("%d+")) or 25
 local endFrame = (isDuel and 30 * 60 * duelMinutes) or (scenario == "vsai" and 30 * 60 * 9) or (scenario == "ai" and 30 * 60 * 4) or 30 * 60 * 6
-local outFile = io and io.open and io.open("sctest_out.txt", "w")
+local outFile = openOutput("sctest_out.txt")
 local function out(...)
 	local parts = { "[" .. Spring.GetGameFrame() .. "]" }
 	for i = 1, select("#", ...) do

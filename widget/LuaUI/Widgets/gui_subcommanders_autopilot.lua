@@ -21,7 +21,8 @@ end
 local SC
 local defs
 local myTeam = Spring.GetMyTeamID()
-local useAI = (VFS.LoadFile("autopilot.txt", VFS.RAW) or ""):find("ai") ~= nil
+-- (BAR from test-31614 lets widgets read only under LuaUI/: LuaUI/Config/autopilot.txt there)
+local useAI = (VFS.LoadFile("LuaUI/Config/autopilot.txt", VFS.RAW) or VFS.LoadFile("autopilot.txt", VFS.RAW) or ""):find("ai") ~= nil
 local ids = {}
 local st = { stage = nil }
 local labDef, conDefs -- the faction's bot lab and the constructors it makes

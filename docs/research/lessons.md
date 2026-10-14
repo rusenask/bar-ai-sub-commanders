@@ -104,6 +104,15 @@ out wrong.
   only show up in run.log after the game, which the next game overwrites.
 
 ## Process traps
+- BAR from game version test-31614 sandboxes user widgets: no `socket`, files only under `LuaUI/`
+  (writes only under `LuaUI/Config/` and `LuaUI/Widgets/`), no `require`/`loadstring`. Our harness and
+  logger fell silent on those replays ("sctest_out.txt: is outside the write paths for user widgets"):
+  they now read inputs from `LuaUI/Config/` first and write there when the root is refused, and the
+  scripts look in both. The AI widget's TCP link to the bridge will stop working in that version: it
+  needs a file transport under `LuaUI/Config/` (planned).
+- The replay runner reported the first line matching "error" as the reason (a harmless config warning)
+  and deleted the log: failures looked random. Keep failed logs, report exit code + the first line that
+  matters.
 - The force host's first batch (v21c, 6 at a time at 100x) won 7 of the first 9 games where the same code
   won 1 of 16 on the Mac. Two causes: a per-game wall-clock limit of 660 s killed the long, even games
   (retried, killed again) and kept the quick decisive ones; and 6 games on 12 cores (load 27) may starve
