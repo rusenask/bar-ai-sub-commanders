@@ -4512,7 +4512,7 @@ function Tactics.squad(sub)
 	-- half the army lost in the open at 0.1x); fall back instead (doctrine.engage.contactFallback, elmos
 	-- from the squad's centre that count as on us)
 	local CF = Engine.D.engage.contactFallback
-	if CF and action == "hold" and dist2(sq.x, sq.z, target.x, target.z) < CF * CF then
+	if CF and action == "hold" and ratio < CF.below and dist2(sq.x, sq.z, target.x, target.z) < CF.dist * CF.dist then
 		action = "fallback"
 	end
 	sub.squadOrder = { action = action, id = target.id, x = target.x, z = target.z, ratio = ratio }

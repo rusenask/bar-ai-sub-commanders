@@ -34,8 +34,8 @@ D.engage = {
 	-- holding with our turrets within radius of the rally point (minValue metal of them): the line stands
 	-- `ahead` elmos in front of them, toward the threat (false: off)
 	turretLine = false,
-	-- a squad that would hold against a threat this close to its centre (elmos) falls back instead
-	-- (false: holds)
+	-- a squad that would hold against a threat within `dist` of its centre, at under `below` of its
+	-- strength, falls back instead (false: holds; at any ratio it threw away mirror fights, -0.47)
 	contactFallback = false,
 	-- falling back to our turrets within radius of the unit (minValue metal) instead of the rally point
 	retreatToTurrets = false,
