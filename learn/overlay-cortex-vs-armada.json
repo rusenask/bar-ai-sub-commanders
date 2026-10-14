@@ -1,0 +1,24 @@
+{
+ "key": "cortex-vs-armada-medium",
+ "generation": 6,
+ "rules": {
+  "builder_bonus": 0,
+  "chase_distance": 2788.101131462524,
+  "construction_turret_rate": 1.517572802722835,
+  "constructor_share": 0.6795568224744878,
+  "defend_base_share": 0.06304043876023492,
+  "engage_attack": 1.1418315871945857,
+  "engage_defend": 0.5309108319415174,
+  "engage_hold": 0.798981242546078,
+  "max_factories": 5,
+  "nanos_per_lab": 5,
+  "raid_need": 1.3201007508215388,
+  "raid_share": 0.192764999062445,
+  "responders_share": 0.23321336966995884,
+  "response_weight": 0.627222416914457,
+  "retreat_builder": 0.7617053244804386,
+  "retreat_fighter": 0.5046251825017308,
+  "second_factory_income": 32.793176627286066,
+  "turret_budget_scale": 1.0558484097158374
+ }
+}

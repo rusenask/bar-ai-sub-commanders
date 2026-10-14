@@ -1,5 +1,5 @@
 #!/bin/bash
-# usage: [LABEL=name] [WIDGET_SRC=...] [PARALLEL=6] [AI_PROFILE=medium] [MAP="..."] [SPEED=100]
+# usage: [LABEL=name] [WIDGET_SRC=...] [SIDE=Legion] [ENEMY_SIDE=Armada] [PARALLEL=4] [AI_PROFILE=medium] [MAP="..."] [SPEED=100] [OVERLAY=rules.json]
 #        [DUEL_MINUTES=60] testenv/force-batch.sh <games> [scenario: duelrules|autopilot]
 # Runs a batch on the force GPU host (FORCE_HOST, default force) with the headless engine, PARALLEL
 # games at a time at up to SPEED x, and collects it into testenv/batch/<stamp>-<label>/ like batch.sh
@@ -35,7 +35,7 @@ mkdir -p "$DIR"
 	echo "label: $LABEL"
 	echo "commit: $(git -C "$T/.." rev-parse --short HEAD)"
 	echo "widgets: $SRC"
-	echo "scenario: $SCENARIO  script: script_vsai.txt  opponent: $AI_PROFILE  map: ${MAP:-All That Simmers}  speed: $SPEED  lockstep: 0  minutes: $DUEL_MINUTES  workers: $PARALLEL (force, headless)"
+	echo "scenario: $SCENARIO  script: script_vsai.txt  opponent: $AI_PROFILE  map: ${MAP:-All That Simmers}  speed: $SPEED  lockstep: 0  minutes: $DUEL_MINUTES  workers: $PARALLEL (force, headless)  side: ${SIDE:-Legion} vs ${ENEMY_SIDE:-Armada}"
 	echo "started: $(date '+%Y-%m-%d %H:%M')"
 } > "$DIR/meta.txt"
 # the write dir every game starts from
@@ -47,11 +47,15 @@ cp "$SRC"/../Include/sc_*.lua "$STAGE/LuaUI/Include/" 2>/dev/null || cp "$T"/../
 sed 's/setmaxspeed 20/setmaxspeed 1000/g' "$T/LuaUI/Widgets/zz_sctest.lua" > "$STAGE/LuaUI/Widgets/zz_sctest.lua"
 [ "$SCENARIO" = autopilot ] && sed -i '' 's/enabled = false,/enabled = true,/' "$STAGE/LuaUI/Widgets/gui_subcommanders_autopilot.lua"
 cp "$T/springsettings.template.cfg" "$STAGE/springsettings.cfg"
-sed -e "s/profile=[a-z_]*;/profile=$AI_PROFILE;/" -e "s/mapname=[^;]*;/mapname=${MAP:-All That Simmers v1.1.1};/" "$T/script_vsai.txt" > "$STAGE/script.txt"
+# SIDE / ENEMY_SIDE: the factions (team 0 ours, team 1 BARbarian's; default Legion vs Armada)
+sed -e "s/profile=[a-z_]*;/profile=$AI_PROFILE;/" -e "s/mapname=[^;]*;/mapname=${MAP:-All That Simmers v1.1.1};/" "$T/script_vsai.txt" |
+	awk -v us="${SIDE:-Legion}" -v them="${ENEMY_SIDE:-Armada}" '/side=/ { n++; sub(/side=[A-Za-z]+;/, "side=" (n == 1 ? us : them) ";") } { print }' > "$STAGE/script.txt"
 echo "$DUEL_MINUTES" > "$STAGE/sctest_minutes.txt"
 echo "$SCENARIO" > "$STAGE/sctest_scenario.txt"
 echo "$SPEED 0" > "$STAGE/sctest_speed.txt"
 mkdir -p "$STAGE/LuaUI/Config" && cp "$STAGE"/sctest_*.txt "$STAGE/LuaUI/Config/" # BAR 31614+ reads only under LuaUI/
+# OVERLAY=<file>: every game starts with these learned rules (cmd/learn overlay; the widget reads it)
+[ -n "$OVERLAY" ] && cp "$OVERLAY" "$STAGE/LuaUI/Config/sc_learned.json" && echo "overlay: $OVERLAY" >> "$DIR/meta.txt"
 R="bar-sim/batches/$STAMP-$LABEL"
 ssh "$HOST" "mkdir -p $R"
 rsync -a "$STAGE/" "$HOST:$R/template/"
