@@ -164,6 +164,9 @@ D.economy = {
 		return math.min(12, math.floor(3 + income / 10))
 	end,
 	energyPerMetal = 12, -- energy income to aim for per metal income (strong players 10-16)
+	-- energy behind (under energyPerMetal x metal income or under what we spend): economy constructors build
+	-- generators before build power, labs and radar (false: storage-driven only)
+	energyFirst = false,
 	-- construction turrets before more labs: 200 build power for 230 metal against a lab's 150 for 470;
 	-- a lab is saturated at 4-7 turrets (unit exit time), only then does another lab pay off
 	nanoFrom = 10, -- metal income the first lab uses on its own

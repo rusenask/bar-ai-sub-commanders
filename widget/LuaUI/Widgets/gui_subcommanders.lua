@@ -2405,6 +2405,14 @@ function Jobs.basicEconomy(sub, unitID, d, ux, uz)
 	return acted
 end
 
+-- energy behind metal (doctrine.economy.energyFirst): income under energyPerMetal x metal income, or
+-- under what we spend. Building takes energy with every bit of metal: our games sat on full metal
+-- storage 727 s and near-empty energy 598 s a game, at 9.4 energy per metal at minute 8
+local function energyBehind()
+	local E = Engine.D.economy
+	return E.energyFirst and econ.eFrac < 0.9 and (econ.eInc < econ.mInc * E.energyPerMetal or econ.eInc < (econ.ePull or 0) * 1.05)
+end
+
 local function energyWanted()
 	-- metal piling up while energy runs low: energy is what holds spending back
 	return (econ.eFrac < 0.8 and econ.eInc < econ.mInc * 15) or (econ.mFrac > 0.8 and econ.eFrac < 0.6)
@@ -2423,9 +2431,11 @@ local BUILDER_PLANS = {
 	economy = function(sub, u, d, x, z)
 		return Jobs.removeMarked(sub, u, d, x, z)
 			or Jobs.guardTurret(sub, u, d, x, z)
+			-- energy behind: generators before anything that spends it (build power, labs, radar)
+			or (energyBehind() and Jobs.energy(sub, u, d, x, z, econ.eFrac < 0.3))
 			-- metal piling up with energy to spare: build power first (constructors otherwise always found
 			-- one more contested extractor to try, and a watched game sat on full storage at +90 metal/s)
-			or (econ.mFrac > 0.7 and econ.eFrac > 0.3 and Jobs.buildPower(sub, u, d, x, z))
+			or (econ.mFrac > 0.7 and econ.eFrac > 0.3 and not energyBehind() and Jobs.buildPower(sub, u, d, x, z))
 			or Jobs.rebuildFactory(sub, u, d, x, z)
 			or Jobs.newFactory(sub, u, d, x, z)
 			or Jobs.earlyRadar(sub, u, d, x, z)
