@@ -1,0 +1,6 @@
+# leg-skirmisher-vs-skirmisher
+us legbar 7
+them legbar 7
+distance 1400
+seconds 150
+attack 1

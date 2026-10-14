@@ -1,0 +1,6 @@
+# leg-skirmisher-vs-assault
+us legbar 7
+them legcen 11
+distance 1400
+seconds 150
+attack 1

@@ -1,0 +1,6 @@
+# leg-assault-vs-heavy
+us legcen 11
+them legkark 6
+distance 1400
+seconds 150
+attack 1

@@ -1,0 +1,6 @@
+# cor-assault-vs-skirmisher
+us corthud 13
+them cormist 10
+distance 1400
+seconds 150
+attack 1

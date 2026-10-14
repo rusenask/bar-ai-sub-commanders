@@ -1,0 +1,6 @@
+# cor-skirmisher-vs-raider
+us cormist 10
+them corak 35
+distance 1400
+seconds 150
+attack 1

@@ -1,0 +1,6 @@
+# cor-artillery-vs-skirmisher
+us corwolv 9
+them cormist 10
+distance 1400
+seconds 150
+attack 1

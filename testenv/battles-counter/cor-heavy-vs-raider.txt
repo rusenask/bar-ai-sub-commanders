@@ -1,0 +1,6 @@
+# cor-heavy-vs-raider
+us corraid 7
+them corak 35
+distance 1400
+seconds 150
+attack 1

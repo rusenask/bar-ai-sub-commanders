@@ -1,0 +1,6 @@
+# cor-raider-vs-artillery
+us corak 35
+them corwolv 9
+distance 1400
+seconds 150
+attack 1

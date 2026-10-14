@@ -1,0 +1,6 @@
+# cor-artillery-vs-assault
+us corwolv 9
+them corthud 13
+distance 1400
+seconds 150
+attack 1

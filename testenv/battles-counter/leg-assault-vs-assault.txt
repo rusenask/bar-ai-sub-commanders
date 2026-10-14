@@ -1,0 +1,6 @@
+# leg-assault-vs-assault
+us legcen 11
+them legcen 11
+distance 1400
+seconds 150
+attack 1

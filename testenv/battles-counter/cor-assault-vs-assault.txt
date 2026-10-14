@@ -1,0 +1,6 @@
+# cor-assault-vs-assault
+us corthud 13
+them corthud 13
+distance 1400
+seconds 150
+attack 1

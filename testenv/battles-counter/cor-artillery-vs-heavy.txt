@@ -1,0 +1,6 @@
+# cor-artillery-vs-heavy
+us corwolv 9
+them corraid 7
+distance 1400
+seconds 150
+attack 1

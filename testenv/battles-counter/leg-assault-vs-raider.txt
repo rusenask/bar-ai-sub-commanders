@@ -1,0 +1,6 @@
+# leg-assault-vs-raider
+us legcen 11
+them leggob 54
+distance 1400
+seconds 150
+attack 1

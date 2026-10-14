@@ -1,0 +1,6 @@
+# arm-artillery-vs-skirmisher
+us armart 12
+them armsam 11
+distance 1400
+seconds 150
+attack 1

@@ -36,3 +36,4 @@ play/*
 !testenv/battles-siege/
 !testenv/battles-big/
 !testenv/battles-tactics/
+!testenv/battles-counter/

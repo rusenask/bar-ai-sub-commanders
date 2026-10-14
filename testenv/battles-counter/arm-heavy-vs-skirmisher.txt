@@ -1,0 +1,6 @@
+# arm-heavy-vs-skirmisher
+us armwar 6
+them armsam 11
+distance 1400
+seconds 150
+attack 1

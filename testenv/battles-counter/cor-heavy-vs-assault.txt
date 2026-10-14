@@ -1,0 +1,6 @@
+# cor-heavy-vs-assault
+us corraid 7
+them corthud 13
+distance 1400
+seconds 150
+attack 1

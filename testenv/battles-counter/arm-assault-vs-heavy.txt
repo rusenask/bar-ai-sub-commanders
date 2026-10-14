@@ -1,0 +1,6 @@
+# arm-assault-vs-heavy
+us armstump 8
+them armwar 6
+distance 1400
+seconds 150
+attack 1

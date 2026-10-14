@@ -1,0 +1,6 @@
+# arm-skirmisher-vs-assault
+us armsam 11
+them armstump 8
+distance 1400
+seconds 150
+attack 1

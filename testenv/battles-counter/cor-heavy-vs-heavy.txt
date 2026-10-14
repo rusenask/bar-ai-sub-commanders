@@ -1,0 +1,6 @@
+# cor-heavy-vs-heavy
+us corraid 7
+them corraid 7
+distance 1400
+seconds 150
+attack 1

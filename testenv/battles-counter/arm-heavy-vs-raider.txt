@@ -1,0 +1,6 @@
+# arm-heavy-vs-raider
+us armwar 6
+them armpw 29
+distance 1400
+seconds 150
+attack 1

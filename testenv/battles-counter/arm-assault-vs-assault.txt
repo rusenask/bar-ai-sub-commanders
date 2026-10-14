@@ -1,0 +1,6 @@
+# arm-assault-vs-assault
+us armstump 8
+them armstump 8
+distance 1400
+seconds 150
+attack 1

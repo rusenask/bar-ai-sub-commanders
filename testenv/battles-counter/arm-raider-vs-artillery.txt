@@ -1,0 +1,6 @@
+# arm-raider-vs-artillery
+us armpw 29
+them armart 12
+distance 1400
+seconds 150
+attack 1

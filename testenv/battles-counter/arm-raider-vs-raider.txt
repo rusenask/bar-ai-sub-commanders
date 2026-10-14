@@ -1,0 +1,6 @@
+# arm-raider-vs-raider
+us armpw 29
+them armpw 29
+distance 1400
+seconds 150
+attack 1

@@ -1,0 +1,6 @@
+# arm-heavy-vs-heavy
+us armwar 6
+them armwar 6
+distance 1400
+seconds 150
+attack 1

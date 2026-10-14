@@ -1,0 +1,6 @@
+# leg-raider-vs-raider
+us leggob 54
+them leggob 54
+distance 1400
+seconds 150
+attack 1

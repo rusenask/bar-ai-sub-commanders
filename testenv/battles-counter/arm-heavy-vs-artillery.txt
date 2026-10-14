@@ -1,0 +1,6 @@
+# arm-heavy-vs-artillery
+us armwar 6
+them armart 12
+distance 1400
+seconds 150
+attack 1

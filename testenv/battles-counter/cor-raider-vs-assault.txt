@@ -1,0 +1,6 @@
+# cor-raider-vs-assault
+us corak 35
+them corthud 13
+distance 1400
+seconds 150
+attack 1

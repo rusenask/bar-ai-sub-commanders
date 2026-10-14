@@ -1,0 +1,6 @@
+# leg-skirmisher-vs-heavy
+us legbar 7
+them legkark 6
+distance 1400
+seconds 150
+attack 1
