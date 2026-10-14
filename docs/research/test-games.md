@@ -567,3 +567,24 @@ time step out (set targets kept). 72 per arm.
   are dodged, but our share lost doesn't drop at all (artillery-stands 51% -> 52%); what drops is what
   we kill (dodging units aren't shooting). Off until we know whether the landing prediction is right and
   what actually kills our units under artillery.
+
+## Battle lab: batch effects, and interleaved A/B (corrects earlier verdicts)
+
+- The fighting-retreat arm barely fired in the lab (one fallback per arm), so it was nearly the same
+  code, yet siege read -0.40 [-0.78, -0.03] "worse". Identical widgets in separate batches
+  (siege-artbase / dbase / d2base / d3base, ground the same) drifted by up to +-0.22 log2, one of six
+  "worse": a batch shares its sandboxes, load and timing, so its battles aren't independent and the
+  intervals were too narrow.
+- Interleaved batches (batch.py --widgets-b: odd games arm A, even games arm B, each pair the same spec
+  on the same sandbox; verdicts per pair): A/A on the same widgets read +0.03 [-0.24, +0.32] (siege) and
+  -0.01 [-0.19, +0.18] (ground).
+- Re-checked interleaved (20261014-18xx-sbx-il-*):
+
+| Change | Specs | Pairs | Efficiency (log2, paired) | Verdict |
+|---|---|---|---|---|
+| fire control (set targets, overkill split) vs attack-order focus | ground | 144 | -0.04 [-0.21, +0.13] | can't tell: **back to attack orders** (the pooled +0.13 was batch effects) |
+| dodging on vs off | siege | 144 | -0.42 [-0.67, -0.17] | **worse** (stays off) |
+| dodging on vs off | ground | 72 | +0.16 [-0.03, +0.37] | can't tell |
+
+- Earlier one-arm-per-batch lab verdicts of about 0.2-0.4 log2 or less are doubtful; the replicated
+  ones (focus fire vs none, bombers) stand. From now on lab A/Bs are interleaved.

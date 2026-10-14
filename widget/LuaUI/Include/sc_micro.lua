@@ -128,6 +128,33 @@ return function(ctx)
 		return out
 	end
 
+	-- dodging: where a unit should step to get out of incoming shells. unit { x, z, speed (elmos/s),
+	-- radius }, impacts { x, z, r (blast radius), t (seconds to impact) }. Only blasts it is inside and can
+	-- leave in time count; it steps away from them (their pushes added up) to just outside the blast plus
+	-- doctrine.micro.dodge.margin. Returns x, z or nil (stay: nothing to dodge, or no way out in time).
+	function M.dodge(unit, impacts)
+		local G = D.micro.dodge
+		local px, pz, worst = 0, 0, 0
+		for _, h in ipairs(impacts) do
+			local dx, dz = unit.x - h.x, unit.z - h.z
+			local dist = math.sqrt(dx * dx + dz * dz)
+			local need = h.r + (unit.radius or 0) + G.margin - dist
+			if need > 0 and h.t >= G.minTime and need <= unit.speed * h.t * G.reach then
+				if dist < 1 then
+					-- dead on: step sideways (any way out is as good)
+					dx, dz, dist = 1, 0, 1
+				end
+				px, pz = px + dx / dist * need, pz + dz / dist * need
+				worst = math.max(worst, need)
+			end
+		end
+		if worst <= 0 then
+			return nil
+		end
+		local len = math.max(math.sqrt(px * px + pz * pz), 1)
+		return unit.x + px / len * worst, unit.z + pz / len * worst
+	end
+
 	-- may a unit of this kind join raids under the style?
 	function M.raids(category, styleName)
 		local kinds = M.style(styleName).raidKinds

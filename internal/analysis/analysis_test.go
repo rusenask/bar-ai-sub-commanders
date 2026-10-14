@@ -2,6 +2,7 @@ package analysis
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -358,4 +359,24 @@ func TestCommit(t *testing.T) {
 	if bins[0].Out != 1 || bins[0].TradeOut != 0.5 || bins[1].In != 1 || bins[1].TradeIn != 2 {
 		t.Errorf("%+v", bins)
 	}
+}
+
+// The two halves of an interleaved batch are compared pair by pair.
+func TestPairedVerdicts(t *testing.T) {
+	mk := func(label string, gain float64) Arm {
+		a := Arm{Label: label}
+		for i := range 20 {
+			left := 0.2 + 0.6*float64(i%5)/4 + gain // pairs differ a lot from each other, little within
+			a.Games = append(a.Games, &Game{Source: fmt.Sprint(i + 1), Result: "WIN", Seconds: 60,
+				Battle: &Battle{Spec: "s", UsStart: 1, UsLeft: left, ThemStart: 1, ThemLeft: 0}})
+		}
+		return a
+	}
+	rows := Verdicts([]Arm{mk("20261014-x-A", 0), mk("20261014-x-B", 0.05)})["20261014-x-B"]
+	for _, r := range rows {
+		if r.Metric == "battle: our share lost (paired)" && r.Verdict == "better" {
+			return
+		}
+	}
+	t.Errorf("no paired better verdict: %+v", rows)
 }

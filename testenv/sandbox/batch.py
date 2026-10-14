@@ -94,6 +94,17 @@ def stage(args):
     incsrc = src.parent / "Include" if (src.parent / "Include").exists() else ROOT / "widget/LuaUI/Include"
     for f in incsrc.glob("sc_*.lua"):
         (inc / f.name).write_text(f.read_text())
+    if args.widgets_b:
+        # an interleaved A/B: arm B's widgets, swapped in for even-numbered games (run_games.sh)
+        srcb = Path(args.widgets_b)
+        if not (srcb / "gui_subcommanders.lua").exists():
+            sys.exit(f"no widgets in {srcb} (--widgets-b)")
+        (d / "armB/Widgets").mkdir(parents=True)
+        (d / "armB/Include").mkdir(parents=True)
+        for f in srcb.glob("gui_subcommanders*.lua"):
+            (d / "armB/Widgets" / f.name).write_text(f.read_text())
+        for f in (srcb.parent / "Include").glob("sc_*.lua"):
+            (d / "armB/Include" / f.name).write_text(f.read_text())
     # no rendering: the game may run as fast as the CPU allows
     (w / "zz_sctest.lua").write_text((T / "LuaUI/Widgets/zz_sctest.lua").read_text().replace("setmaxspeed 20", "setmaxspeed 1000"))
     if args.datalog:
@@ -131,6 +142,22 @@ def stage(args):
     return buf.getvalue()
 
 
+def split_arms(out, args):
+    """An interleaved batch into two batch dirs: odd games are arm A, even games arm B (each pair the same
+    battle spec), so a sandbox's load, the cheats' timing or anything else about a batch falls on both."""
+    for arm, parity in (("A", 1), ("B", 0)):
+        d = out.parent / f"{out.name}-{arm}"
+        d.mkdir(exist_ok=True)
+        k = 0
+        for f in sorted(out.glob("[0-9]*.txt"), key=lambda p: int(p.stem)):
+            if int(f.stem) % 2 == parity:
+                k += 1
+                (d / f"{k}.txt").write_text(f.read_text())
+        widgets = args.widgets if arm == "A" else args.widgets_b
+        (d / "meta.txt").write_text(f"label: {args.label}-{arm}\nwidgets: {widgets}\ninterleaved: {out.name} ({'odd' if parity else 'even'} games)\n")
+        print(f"arm {arm}: {k} games in {d}", flush=True)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("games", type=int)
@@ -147,6 +174,8 @@ def main():
     ap.add_argument("--enemy-side", default="Armada")
     ap.add_argument("--battles", default=str(T / "battles"), help="scenario battle: the specs (testenv/battles)")
     ap.add_argument("--datalog", action="store_true", help="also run the data logger: <batch>/data/<i>.jsonl (gamereport -micro)")
+    ap.add_argument("--widgets-b", default="", help="an interleaved A/B: arm B's widgets play the even-numbered games (odd: --widgets), "
+                    "battle specs in pairs; the batch is split into <label>-A and <label>-B for make compare")
     ap.add_argument("--learn", default="", help="a learning key (internal/learn): each game plays a sampled rule set, "
                     "each generation updates learn/<key>.json")
     ap.add_argument("--generations", type=int, default=1, help="with --learn: generations to run on the same sandboxes")
@@ -174,6 +203,12 @@ def main():
         args.sandboxes = allowed
     n = min(args.sandboxes, args.games)
     per = [(args.games * k // n + 1, args.games * (k + 1) // n) for k in range(n)]
+    if args.widgets_b:
+        # whole pairs per sandbox: both arms of a pair play on the same machine
+        if args.games % 2:
+            sys.exit("--widgets-b needs an even number of games")
+        pairs = args.games // 2
+        per = [(2 * (pairs * k // n) + 1, 2 * (pairs * (k + 1) // n)) for k in range(n)]
     gens = args.generations if args.learn else 1
     boxes, errors = [None] * n, []
     par = [args.parallel] * n  # games at a time per sandbox (lower on a fallback instance)
@@ -290,6 +325,8 @@ def main():
                     f.write("".join(f"error: {e}\n" for e in errors + gen_errors))
             subprocess.run(["bash", str(T / "collect-results.sh"), str(out), str(args.games), str(int(start)), args.scenario,
                             args.opponent, args.map, str(args.minutes)])
+            if args.widgets_b:
+                split_arms(out, args)
             if args.learn:
                 subprocess.run(["go", "run", "./cmd/learn", "update", "-key", args.learn, "-batch", str(out), "-samples", str(overlays),
                                 "-minutes", str(args.minutes), "-score", args.learn_score], cwd=ROOT)

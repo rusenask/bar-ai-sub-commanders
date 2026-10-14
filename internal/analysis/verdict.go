@@ -5,7 +5,9 @@ import (
 	"io"
 	"math"
 	"math/rand/v2"
+	"path/filepath"
 	"sort"
+	"strings"
 
 	"github.com/rusenask/bar-ai-sub-commanders/internal/learn"
 )
@@ -167,6 +169,34 @@ func stratifiedInterval(a, b map[string][]float64, rng *rand.Rand) (diff, lo, hi
 	return diff, d[n*25/1000], d[n*975/1000], true
 }
 
+// pairs: the two arms of an interleaved batch (testenv/sandbox/batch.py --widgets-b: <batch>-A and
+// <batch>-B, game k of each played the same spec on the same machine at about the same time) give the
+// metric's difference per pair; nil when the arms aren't the two halves of one batch.
+func pairs(armA, armB Arm, m metric) []float64 {
+	la, lb := filepath.Base(armA.Label), filepath.Base(armB.Label)
+	if !(strings.HasSuffix(la, "-A") && strings.HasSuffix(lb, "-B") && strings.TrimSuffix(la, "-A") == strings.TrimSuffix(lb, "-B")) {
+		return nil
+	}
+	a, b := armA.Games, armB.Games
+	byName := map[string]*Game{}
+	for _, g := range a {
+		byName[filepath.Base(g.Source)] = g
+	}
+	var out []float64
+	for _, g := range b {
+		o := byName[filepath.Base(g.Source)]
+		if o == nil {
+			continue
+		}
+		vb, okb := m.value(g)
+		va, oka := m.value(o)
+		if oka && okb {
+			out = append(out, vb-va)
+		}
+	}
+	return out
+}
+
 func meanOf(v []float64) float64 {
 	if len(v) == 0 {
 		return math.NaN()
@@ -231,7 +261,12 @@ func Verdicts(arms []Arm) map[string][]VerdictRow {
 			}
 			row.Base, row.Arm = meanOf(a), meanOf(b)
 			sa, sb := strata(base.Games, m), strata(arm.Games, m)
-			if len(sa) > 1 || len(sb) > 1 {
+			if d := pairs(base, arm, m); len(d) >= 3 {
+				// an interleaved batch: the difference within each pair, resampled
+				row.Arm = row.Base + meanOf(d)
+				row.Lo, row.Hi = diffInterval(make([]float64, len(d)), d, rng)
+				row.Metric += " (paired)"
+			} else if len(sa) > 1 || len(sb) > 1 {
 				// battles: within each spec, then averaged (Arm = Base + the stratified difference)
 				diff, lo, hi, ok := stratifiedInterval(sa, sb, rng)
 				if ok {

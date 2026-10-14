@@ -13,10 +13,21 @@ one() {
 	for try in 1 2; do
 		rm -rf "$G"
 		cp -r /opt/bar/stage "$G"
-		# battles: game i takes spec ((i-1) mod count) of the stage's battles/
+		# an interleaved A/B (batch.py --widgets-b): even games play arm B's widgets
+		if [ -d "$G/armB" ]; then
+			if [ $((i % 2)) = 0 ]; then
+				rm -f "$G"/LuaUI/Widgets/gui_subcommanders*.lua "$G"/LuaUI/Include/sc_*.lua
+				cp "$G"/armB/Widgets/*.lua "$G/LuaUI/Widgets/" && cp "$G"/armB/Include/*.lua "$G/LuaUI/Include/"
+			fi
+			rm -rf "$G/armB"
+			pair=$(( (i - 1) / 2 )) # games 2k-1 and 2k: the same battle spec
+		else
+			pair=$(( i - 1 ))
+		fi
+		# battles: game i takes spec (pair mod count) of the stage's battles/
 		if [ -d "$G/battles" ]; then
 			specs=("$G"/battles/*.txt)
-			mkdir -p "$G/LuaUI/Config" && cp "${specs[$(( (i - 1) % ${#specs[@]} ))]}" "$G/LuaUI/Config/sctest_battle.txt"
+			mkdir -p "$G/LuaUI/Config" && cp "${specs[$(( pair % ${#specs[@]} ))]}" "$G/LuaUI/Config/sctest_battle.txt"
 		fi
 		# a learning run: this game's rule set (internal/learn), read by the widget at start
 		[ -f "/opt/bar/overlays/g$i.json" ] && mkdir -p "$G/LuaUI/Config" && cp "/opt/bar/overlays/g$i.json" "$G/LuaUI/Config/sc_learned.json"

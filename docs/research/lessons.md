@@ -17,6 +17,10 @@ out wrong.
   (engine-v2/v3 hard)
 - Offline model accuracy isn't game strength: the fight model (AUC 0.81) gave more kills and more lost
   games. (decision model arm F)
+- Battles in one batch aren't independent: same sandboxes, load and timing. Identical widgets in two
+  batches drifted +-0.2 log2 and read "worse" once; fire control's pooled +0.13 vanished when interleaved
+  (-0.04). Lab A/Bs run interleaved (batch.py --widgets-b), verdicts per pair; run an A/A when the setup
+  changes. (lab, A/A)
 - Battles differ far more between specs than a micro change moves them: pooled over 6 specs, focus fire
   read "can't tell"; compared within each spec, it was clearly better with the same 36 battles a side.
   Battle verdicts stratify by spec. (battle lab, focus on/off)

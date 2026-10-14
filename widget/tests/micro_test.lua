@@ -87,6 +87,20 @@ return {
 		T.eq(a[3], 10)
 		focus.overkill, focus.killTime = saved.overkill, saved.killTime
 	end,
+	dodging = function()
+		local M = micro()
+		local u = { x = 100, z = 0, speed = 60, radius = 10 }
+		-- a blast of 80 landing at the origin in 1.5 s: step out to 80 + 10 + 30 = 120 from it
+		local x, z = M.dodge(u, { { x = 0, z = 0, r = 80, t = 1.5 } })
+		T.near(x, 120, 1e-6)
+		T.near(z, 0, 1e-6)
+		T.eq(M.dodge(u, { { x = 0, z = 0, r = 50, t = 1.5 } }), nil, "already outside the blast")
+		T.eq(M.dodge(u, { { x = 0, z = 0, r = 80, t = 0.1 } }), nil, "too late")
+		T.eq(M.dodge({ x = 0, z = 0, speed = 20, radius = 10 }, { { x = 0, z = 0, r = 200, t = 1 } }), nil, "too slow to get out")
+		-- two blasts on either side along x: pushed along x away from the nearer
+		x, z = M.dodge({ x = 0, z = 0, speed = 200, radius = 0 }, { { x = 40, z = 0, r = 60, t = 2 }, { x = -100, z = 0, r = 60, t = 2 } })
+		T.ok(x < 0, "away from the nearer blast")
+	end,
 	focus_fire = function()
 		local M = micro()
 		local t = M.focusTarget({

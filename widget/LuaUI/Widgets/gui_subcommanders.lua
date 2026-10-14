@@ -66,6 +66,9 @@ local BUILDER_COOLDOWN = 45 -- min frames between decisions for one builder
 local SOFT_TASK_FRAMES = 30 * 20 -- assist / reclaim / patrol tasks are re-evaluated after this
 local MANUAL_HOLD_FRAMES = 30 * 10 -- after a player order, leave the unit alone at least this long
 local MAX_THINKS_PER_PASS = 8
+-- constants kept out of the main chunk's locals (BAR's Lua refuses a chunk with more than 200:
+-- scripts/lua-locals.sh)
+local Const = {}
 
 --------------------------------------------------------------------------------
 -- Roles and postures
@@ -405,7 +408,7 @@ end
 
 -- What the enemy fields, from units seen in the last `window` frames: counts per
 -- kind (mobile units and defences) plus the share of kinds that matter for counters.
-local COMPOSITION_WINDOW = 30 * 60 * 5
+Const.COMPOSITION_WINDOW = 30 * 60 * 5
 
 function Enemy.mix()
 	if Enemy.mixFrame == frame then
@@ -415,7 +418,7 @@ function Enemy.mix()
 	local mix = { total = 0, air = 0, bombers = 0, ranged = 0, raiders = 0, heavy = 0, naval = 0, tech2 = 0, kinds = {}, recentKinds = {}, types = {} }
 	for _, e in pairs(Enemy.units) do
 		local d = defs[e.defID]
-		if frame - e.last < COMPOSITION_WINDOW and (d.mobile or d.staticDef) and d.kind ~= "constructor" and d.kind ~= "commander" then
+		if frame - e.last < Const.COMPOSITION_WINDOW and (d.mobile or d.staticDef) and d.kind ~= "constructor" and d.kind ~= "commander" then
 			mix.total = mix.total + 1
 			mix.kinds[d.kind] = (mix.kinds[d.kind] or 0) + 1
 			if frame - e.first < 30 * 180 then
@@ -622,9 +625,9 @@ local function plannedConflict(d, x, z, gap, facing)
 end
 
 -- Factories need clear ground in front of their exit and room around them.
-local EXIT_LANE = 300
-local EXIT_LANE_AIR = 140
-local FACTORY_RING = 64
+Const.EXIT_LANE = 300
+Const.EXIT_LANE_AIR = 140
+Const.FACTORY_RING = 64
 
 local function makesAircraft(fd)
 	if fd.airPlant == nil then
@@ -654,9 +657,9 @@ local function factoryKeepOut()
 				local x, _, z = spGetUnitPosition(u)
 				local facing = Spring.GetUnitBuildFacing(u) or 0
 				local hx, hz = halfSize(fd, facing)
-				local lane = makesAircraft(fd) and EXIT_LANE_AIR or EXIT_LANE
+				local lane = makesAircraft(fd) and Const.EXIT_LANE_AIR or Const.EXIT_LANE
 				local w = 24 -- lane is a bit wider than the factory
-				keepOut[#keepOut + 1] = { x - hx - FACTORY_RING, z - hz - FACTORY_RING, x + hx + FACTORY_RING, z + hz + FACTORY_RING }
+				keepOut[#keepOut + 1] = { x - hx - Const.FACTORY_RING, z - hz - Const.FACTORY_RING, x + hx + Const.FACTORY_RING, z + hz + Const.FACTORY_RING }
 				if facing == 0 then
 					keepOut[#keepOut + 1] = { x - hx - w, z + hz, x + hx + w, z + hz + lane }
 				elseif facing == 1 then
@@ -707,13 +710,13 @@ function Lanes.gapFor(d)
 end
 
 -- footprints (plus gap) must not overlap any structure, so units keep walking lanes
-local MAX_HALF = 96
+Const.MAX_HALF = 96
 local function areaClear(d, x, z, gap, facing)
 	local hx, hz = halfSize(d, facing or 0)
 	if Lanes.blocks(d, x, z, hx, hz) then
 		return false
 	end
-	local reach = max(gap, 64) + MAX_HALF
+	local reach = max(gap, 64) + Const.MAX_HALF
 	local units = Spring.GetUnitsInRectangle(x - hx - reach, z - hz - reach, x + hx + reach, z + hz + reach)
 	for i = 1, #units do
 		local od = unitDef(units[i])
@@ -3007,7 +3010,7 @@ function Decider.situation()
 	end
 	for u, e in pairs(Enemy.units) do
 		local d = defs[e.defID]
-		if ((d.mobile and d.armed and not d.builder and not d.commander) or d.staticDef) and frame - e.last < COMPOSITION_WINDOW then
+		if ((d.mobile and d.armed and not d.builder and not d.commander) or d.staticDef) and frame - e.last < Const.COMPOSITION_WINDOW then
 			enemy[#enemy + 1] = { e.defID, spGetUnitPosition(u) and hpFraction(u) or 1 }
 		end
 	end
@@ -3118,7 +3121,7 @@ function Decider.lookahead(sub, options, st, ai)
 	end
 	for u, e in pairs(Enemy.units) do
 		local d = defs[e.defID]
-		if d.mobile and d.armed and not d.builder and not d.commander and frame - e.last < COMPOSITION_WINDOW then
+		if d.mobile and d.armed and not d.builder and not d.commander and frame - e.last < Const.COMPOSITION_WINDOW then
 			enemy[#enemy + 1] = { e.defID, spGetUnitPosition(u) and hpFraction(u) or 1 }
 		end
 	end
@@ -3468,14 +3471,14 @@ end
 
 -- full autonomy: what the army goes for on its own, among what it beats (doctrine.engage.attack):
 -- their factories and economy (what wins games) and their armed groups (threat map memory)
-local ATTACK_PREFER = { factory = 3, extractor = 1.5, generator = 1.2, constructor = 1, radar = 1, structure = 1, army = 0.6 }
+Const.ATTACK_PREFER = { factory = 3, extractor = 1.5, generator = 1.2, constructor = 1, radar = 1, structure = 1, army = 0.6 }
 
 function Tactics.attackTarget(sub, sq)
 	local cands = Engine.raidCandidates()
 	for _, g in ipairs(Engine.tm.groups(frame, 8)) do
 		cands[#cands + 1] = { id = "group:" .. floor(g.x / 512) .. ":" .. floor(g.z / 512), x = g.x, z = g.z, value = g.power, kind = "army", name = sformat("%d metal", g.power) }
 	end
-	local t = Engine.squads.pickTarget(sq, cands, frame, { prefer = ATTACK_PREFER })
+	local t = Engine.squads.pickTarget(sq, cands, frame, { prefer = Const.ATTACK_PREFER })
 	if t then
 		return { id = t.id, x = t.x, z = t.z, name = "enemy " .. t.kind .. " (" .. t.name .. ")" }
 	end
@@ -4216,6 +4219,96 @@ function Engine.fireControl(sub)
 	end
 end
 
+-- dodging (sc_micro.lua dodge), every doctrine.micro.dodge.every frames: enemy shells and slow
+-- unguided missiles in the air over an army, where they will land, and the units that step out
+Engine.projWeapon = {} -- weaponDefID -> { r = blast radius } for those worth dodging, false otherwise
+
+function Engine.dodge(sub)
+	if sub.role ~= "army" or not Spring.GetProjectilesInRectangle then
+		return
+	end
+	local G = Engine.D.micro.dodge
+	local units, x1, z1, x2, z2 = {}, nil, nil, nil, nil
+	for u in pairs(sub.units) do
+		local d = unitDef(u)
+		local st = ustate[u]
+		if d and d.mobile and not d.air and (d.speed or 0) > 0 and not spGetUnitIsBeingBuilt(u) and not (st and st.manual)
+			and not (st and st.dodgeUntil and frame < st.dodgeUntil) then
+			local x, _, z = spGetUnitPosition(u)
+			if x then
+				units[#units + 1] = { id = u, x = x, z = z, speed = d.speed, radius = Spring.GetUnitRadius(u) or 0 }
+				x1, z1 = min(x1 or x, x), min(z1 or z, z)
+				x2, z2 = max(x2 or x, x), max(z2 or z, z)
+			end
+		end
+	end
+	if #units == 0 then
+		return
+	end
+	local pad = 400
+	local impacts = {}
+	for _, p in ipairs(Spring.GetProjectilesInRectangle(x1 - pad, z1 - pad, x2 + pad, z2 + pad, false, true) or {}) do
+		local wdID = Spring.GetProjectileDefID(p)
+		local w = wdID and Engine.projWeapon[wdID]
+		if wdID and w == nil then
+			local wd = WeaponDefs[wdID]
+			local r = wd and (wd.damageAreaOfEffect or 0) or 0
+			w = (wd and r >= G.minBlast and not wd.tracks and not wd.beamweapon) and { r = r, gravity = (wd.myGravity and wd.myGravity > 0) and wd.myGravity or nil } or false
+			Engine.projWeapon[wdID] = w
+		end
+		local team = w and Spring.GetProjectileTeamID(p)
+		if w and team and not Spring.AreTeamsAllied(team, myTeam) then
+			local px, py, pz = Spring.GetProjectilePosition(p)
+			local vx, vy, vz = Spring.GetProjectileVelocity(p)
+			local hs = sqrt((vx or 0) ^ 2 + (vz or 0) ^ 2)
+			if px and hs > 0 and hs <= G.maxSpeed then
+				-- where the shell comes down: its own arc (shots at a unit lead it, so the unit's position
+				-- isn't where it lands). Frames until it falls to the ground below where it would land.
+				local g = w.gravity or (Game.gravity or 120) / 900
+				local gy = spGetGroundHeight(px, pz)
+				local disc = vy * vy + 2 * g * (py - gy)
+				local fr = disc >= 0 and (vy + sqrt(disc)) / g or nil
+				if fr and fr > 0 then
+					local tx, tz = px + vx * fr, pz + vz * fr
+					-- once more with the ground at that point
+					gy = spGetGroundHeight(tx, tz)
+					disc = vy * vy + 2 * g * (py - gy)
+					fr = disc >= 0 and (vy + sqrt(disc)) / g or fr
+					tx, tz = px + vx * fr, pz + vz * fr
+					impacts[#impacts + 1] = { x = tx, z = tz, r = w.r, t = fr / 30 }
+				end
+			end
+		end
+	end
+	if #impacts == 0 then
+		return
+	end
+	for _, u in ipairs(units) do
+		local near = {}
+		for _, h in ipairs(impacts) do
+			if dist2(u.x, u.z, h.x, h.z) < (h.r + u.radius + G.margin) ^ 2 then
+				near[#near + 1] = h
+			end
+		end
+		if #near > 0 then
+			local dx, dz = Engine.micro.dodge(u, near)
+			if dx then
+				dx, dz = clampToMap(dx, dz)
+				local t = 0
+				for _, h in ipairs(near) do
+					t = max(t, h.t)
+				end
+				order(u.id, CMD.MOVE, { dx, spGetGroundHeight(dx, dz), dz })
+				local st = getState(u.id)
+				st.dodgeUntil, st.engaged, st.kiteUntil = frame + floor(t * 30) + 10, nil, nil
+				st.dodges = (st.dodges or 0) + 1
+				sub.dodges = (sub.dodges or 0) + 1
+				setTask(u.id, "dodge", "dodging incoming fire", true)
+			end
+		end
+	end
+end
+
 -- the commander (sc_commander.lua), each combat pass: its mode, D-gun shots, and at the front following
 -- the army. Returns true when it took the commander this pass.
 function Tactics.commander(sub, unitID, d, st)
@@ -4412,6 +4505,10 @@ local function thinkCombat(sub, unitID, d, st, threats)
 	if not x then
 		return
 	end
+	-- stepping out of incoming fire (Engine.dodge): leave it to finish
+	if st.dodgeUntil and frame < st.dodgeUntil then
+		return
+	end
 	-- badly damaged units worth saving fall back out of reach (threat map), where constructors repair them
 	local retreatAt = Engine.squads.retreatAt(d)
 	local hp, maxHp = Spring.GetUnitHealth(unitID)
@@ -4517,6 +4614,20 @@ local function thinkCombat(sub, unitID, d, st, threats)
 			local hdx, hdz = Engine.homeX - rx, Engine.homeZ - rz
 			local hl = max(sqrt(hdx * hdx + hdz * hdz), 1)
 			rx, rz = rx + hdx / hl * min(behind, hl), rz + hdz / hl * min(behind, hl)
+		end
+		-- a fighting retreat: in reach of the enemy, each pass (1 s) step back toward the rally point what
+		-- it covers in fallbackPace of the time, and stand and shoot the rest (fire control's set targets
+		-- pick the pursuers), instead of running the whole way with its back turned (our retreats traded
+		-- 0.15-0.37, strong players' about even: pro-micro.md)
+		local pace = Engine.D.engage.fallbackPace
+		local step = pace and max(40, (d.speed or 0) * pace * COMBAT_EVERY / 30)
+		if step and so and so.action == "fallback" and rx and dist2(x, z, rx, rz) > (step + 260) ^ 2 and Engine.tm.threat(x, z) > 0 then
+			local dx, dz = rx - x, rz - z
+			local len = max(sqrt(dx * dx + dz * dz), 1)
+			local gx, gz = clampToMap(x + dx / len * step, z + dz / len * step)
+			order(unitID, CMD.MOVE, { gx, spGetGroundHeight(gx, gz), gz })
+			setTask(unitID, "rally", "falling back, fighting", true)
+			return
 		end
 		if rx and dist2(x, z, rx, rz) > 260 * 260 and (not busy or (st.softUntil and frame > st.softUntil) or (so and so.action == "fallback")) then
 			local a = (unitID % 12) / 12 * 2 * pi
@@ -5369,6 +5480,7 @@ local function summarize(sub)
 		airWing = sub.airOrder and { action = sub.airOrder.action, power = floor(sub.airOrder.power), target = { x = floor(sub.airOrder.x), z = floor(sub.airOrder.z) } } or nil,
 		response = sub.responseOrder and { action = sub.responseOrder.action, power = sub.respSquad and floor(sub.respSquad.together) or 0 } or nil,
 		squad = sub.squadOrder and { action = sub.squadOrder.action, ratio = floor(sub.squadOrder.ratio * 10) / 10, target = { x = floor(sub.squadOrder.x), z = floor(sub.squadOrder.z) } } or nil,
+		dodges = sub.dodges, -- units that stepped out of incoming fire so far
 		paused = sub.paused,
 		ai = sub.ai or false,
 		directive = sub.directive,
@@ -5875,7 +5987,7 @@ end
 -- Text commands: /luaui sc <verb> [args]
 --------------------------------------------------------------------------------
 
-local HELP = {
+Const.HELP = {
 	"Sub-Commanders: /luaui sc <command>",
 	"  new [economy|defense|airdefense|army]   create one (becomes active)",
 	"  assign [id]      give selected units to the active (or given) sub-commander",
@@ -5978,7 +6090,7 @@ local function textCommand(_, line, words)
 		return n and findSub(n) or activeSub
 	end
 	if verb == "help" then
-		for _, l in ipairs(HELP) do
+		for _, l in ipairs(Const.HELP) do
 			spEcho(l)
 		end
 	elseif verb == "new" then
@@ -7294,7 +7406,7 @@ end
 
 -- where intruders come from: the direction (8 sectors around home) of each new intruder in our areas,
 -- fading by half every 5 minutes. The army waits on, and Defense builds toward, the busiest approach.
-local SECTOR_NAMES = { "west", "north-west", "north", "north-east", "east", "south-east", "south", "south-west" }
+Const.SECTOR_NAMES = { "west", "north-west", "north", "north-east", "east", "south-east", "south", "south-west" }
 
 function Engine.noteApproaches(threats)
 	if not Engine.homeX then
@@ -7350,7 +7462,7 @@ function Engine.approachText()
 		return nil
 	end
 	-- map z grows south: screen-north is -z
-	return sformat("most intruders lately came from the %s of our base (%.0f)", SECTOR_NAMES[s], n)
+	return sformat("most intruders lately came from the %s of our base (%.0f)", Const.SECTOR_NAMES[s], n)
 end
 
 -- the two economy guards nearest the commander escort it (recomputed every combat pass)
@@ -7521,6 +7633,12 @@ function widget:GameFrame(n)
 	if F.on and F.mode == "settarget" and n % (F.fireEvery or 15) == 0 then
 		for _, sub in ipairs(subs) do
 			Engine.fireControl(sub)
+		end
+	end
+	local G = Engine.D.micro.dodge
+	if G and G.on and n % (G.every or 6) == 0 then
+		for _, sub in ipairs(subs) do
+			Engine.dodge(sub)
 		end
 	end
 	local budget = MAX_THINKS_PER_PASS

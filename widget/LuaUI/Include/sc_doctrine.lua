@@ -27,6 +27,9 @@ D.engage = {
 	minAttack = 1200, -- metal value of the smallest squad that attacks on its own (BARb quota.attack)
 	chase = 2600, -- an army chases intruders it drove off this far from home (if it still beats them)
 	raid = { 250, 900 }, -- [min, max] metal value of a raid squad (BARb quota.raid)
+	-- falling back within the enemy's reach: back off at this share of top speed, standing to shoot in
+	-- between (false: one move all the way to the rally point; 0.5 is being measured in games)
+	fallbackPace = false,
 }
 
 -- raids (Army sub-commanders with Raids on): its fast units scout the enemy's side and hit what they beat
@@ -226,12 +229,20 @@ D.air = {
 D.micro = {
 	outrange = 0.9, -- an enemy with at least this fraction of our range isn't outranged: no kiting from it
 	kiteRange = 450, -- only units with at least this range kite (short-range kiters were rare in the data)
-	-- focus fire: armed enemies count this much more. mode "settarget": fire control (Engine.fireControl,
+	-- focus fire: armed enemies count this much more. mode "settarget" (interleaved lab A/B: no better than
+	-- "attack", -0.04 [-0.21, +0.13]): fire control (Engine.fireControl,
 	-- every `fireEvery` frames) gives each army unit a priority target with BAR's set-target command, which
 	-- leaves its movement alone, and splits fire: a target gets shooters until their damage over killTime
 	-- seconds covers its health x overkill (false: everyone on the best). mode "attack": attack orders
 	-- while engaging, a target kept `every` frames (a kind with focus = false fights what's nearest)
-	focus = { on = true, armed = 3, every = 45, mode = "settarget", fireEvery = 15, killTime = 2, overkill = 1.2 },
+	focus = { on = true, armed = 3, every = 45, mode = "attack", fireEvery = 15, killTime = 2, overkill = 1.2 },
+	-- dodging (Engine.dodge, every `every` frames; off: in the lab it cost fire and saved no units, see
+	-- test-games.md): enemy shells and missiles slower than maxSpeed
+	-- (elmos/frame) with a blast of at least minBlast (Shellshocker shells: 37.5; light cannons 24 aren't
+	-- worth it); a unit inside where one lands steps out if it can
+	-- (reach: share of its top speed it gets in the time left; shells landing sooner than minTime seconds
+	-- can't be dodged), to margin elmos beyond the blast
+	dodge = { on = false, every = 6, maxSpeed = 14, minBlast = 30, margin = 30, minTime = 0.3, reach = 0.7 },
 	kinds = {
 		default = { hold = 0.73, kite = false },
 		raider = { hold = 0.67, kite = false },
