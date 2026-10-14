@@ -30,3 +30,6 @@ uvx --with lightning-sdk python testenv/sandbox/sbx.py run <id> 'ls /opt/bar'   
   minutes (4.6x each); during a capacity crunch the same ran at ~1x (a pure-Python loop 2x slower, games
   CPU-bound). force measured 15x for two games at once at the same time. Check the game minute vs wall
   time early (`sbx.py run <id> 'tail -1 /opt/bar/games/g*/sctest_out.txt'`) before planning on a run.
+- Be a good neighbour: other teams' jobs fail with 503 when the pool is full. All our `bar-*` sandboxes
+  together stay under `BAR_MAX_SANDBOXES` (default 12; batch.py shrinks a run to fit). Prefer fewer
+  sandboxes for longer: the cost is the same.

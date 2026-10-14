@@ -119,3 +119,16 @@ func TestMatchupFindRecord(t *testing.T) {
 		t.Errorf("recorded %+v gen %d", last, again.Generation)
 	}
 }
+
+func TestMissingRulesAreIgnored(t *testing.T) {
+	s := New("k", []Param{{Name: "a", Min: 0, Max: 10, Default: 5}, {Name: "b", Min: 0, Max: 10, Default: 5}})
+	// trials drawn before "b" existed
+	trials := []Trial{{Rules: map[string]float64{"a": 5}, Score: 1}, {Rules: map[string]float64{"a": 6}, Score: 0.9}, {Rules: map[string]float64{"a": 1}, Score: 0}}
+	sum := s.Update(trials)
+	if s.Mean["b"] != 5 {
+		t.Errorf("b moved to %.2f without data", s.Mean["b"])
+	}
+	if sum.MeanTrials < 0 {
+		t.Error("the first trial is the mean on the rules it had")
+	}
+}

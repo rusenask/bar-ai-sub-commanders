@@ -175,6 +175,21 @@ ranged -> harass; else balanced. An auto style holds a minute.
 The numbers come from 143 strong players' duels (docs/research/pro-micro.md): fight from 0.7-0.8 of range,
 only long-range units (450+) kite, at 0.6 of range; heavies lead; no siege habit outside the siege style.
 
+## The bridge link (sc_link.lua, internal/game transport*.go)
+
+The AI widget only speaks the protocol (hello, state, actions, results, decisions, learned rules, game
+over); `sc_link.lua` carries it: `link.update()` each frame, `link.send(msg)`, callbacks `onConnect`,
+`onMessage`, `onDisconnect`. Two transports behind it: TCP (LuaSocket), and files in
+`LuaUI/Config/scbridge/` for BAR from game version test-31614, which takes sockets away from widgets
+(`SubCommandersBridgeFiles = 1` forces it). On the bridge, `Server.Serve(ctx, Listener)` takes either a
+`TCPListener` or a `FileListener`; each new link replaces the old one.
+
+Files: `session.txt` names the game's session; the widget appends to `<session>.w2b.<n>.jsonl` in 2 MB
+segments that end with `{"type":"next"}`, and reads `<session>.b2w.jsonl` (at most 5 times a second).
+The bridge follows the segments and deletes each finished one, removes a session's files when the next
+session starts, deletes files older than a day at start, and pings every 10 s (the widget drops a bridge
+silent for 30 s). Checked in a headless game on force with `cmd/linkcheck` over both transports.
+
 ## Zones are optional
 
 A sub-commander without player-drawn zones gets **auto zones** recomputed by role: economy around our

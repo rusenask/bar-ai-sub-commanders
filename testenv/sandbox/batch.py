@@ -140,6 +140,18 @@ def main():
     tgz = stage(args)
     runner = (T / "sandbox/run_games.sh").read_bytes()
     limit = args.minutes * 60 // 2 + 300
+    # the pool is shared with the teamspace (others' jobs fail with 503 when it's full): all our bar-*
+    # sandboxes together stay under BAR_MAX_SANDBOXES (default 12); a run that would pass it gets fewer
+    cap = int(os.environ.get("BAR_MAX_SANDBOXES", "12"))
+    try:
+        running = sum(1 for sb in Sandbox().list(teamspace=TEAMSPACE).sandboxes
+                      if (sb.name or "").startswith("bar-") and str(sb.status).lower() == "running")
+    except Exception:
+        running = 0
+    allowed = max(1, cap - running)
+    if args.sandboxes > allowed:
+        print(f"{running} of our sandboxes already run (cap {cap}): using {allowed} instead of {args.sandboxes}", flush=True)
+        args.sandboxes = allowed
     n = min(args.sandboxes, args.games)
     per = [(args.games * k // n + 1, args.games * (k + 1) // n) for k in range(n)]
     gens = args.generations if args.learn else 1

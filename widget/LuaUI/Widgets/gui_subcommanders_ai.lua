@@ -1,8 +1,8 @@
 --------------------------------------------------------------------------------
 -- Sub-Commanders AI link
 --
--- Connects the Sub-Commanders widget to scbridge (localhost TCP, one JSON
--- object per line). The bridge runs the LLM strategist through opencode; this
+-- Connects the Sub-Commanders widget to scbridge (one JSON object per line over
+-- sc_link.lua: TCP, or files in LuaUI/Config/scbridge/ where BAR takes sockets away). The bridge runs the LLM strategist through opencode; this
 -- widget only reports state and applies the high-level actions it sends back.
 --
 --   widget -> bridge: hello, state (every 3 game seconds), result, gameover
@@ -30,24 +30,13 @@ end
 
 local PROTOCOL = 1
 local STATE_EVERY = 90 -- frames
-local RETRY_SECONDS = 5
 
 local address = Spring.GetConfigString("SubCommandersBridge", "127.0.0.1:7878")
-local host, port = address:match("^([^:]+):(%d+)$")
-port = tonumber(port)
-
-local client
-local link = "offline" -- offline | connecting | online
-local nextAttempt = 0
-local inbuf, outbuf = "", ""
+-- the connection to the bridge (sc_link.lua, made in Initialize): TCP, or files where BAR takes sockets
+-- away from widgets (test-31614+); springsettings.cfg SubCommandersBridgeFiles = 1 forces files
+local link
 local lastStateFrame = -STATE_EVERY
 local announcedOffline = false
-
--- the file transport (no sockets): this game's session, its outgoing file, how far the incoming one is read
-local FILES = "LuaUI/Config/scbridge/"
--- (springsettings.cfg SubCommandersBridgeFiles = 1 forces it, to test it on a BAR that still has sockets)
-local useFiles = not socket or Spring.GetConfigInt("SubCommandersBridgeFiles", 0) == 1
-local session, outFile, inOffset, lastHeard = nil, nil, 0, 0
 
 -- decision model behind the bridge (optional): requests waiting for an answer
 local decider = { enabled = false, nextID = 0, pending = {} }
@@ -55,41 +44,16 @@ local decider = { enabled = false, nextID = 0, pending = {} }
 local ROLE_OK = { economy = true, defense = true, airdefense = true, army = true, intelligence = true, air = true }
 local POSTURE_OK = { conserve = true, balanced = true, spend = true }
 
-local function now()
-	return os.clock()
-end
-
 local function SC()
 	return WG.SubCommanders
 end
 
 local function send(msg)
-	if link ~= "online" then
-		return
-	end
-	outbuf = outbuf .. Json.encode(msg) .. "\n"
+	return link ~= nil and link.send(msg)
 end
 
-local function disconnect(reason)
-	if client then
-		client:close()
-	end
-	if outFile then
-		outFile:close()
-		outFile = nil
-	end
-	for id, cb in pairs(decider.pending) do
-		decider.pending[id] = nil
-		cb.fn(nil, "bridge disconnected")
-	end
-	decider.enabled = false
-	client = nil
-	inbuf, outbuf = "", ""
-	if link == "online" then
-		Spring.Echo("Sub-Commanders AI: bridge disconnected (" .. tostring(reason) .. ")")
-	end
-	link = "offline"
-	nextAttempt = now() + RETRY_SECONDS
+local function linkStatus()
+	return link and link.status() or "offline"
 end
 
 local function gameInfo()
@@ -313,40 +277,23 @@ local function apply(msg)
 	return true
 end
 
-local function handle(line)
-	local ok, msg = pcall(Json.decode, line)
-	if not ok or type(msg) ~= "table" then
-		Spring.Echo("Sub-Commanders AI: bad message from bridge")
-		return
-	end
-	-- the file transport has no connection to watch: any message means the bridge is there
-	lastHeard = now()
-	if useFiles and link == "connecting" then
-		link = "online"
-		announcedOffline = false
-		Spring.Echo("Sub-Commanders AI: connected to bridge through " .. FILES)
-		sendState()
-	end
+-- what the bridge sends: actions for sub-commanders, decision-model answers, learned rules, its config
+local function onMessage(msg)
 	if msg.type == "learned" then
 		-- rules learned from past games of this matchup (internal/learn), for the whole team
 		local sc = SC()
 		if sc and sc.applyLearned and type(msg.args) == "table" then
 			sc.applyLearned(msg.args)
 		end
-		return
-	end
-	if msg.type == "config" then
+	elseif msg.type == "config" then
 		decider.enabled = type(msg.args) == "table" and msg.args.decider == true
-		return
 	elseif msg.type == "decision" then
 		local cb = decider.pending[msg.id]
 		decider.pending[msg.id] = nil
 		if cb then
 			cb.fn(msg.ok and msg.data or nil, msg.error)
 		end
-		return
-	end
-	if msg.type == "action" then
+	elseif msg.type == "action" then
 		local okApply, data, err = pcall(apply, msg)
 		if not okApply then
 			data, err = nil, tostring(data)
@@ -355,131 +302,19 @@ local function handle(line)
 	end
 end
 
--- complete lines in inbuf go to handle()
-local function drain()
-	while true do
-		local nl = inbuf:find("\n", 1, true)
-		if not nl then
-			break
-		end
-		local line = inbuf:sub(1, nl - 1)
-		inbuf = inbuf:sub(nl + 1)
-		if #line > 0 then
-			handle(line)
-		end
-	end
+local function onConnect()
+	announcedOffline = false
+	Spring.Echo("Sub-Commanders AI: connected to the bridge (" .. link.transport() .. ")")
+	sendState()
 end
 
--- the file transport: write what's queued, read what the bridge appended since last time; a bridge
--- silent for 30 s (it pings every 10) is gone
-local function pumpFiles()
-	if #outbuf > 0 and outFile then
-		outFile:write(outbuf)
-		outFile:flush()
-		outbuf = ""
+local function onDisconnect(reason)
+	for id, cb in pairs(decider.pending) do
+		decider.pending[id] = nil
+		cb.fn(nil, "bridge disconnected")
 	end
-	local f = io.open(FILES .. session .. ".b2w.jsonl", "r")
-	if f then
-		f:seek("set", inOffset)
-		local data = f:read("*a")
-		f:close()
-		if data and #data > 0 then
-			inOffset = inOffset + #data
-			inbuf = inbuf .. data
-			drain()
-		end
-	end
-	if link == "online" and now() - lastHeard > 30 then
-		disconnect("bridge silent")
-	end
-end
-
-local function pump()
-	if useFiles then
-		pumpFiles()
-		return
-	end
-	-- read
-	local data, err, partial = client:receive(65536)
-	local chunk = data or partial
-	if chunk and #chunk > 0 then
-		inbuf = inbuf .. chunk
-		while true do
-			local nl = inbuf:find("\n", 1, true)
-			if not nl then
-				break
-			end
-			local line = inbuf:sub(1, nl - 1)
-			inbuf = inbuf:sub(nl + 1)
-			if #line > 0 then
-				handle(line)
-			end
-		end
-	end
-	if err == "closed" then
-		disconnect("closed")
-		return
-	end
-	-- write
-	if #outbuf > 0 then
-		local sent, werr, last = client:send(outbuf)
-		local n = sent or last or 0
-		if n > 0 then
-			outbuf = outbuf:sub(n + 1)
-		end
-		if werr == "closed" then
-			disconnect("closed")
-		end
-	end
-end
-
-local function tryConnect()
-	if useFiles then
-		-- a session per game; announcing it (again) makes the bridge (re)read our file from the start
-		Spring.CreateDir("LuaUI/Config/scbridge")
-		session = session or (tostring(os.time()) .. "-" .. tostring(math.random(100000, 999999)))
-		local f = io.open(FILES .. "session.txt", "w")
-		outFile = io.open(FILES .. session .. ".w2b.jsonl", "a")
-		if not f or not outFile then
-			if f then
-				f:close()
-			end
-			link, nextAttempt = "offline", now() + RETRY_SECONDS * 6
-			return
-		end
-		f:write(session)
-		f:close()
-		inOffset, inbuf, lastHeard = 0, "", now()
-		outFile:write(Json.encode({ type = "hello", game = gameInfo() }) .. "\n")
-		outFile:flush()
-		link = "connecting"
-		return
-	end
-	if not socket or not host then
-		return
-	end
-	client = socket.tcp()
-	client:settimeout(0)
-	client:connect(host, port)
-	link = "connecting"
-	nextAttempt = now() + RETRY_SECONDS
-end
-
-local function checkConnected()
-	local _, writable = socket.select(nil, { client }, 0)
-	if writable and #writable > 0 then
-		if client:getpeername() then
-			link = "online"
-			announcedOffline = false
-			Spring.Echo("Sub-Commanders AI: connected to bridge at " .. address)
-			send({ type = "hello", game = gameInfo() })
-			sendState()
-			return
-		end
-		disconnect("refused")
-	elseif now() > nextAttempt then
-		disconnect("timeout")
-	end
+	decider.enabled = false
+	Spring.Echo("Sub-Commanders AI: bridge disconnected (" .. tostring(reason) .. ")")
 end
 
 local function markOffline()
@@ -495,27 +330,18 @@ local function markOffline()
 end
 
 function widget:Update()
-	if link == "offline" then
-		if now() >= nextAttempt then
-			tryConnect()
-		elseif not announcedOffline then
-			announcedOffline = true
-			markOffline()
-		end
-	elseif link == "connecting" and useFiles then
-		pumpFiles()
-	elseif link == "connecting" then
-		checkConnected()
-	else
-		pump()
+	link.update()
+	if link.status() == "offline" and not announcedOffline then
+		announcedOffline = true
+		markOffline()
 	end
 end
 
 function widget:GameFrame(n)
-	if link == "online" and n - lastStateFrame >= STATE_EVERY then
+	if linkStatus() == "online" and n - lastStateFrame >= STATE_EVERY then
 		lastStateFrame = n
 		sendState()
-	elseif link ~= "online" and n % 300 == 0 then
+	elseif linkStatus() ~= "online" and n % 300 == 0 then
 		markOffline()
 	end
 end
@@ -538,25 +364,42 @@ function widget:GameOver(winners)
 end
 
 function widget:Initialize()
-	if not socket then
-		Spring.Echo("Sub-Commanders AI: no sockets here (newer BAR or LuaSocketEnabled = 0): linking through " .. FILES)
-	end
 	if Spring.GetSpectatingState() then
 		widgetHandler:RemoveWidget()
 		return
 	end
-	WG.SubCommandersAI = {
-		linkStatus = function()
-			return link
+	local files = not socket or Spring.GetConfigInt("SubCommandersBridgeFiles", 0) == 1
+	link = VFS.Include("LuaUI/Include/sc_link.lua", nil, VFS.RAW_FIRST)({
+		address = address,
+		files = files,
+		socket = socket,
+		json = Json,
+		mkdir = function(dir)
+			Spring.CreateDir(dir)
 		end,
+		sessionID = function()
+			return tostring(os.time()) .. "-" .. tostring(math.random(100000, 999999))
+		end,
+		hello = function()
+			return { type = "hello", game = gameInfo() }
+		end,
+		onConnect = onConnect,
+		onMessage = onMessage,
+		onDisconnect = onDisconnect,
+	})
+	if files then
+		Spring.Echo("Sub-Commanders AI: no sockets here (newer BAR, or forced): linking through LuaUI/Config/scbridge/")
+	end
+	WG.SubCommandersAI = {
+		linkStatus = linkStatus,
 		address = address,
 		-- is a decision model available behind the bridge?
 		deciderReady = function()
-			return link == "online" and decider.enabled
+			return linkStatus() == "online" and decider.enabled
 		end,
 		-- ask the decision model: state (text), questions (systemone format); fn(answers, err) runs later
 		decide = function(sub, state, questions, fn)
-			if link ~= "online" or not decider.enabled then
+			if linkStatus() ~= "online" or not decider.enabled then
 				return false
 			end
 			decider.nextID = decider.nextID + 1
@@ -567,7 +410,7 @@ function widget:Initialize()
 		-- ask one of our own decision models (design/decision-models.md): the bridge renders the features
 		-- of task "fight", "unit" or "turret" into text and routes the request; fn(answers, err) runs later
 		decideTask = function(sub, task, features, fn)
-			if link ~= "online" or not decider.enabled then
+			if linkStatus() ~= "online" or not decider.enabled then
 				return false
 			end
 			decider.nextID = decider.nextID + 1
@@ -579,8 +422,8 @@ function widget:Initialize()
 end
 
 function widget:Shutdown()
-	if client then
-		client:close()
+	if link then
+		link.close()
 	end
 	WG.SubCommandersAI = nil
 end

@@ -31,7 +31,11 @@ func TestFileTransport(t *testing.T) {
 		over = summary
 		close(gotOver)
 	}
-	go s.RunFiles(ctx, dir)
+	fl, err := ListenFiles(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	go s.Serve(ctx, fl)
 
 	appendLine := func(name, line string) {
 		f, err := os.OpenFile(filepath.Join(dir, name), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
@@ -44,7 +48,7 @@ func TestFileTransport(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, "session.txt"), []byte("s1\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	appendLine("s1.w2b.jsonl", `{"type":"hello","game":{"map":"Testmap","faction":"Cortex","enemies":["Armada"],"frame":30}}`)
+	appendLine("s1.w2b.0.jsonl", `{"type":"hello","game":{"map":"Testmap","faction":"Cortex","enemies":["Armada"],"frame":30}}`)
 
 	// the bridge answers hello with its config
 	waitFor := func(what string, cond func() bool) {
@@ -110,7 +114,7 @@ func TestFileTransport(t *testing.T) {
 		}
 		return false
 	})
-	appendLine("s1.w2b.jsonl", `{"type":"result","id":`+strings.TrimSuffix(strings.TrimSuffix(jsonNum(id), ".0"), ".")+`,"ok":true,"data":{"done":true}}`)
+	appendLine("s1.w2b.0.jsonl", `{"type":"result","id":`+strings.TrimSuffix(strings.TrimSuffix(jsonNum(id), ".0"), ".")+`,"ok":true,"data":{"done":true}}`)
 	if err := <-done; err != nil {
 		t.Fatal(err)
 	}
@@ -118,7 +122,7 @@ func TestFileTransport(t *testing.T) {
 		t.Errorf("result %s", got)
 	}
 
-	appendLine("s1.w2b.jsonl", `{"type":"gameover","args":{"won":true,"minutes":40}}`)
+	appendLine("s1.w2b.0.jsonl", `{"type":"gameover","args":{"won":true,"minutes":40}}`)
 	select {
 	case <-gotOver:
 	case <-time.After(5 * time.Second):
@@ -130,11 +134,54 @@ func TestFileTransport(t *testing.T) {
 
 	// a new session replaces the old one
 	os.WriteFile(filepath.Join(dir, "session.txt"), []byte("s2"), 0o644)
-	appendLine("s2.w2b.jsonl", `{"type":"hello","game":{"map":"Other","frame":1}}`)
+	appendLine("s2.w2b.0.jsonl", `{"type":"hello","game":{"map":"Other","frame":1}}`)
 	waitFor("second session", func() bool {
 		info, _, _ := s.Snapshot()
 		return info != nil && info.Map == "Other"
 	})
+	// and the first session's files are gone
+	waitFor("old session cleaned up", func() bool {
+		old, _ := filepath.Glob(filepath.Join(dir, "s1.*"))
+		return len(old) == 0
+	})
+}
+
+// The widget's segments: a full one ends with "next"; the bridge reads on into the following one and
+// deletes the finished one. Files left by old games go at start.
+func TestFileSegmentsAndCleanup(t *testing.T) {
+	dir := t.TempDir()
+	stale := filepath.Join(dir, "old.w2b.0.jsonl")
+	os.WriteFile(stale, []byte("x\n"), 0o644)
+	past := time.Now().Add(-2 * MaxAge)
+	os.Chtimes(stale, past, past)
+	fl, err := ListenFiles(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(stale); !os.IsNotExist(err) {
+		t.Error("files from old games are removed at start")
+	}
+	os.WriteFile(filepath.Join(dir, "session.txt"), []byte("s9"), 0o644)
+	os.WriteFile(filepath.Join(dir, "s9.w2b.0.jsonl"), []byte(`{"type":"a"}`+"\n"+`{"type":"next"}`+"\n"), 0o644)
+	os.WriteFile(filepath.Join(dir, "s9.w2b.1.jsonl"), []byte(`{"type":"b"}`+"\n"), 0o644)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	c, err := fl.Accept(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close()
+	sc := bufio.NewScanner(c)
+	var got []string
+	for len(got) < 2 && sc.Scan() {
+		got = append(got, sc.Text())
+	}
+	if strings.Join(got, ",") != `{"type":"a"},{"type":"b"}` {
+		t.Errorf("read %v", got)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "s9.w2b.0.jsonl")); !os.IsNotExist(err) {
+		t.Error("a finished segment is deleted")
+	}
 }
 
 func jsonNum(f float64) string {

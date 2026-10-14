@@ -65,7 +65,7 @@ type GenSummary struct {
 
 // Search settings.
 const (
-	StartSigma = 0.15 // of each rule's range
+	StartSigma = 0.08 // of each rule's range (0.15 on 18 rules at once broke most games: 16 of 24 lost)
 	MinSigma   = 0.03
 	EliteShare = 0.3
 	Step       = 0.5 // how far the mean moves toward the elites per generation
@@ -204,9 +204,13 @@ func (s *Store) Sample(n int, rng *rand.Rand) []map[string]float64 {
 	return out
 }
 
-// IsMean reports whether rules are the store's mean (a measuring sample).
+// IsMean reports whether rules are the store's mean (a measuring sample). Rules the sample didn't have
+// (added to the doctrine after it was drawn) don't count.
 func (s *Store) IsMean(rules map[string]float64) bool {
 	for _, p := range s.Params {
+		if _, ok := rules[p.Name]; !ok {
+			continue
+		}
 		m := clamp(s.Mean[p.Name], p.Min, p.Max)
 		if p.Int {
 			m = math.Round(m)
@@ -280,7 +284,13 @@ func (s *Store) Update(trials []Trial) GenSummary {
 		}
 		var vals []float64
 		for _, e := range elites {
-			vals = append(vals, (e.Rules[p.Name]-p.Min)/span)
+			// a rule the game didn't have (added after the sample was drawn) says nothing about it
+			if v, ok := e.Rules[p.Name]; ok {
+				vals = append(vals, (v-p.Min)/span)
+			}
+		}
+		if len(vals) == 0 {
+			continue
 		}
 		m := (s.Mean[p.Name] - p.Min) / span
 		em := avg(vals)

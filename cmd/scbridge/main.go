@@ -146,8 +146,12 @@ func run() error {
 	errc := make(chan error, 1)
 	go func() { errc <- g.Run(ctx) }()
 	if *gameFiles != "" {
+		fl, err := game.ListenFiles(*gameFiles)
+		if err != nil {
+			return fmt.Errorf("file transport: %w", err)
+		}
 		go func() {
-			if err := g.RunFiles(ctx, *gameFiles); err != nil {
+			if err := g.Serve(ctx, fl); err != nil {
 				log.Error("file transport", "err", err)
 			}
 		}()

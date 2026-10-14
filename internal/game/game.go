@@ -7,10 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
-	"io"
 	"log/slog"
-	"net"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -165,7 +162,7 @@ type Server struct {
 	OnGameOver func(info *Info, summary map[string]any)
 
 	mu      sync.Mutex
-	conn    io.ReadWriteCloser // a TCP connection or a file session (files.go)
+	conn    Conn // the widget's link (transport.go)
 	info    *Info
 	state   *State
 	over    bool
@@ -180,29 +177,17 @@ func NewServer(addr string, log *slog.Logger) *Server {
 	return &Server{addr: addr, log: log, pending: map[int64]chan result{}}
 }
 
-// Run listens until ctx is cancelled.
+// Run serves the TCP link on the server's address until ctx is cancelled (Serve takes any Listener).
 func (s *Server) Run(ctx context.Context) error {
-	var lc net.ListenConfig
-	ln, err := lc.Listen(ctx, "tcp", s.addr)
+	l, err := ListenTCP(ctx, s.addr)
 	if err != nil {
-		return fmt.Errorf("listen %s: %w", s.addr, err)
+		return err
 	}
-	context.AfterFunc(ctx, func() { ln.Close() })
-	s.log.Info("waiting for the game", "addr", ln.Addr())
-	for {
-		conn, err := ln.Accept()
-		if err != nil {
-			if ctx.Err() != nil {
-				return nil
-			}
-			return err
-		}
-		s.attach(conn)
-	}
+	return s.Serve(ctx, l)
 }
 
 // attach makes conn the game's connection (replacing any other) and serves it.
-func (s *Server) attach(conn io.ReadWriteCloser) {
+func (s *Server) attach(conn Conn) {
 	s.mu.Lock()
 	if s.conn != nil {
 		s.conn.Close()
@@ -212,14 +197,8 @@ func (s *Server) attach(conn io.ReadWriteCloser) {
 	go s.serve(conn)
 }
 
-func (s *Server) serve(conn io.ReadWriteCloser) {
-	from := "?"
-	if c, ok := conn.(net.Conn); ok {
-		from = c.RemoteAddr().String()
-	} else if c, ok := conn.(fmt.Stringer); ok {
-		from = c.String()
-	}
-	s.log.Info("game connected", "from", from)
+func (s *Server) serve(conn Conn) {
+	s.log.Info("game connected", "from", conn.Describe())
 	sc := bufio.NewScanner(conn)
 	sc.Buffer(make([]byte, 0, 64*1024), 16*1024*1024)
 	for sc.Scan() {
