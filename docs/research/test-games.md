@@ -395,3 +395,29 @@ code (v16 mostly never reached the hand-off: its lab built Infestors). Re-measur
   start.
 - Scores ranged -44.8 to +7.0 (SD 10.3, median -15.7): the game's course swamps rule changes of this size.
   Not validated, not served.
+
+## Battle lab: overkill-aware focus fire (72 each) — not kept
+
+- 20261014-1322-battle-bresp2 (focus) vs 20261014-1330-battle-boverkill (a target with 1.5x its health
+  already coming its way is left to the others): efficiency -0.04 [-0.18, +0.13], share lost +0.01, score
+  0.00, all can't tell. Legion mirror read worse (0.80 vs 1.05), the others a little better. Dropped.
+
+## Battle lab with defend specs (9 specs x 8): response squad only from units at home — kept for a game test
+
+| Spec | Efficiency base → arm | Won / drawn / lost base → arm |
+|---|---|---|
+| armada-mirror | 2.59 → 2.00 | 1/7/0 → 7/1/0 |
+| cortex-mirror | 4.15 → 2.13 | 7/1/0 → 7/1/0 |
+| heavy-defend | 0.84 → 1.16 | 3/0/5 → 5/1/2 |
+| heavy-mirror | 0.90 → 1.14 | 3/0/5 → 4/0/4 |
+| legion-defend | 0.93 → 1.33 | 2/6/0 → 5/0/3 |
+| legion-mirror | 0.80 → 1.46 | 2/6/0 → 5/0/3 |
+| raiders-defend | 0.67 → 1.14 | 0/8/0 → 4/1/3 |
+| raiders-mirror | 0.71 → 1.06 | 2/2/4 → 4/1/3 |
+| skirmishers-vs-assault | 8.00 → 8.00 | 8/0/0 → 8/0/0 |
+
+- 20261014-1339-battle-bbase9 vs 20261014-1347-battle-bresp9: efficiency (log2) +0.24 [+0.06, +0.43]
+  **better**, score +0.19 [+0.04, +0.32] **better**, share lost +0.04 can't tell.
+- Against standing enemies (NullAI without `attack`) the same change read worse in the 6-spec lab: a
+  cautious army that holds trades well against an enemy that never comes. With them attacking, keeping
+  the whole army in the fight wins. The standing-only lab was biased toward caution; defend specs fix it.

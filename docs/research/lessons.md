@@ -20,6 +20,12 @@ out wrong.
 - Battles differ far more between specs than a micro change moves them: pooled over 6 specs, focus fire
   read "can't tell"; compared within each spec, it was clearly better with the same 36 battles a side.
   Battle verdicts stratify by spec. (battle lab, focus on/off)
+- A lab only measures the fights it stages: against enemies that stand still, the cautious army (hold
+  at 0.8x) traded best and "keep the whole army in the fight" read worse; once a third of the specs had
+  the enemy attack, the same change read clearly better. Give every lab both sides of a fight.
+  (battle lab, defend specs)
+- Micro that helps while engaging can hurt elsewhere: focus fire while holding pulled units off the line
+  into the enemy one by one (efficiency -0.36). (battle lab, contact arm)
 - A learning run can look healthy and learn nothing: the staged rules (rule@mid) were never in the saved
   store, so two generations moved nothing and every game counted as "the mean's own". Check that the
   searched rules appear in `learn show` and that "the mean's games" differs from the average after the
