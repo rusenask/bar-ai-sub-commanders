@@ -23,3 +23,6 @@ uvx --with lightning-sdk python testenv/sandbox/sbx.py run <id> 'ls /opt/bar'   
 - Sandboxes are deleted at the end of every batch, and have a create-time timeout as a safety net.
 - `--side` / `--enemy-side` pick the factions (team 0 is ours): the harness's scripted player takes its
   units from our commander's prefix (leg / arm / cor).
+- The pool is shared with the teamspace: creation can fail with `503 no sandbox capacity available` (or
+  a bare 500). batch.py retries with backoff for ~20 minutes, alternating with the next smaller instance
+  (half the games at a time), and stops if none comes up. 36 cpu-16 at once was refused; 9 worked.
