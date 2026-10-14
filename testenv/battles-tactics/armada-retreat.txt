@@ -1,0 +1,11 @@
+# armada-retreat
+us armhlt 1 -900 -200
+us armhlt 1 -900 200
+us armllt 2 -850 0
+us armstump 6
+us armrock 4
+them armstump 16
+them armrock 8
+distance 1200
+seconds 180
+attack 1

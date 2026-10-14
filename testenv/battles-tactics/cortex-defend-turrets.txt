@@ -1,0 +1,13 @@
+# cortex-defend-turrets
+us corhlt 1 -100 -250
+us corhlt 1 -100 250
+us corllt 1 0 -100
+us corllt 1 0 100
+us corraid 8 -200 0
+us corstorm 4 -300 0
+them corraid 16
+them corstorm 8
+them corwolv 4
+distance 1600
+seconds 180
+attack 1

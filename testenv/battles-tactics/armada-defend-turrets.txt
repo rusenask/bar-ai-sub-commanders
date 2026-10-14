@@ -1,0 +1,13 @@
+# armada-defend-turrets
+us armhlt 1 -100 -250
+us armhlt 1 -100 250
+us armllt 1 0 -100
+us armllt 1 0 100
+us armstump 8 -200 0
+us armrock 4 -300 0
+them armstump 16
+them armrock 8
+them armart 4
+distance 1600
+seconds 180
+attack 1

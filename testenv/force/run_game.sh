@@ -10,10 +10,20 @@ for try in 1 2; do
 	rm -rf "$G"
 	cp -r "$B/template" "$G"
 	cd "$G" || exit 1
-	# battles: game i takes spec ((i-1) mod count) of the template's battles/
+	# an interleaved A/B (force-batch.sh WIDGET_SRC_B): even games play arm B, each pair the same spec
+	pair=$(( I - 1 ))
+	if [ -d armB ]; then
+		if [ $((I % 2)) = 0 ]; then
+			rm -f LuaUI/Widgets/gui_subcommanders*.lua LuaUI/Include/sc_*.lua
+			cp armB/Widgets/*.lua LuaUI/Widgets/ && cp armB/Include/*.lua LuaUI/Include/
+		fi
+		rm -rf armB
+		pair=$(( (I - 1) / 2 ))
+	fi
+	# battles: game i takes spec (pair mod count) of the template's battles/
 	if [ -d battles ]; then
 		specs=(battles/*.txt)
-		mkdir -p LuaUI/Config && cp "${specs[$(( (I - 1) % ${#specs[@]} ))]}" LuaUI/Config/sctest_battle.txt
+		mkdir -p LuaUI/Config && cp "${specs[$(( pair % ${#specs[@]} ))]}" LuaUI/Config/sctest_battle.txt
 	fi
 	SPRING_DATADIR="$HOME/bar-sim/data:$HOME/bar-sim/engine" timeout "$LIMIT" \
 		"$HOME/bar-sim/engine/spring-headless" --write-dir "$G" "$G/script.txt" > run.log 2>&1

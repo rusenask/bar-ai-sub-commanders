@@ -1,0 +1,11 @@
+# cortex-retreat
+us corhlt 1 -900 -200
+us corhlt 1 -900 200
+us corllt 2 -850 0
+us corraid 6
+us corstorm 4
+them corraid 16
+them corstorm 8
+distance 1200
+seconds 180
+attack 1

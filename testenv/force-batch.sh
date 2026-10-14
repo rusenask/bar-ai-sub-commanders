@@ -1,5 +1,5 @@
 #!/bin/bash
-# usage: [LABEL=name] [WIDGET_SRC=...] [SIDE=Legion] [ENEMY_SIDE=Armada] [PARALLEL=4] [AI_PROFILE=medium] [MAP="..."] [SPEED=100] [OVERLAY=rules.json]
+# usage: [LABEL=name] [WIDGET_SRC=...] [WIDGET_SRC_B=... (interleaved A/B)] [SIDE=Legion] [ENEMY_SIDE=Armada] [PARALLEL=4] [AI_PROFILE=medium] [MAP="..."] [SPEED=100] [OVERLAY=rules.json]
 #        [DUEL_MINUTES=60] testenv/force-batch.sh <games> [scenario: duelrules|autopilot]
 # Runs a batch on the force GPU host (FORCE_HOST, default force) with the headless engine, PARALLEL
 # games at a time at up to SPEED x, and collects it into testenv/batch/<stamp>-<label>/ like batch.sh
@@ -43,6 +43,15 @@ STAGE="$(mktemp -d)"
 mkdir -p "$STAGE/LuaUI/Widgets" "$STAGE/LuaUI/Include"
 cp "$SRC"/gui_subcommanders*.lua "$STAGE/LuaUI/Widgets/"
 cp "$SRC"/../Include/sc_*.lua "$STAGE/LuaUI/Include/" 2>/dev/null || cp "$T"/../widget/LuaUI/Include/sc_*.lua "$STAGE/LuaUI/Include/"
+if [ -n "$WIDGET_SRC_B" ]; then
+	# an interleaved A/B: arm B's widgets play the even games (run_game.sh), each pair the same spec
+	[ -f "$WIDGET_SRC_B/gui_subcommanders.lua" ] || { echo "force-batch.sh: no widgets in $WIDGET_SRC_B" >&2; exit 1; }
+	[ $((N % 2)) = 0 ] || { echo "force-batch.sh: WIDGET_SRC_B needs an even number of games" >&2; exit 1; }
+	mkdir -p "$STAGE/armB/Widgets" "$STAGE/armB/Include"
+	cp "$WIDGET_SRC_B"/gui_subcommanders*.lua "$STAGE/armB/Widgets/"
+	cp "$WIDGET_SRC_B"/../Include/sc_*.lua "$STAGE/armB/Include/"
+	echo "widgets B: $WIDGET_SRC_B (interleaved: odd games A, even games B)" >> "$DIR/meta.txt"
+fi
 # the harness; no rendering here, so the game may run far faster than the 20x it allows on a desktop
 sed 's/setmaxspeed 20/setmaxspeed 1000/g' "$T/LuaUI/Widgets/zz_sctest.lua" > "$STAGE/LuaUI/Widgets/zz_sctest.lua"
 [ "$SCENARIO" = autopilot ] && sed -i '' 's/enabled = false,/enabled = true,/' "$STAGE/LuaUI/Widgets/gui_subcommanders_autopilot.lua"
@@ -101,5 +110,6 @@ crashed=$(grep -c "WIDGET CRASHED" "$DIR/results.txt" || true)
 [ "$crashed" -gt 0 ] && echo "WARNING: the Sub-Commanders widget crashed in $crashed games: results are invalid" | tee -a "$DIR/meta.txt"
 echo "$SCENARIO vs $AI_PROFILE ${MAP:-All That Simmers}: $ran/$N ran: $wins won, $timeouts alive at $DUEL_MINUTES min, $losses lost" | tee -a "$DIR/meta.txt"
 (cd "$T/.." && go run ./cmd/gamereport -title "Batch $(basename "$DIR")" "$DIR") > "$DIR/report.md" 2>&1
+[ -n "$WIDGET_SRC_B" ] && "$T/split-arms.sh" "$DIR" "$SRC" "$WIDGET_SRC_B"
 echo "report: $DIR/report.md"
 sed -n '/^## Findings/,$p' "$DIR/report.md"

@@ -1,0 +1,13 @@
+# armada-assault
+us armstump 10
+us armart 6
+us armrock 4
+them armllt 1 0 -300
+them armllt 1 0 -100
+them armllt 1 0 100
+them armllt 1 0 300
+them armhlt 1 120 0
+them armstump 4 200 0
+them armrock 2 250 0
+distance 1600
+seconds 180

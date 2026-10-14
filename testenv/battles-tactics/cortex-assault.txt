@@ -1,0 +1,13 @@
+# cortex-assault
+us corraid 10
+us corwolv 6
+us corstorm 4
+them corllt 1 0 -300
+them corllt 1 0 -100
+them corllt 1 0 100
+them corllt 1 0 300
+them corhlt 1 120 0
+them corraid 4 200 0
+them corstorm 2 250 0
+distance 1600
+seconds 180
