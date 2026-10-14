@@ -1002,8 +1002,35 @@ local function anchorFor(sub, ux, uz)
 	return ux, uz
 end
 
+-- where generators are safest (doctrine.economy.safeGenerators): behind our base, away from the enemy,
+-- out of known threat, spread across (our games lost ~123 wind turbines a game to raids)
+function Engine.safeEnergyAnchor()
+	local hx, hz, ex, ez = Engine.homeX, Engine.homeZ, Engine.enemyX, Engine.enemyZ
+	if not hx or not ex then
+		return nil
+	end
+	local dx, dz = hx - ex, hz - ez
+	local len = max(sqrt(dx * dx + dz * dz), 1)
+	local bx, bz = dx / len, dz / len -- away from the enemy
+	local px, pz = -bz, bx
+	for _, back in ipairs({ 300, 500, 700, 900 }) do
+		local side = (random() - 0.5) * 2 * 500
+		local x, z = clampToMap(hx + bx * back + px * side, hz + bz * back + pz * side)
+		if Engine.tm.threat(x, z) <= 0 then
+			return x, z
+		end
+	end
+	return nil
+end
+
 function Jobs.energy(sub, unitID, d, ux, uz, urgent)
 	local ax, az = anchorFor(sub, ux, uz)
+	if Engine.D.economy.safeGenerators and not (urgent and econ.eFrac < 0.2) then
+		local sx, sz = Engine.safeEnergyAnchor()
+		if sx then
+			ax, az = sx, sz
+		end
+	end
 	-- out of energy: cheap generators that are up in seconds beat efficient ones that take minutes
 	local cap = urgent and econ.eFrac < 0.2 and max(60, costCap(sub) * 0.3) or costCap(sub, urgent and 1.5 or 1)
 	return buildCheapestUseful(sub, unitID, d, ax, az, function(od)
