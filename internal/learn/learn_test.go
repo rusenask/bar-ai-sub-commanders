@@ -3,6 +3,7 @@ package learn
 import (
 	"math"
 	"math/rand/v2"
+	"strings"
 	"testing"
 )
 
@@ -130,5 +131,24 @@ func TestMissingRulesAreIgnored(t *testing.T) {
 	}
 	if sum.MeanTrials < 0 {
 		t.Error("the first trial is the mean on the rules it had")
+	}
+}
+
+func TestLessons(t *testing.T) {
+	dir := t.TempDir()
+	if Lessons(dir, "cortex-vs-armada") != "" {
+		t.Fatal("none yet")
+	}
+	for i := range MaxLessons + 3 {
+		if err := AddLesson(dir, "cortex-vs-armada", "game", "lesson "+string(rune('a'+i))); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got := Lessons(dir, "cortex-vs-armada")
+	if n := strings.Count(got, "## game"); n != MaxLessons {
+		t.Errorf("%d entries kept", n)
+	}
+	if !strings.HasPrefix(got, "## game") || !strings.Contains(got, "lesson "+string(rune('a'+MaxLessons+2))) {
+		t.Errorf("newest first:\n%s", got[:80])
 	}
 }

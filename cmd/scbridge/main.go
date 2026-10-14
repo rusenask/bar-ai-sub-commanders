@@ -88,6 +88,12 @@ func run() error {
 	if router.Tasks, err = decider.ParseRoutes(*deciderRts, *deciderName); err != nil {
 		return err
 	}
+	// the strategist is made once opencode runs (below); the game hooks use it from then on
+	var strat *strategist.Strategist
+	lessonsDir := ""
+	if learn.Exists(*learnDir) {
+		lessonsDir = *learnDir
+	}
 	if learn.Exists(*learnDir) {
 		if params, err := learn.ParamsFromDoctrine(*doctrine); err != nil {
 			log.Warn("learned rules off", "err", err)
@@ -103,9 +109,14 @@ func run() error {
 				log.Info("learned rules", "store", st.Key, "generation", st.Generation, "moved", strings.Join(st.Changes(), ", "))
 				return map[string]any{"key": ov.Key, "generation": ov.Generation, "rules": ov.Rules}
 			}
+			// at game over: the result goes on the learned rules, and the strategist writes lessons for the
+			// next game of this matchup (strategist/debrief.go)
 			g.OnGameOver = func(info *game.Info, summary map[string]any) {
 				if info == nil {
 					return
+				}
+				if strat != nil {
+					go strat.Debrief(ctx, info, summary)
 				}
 				st, err := learn.Find(*learnDir, learn.Matchup(info.Faction, info.Enemies), params)
 				if err != nil || st == nil || st.Generation == 0 {
@@ -123,7 +134,6 @@ func run() error {
 		g.Decide = router.Decide
 		log.Info("decision models", "default", *deciderURL, "routes", *deciderRts)
 	}
-	var strat *strategist.Strategist
 	guard := func(sub int) error {
 		if strat == nil {
 			return errors.New("strategist not ready")
@@ -181,6 +191,7 @@ func run() error {
 		CalmFactor:  *calm,
 		MaxInFlight: *maxReviews,
 		Record:      *record,
+		LessonsDir:  lessonsDir,
 	}, g, oc, log)
 	log.Info("strategist ready", "model", *model, "interval", *interval)
 

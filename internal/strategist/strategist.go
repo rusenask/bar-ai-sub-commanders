@@ -40,6 +40,9 @@ type Config struct {
 	// Record, when set, is a file each review is appended to as a JSON line (report, reply, tools, time):
 	// the data for grading prompt or model changes offline.
 	Record string
+	// LessonsDir, when set, keeps the strategist's lessons per matchup (debrief.go): written at game over,
+	// read into each sub-commander's first report.
+	LessonsDir string
 }
 
 type subState struct {
@@ -68,6 +71,7 @@ type Strategist struct {
 	acting    map[int]int    // sub id -> turns in flight
 	actingIn  map[int]string // sub id -> game the turn started in
 	pace      pacer          // review pacing: provider speed, game speed, reviews in flight
+	notes     []string       // this game's decisions, for the debrief (debrief.go)
 }
 
 // New creates a strategist.
@@ -133,6 +137,7 @@ func (s *Strategist) trackGame(info *game.Info, state *game.State) {
 		}
 		s.gameKey = key
 		clear(s.subs)
+		s.notes = nil
 	}
 	s.lastFrame = state.Frame
 }
@@ -232,7 +237,11 @@ func (s *Strategist) review(ctx context.Context, info *game.Info, state *game.St
 		s.log.Info("strategist session", "sub", sub.Name, "session", id)
 	}
 
-	prompt := report(info, state, sub, ss, reason, first)
+	lessons := ""
+	if first {
+		lessons = s.lessonsFor(info)
+	}
+	prompt := report(info, state, sub, ss, reason, first, lessons)
 	ctx, cancel := context.WithTimeoutCause(ctx, s.cfg.TurnTimeout, errors.New("strategist turn took too long"))
 	defer cancel()
 	start := time.Now()
@@ -273,6 +282,7 @@ func (s *Strategist) review(ctx context.Context, info *game.Info, state *game.St
 	if note == "" {
 		note = "no changes"
 	}
+	s.note(state.Frame, sub, note)
 	s.game.Tell(sub.ID, "note", map[string]any{"text": note})
 }
 
@@ -352,14 +362,18 @@ type brief struct {
 
 // report builds the user message for one review. The fixed briefing comes
 // first and only once per session, so every later turn extends a stable prefix.
-func report(info *game.Info, state *game.State, sub game.Sub, ss *subState, reason string, first bool) string {
+func report(info *game.Info, state *game.State, sub game.Sub, ss *subState, reason string, first bool, lessons string) string {
 	var b strings.Builder
 	if first {
 		fmt.Fprintf(&b, "You command sub-commander #%d %q for player %s (faction %s) on map %q, %.0f x %.0f elmos (x grows east, z grows south).\n",
 			sub.ID, sub.Name, info.Player, info.Faction, info.Map, info.MapX, info.MapZ)
 		fmt.Fprintf(&b, "Wind %.0f-%.0f (average about %.0f; wind turbines pay off above ~7), tidal %.0f.\n", info.WindMin, info.WindMax, (info.WindMin+info.WindMax)/2, info.Tidal)
 		fmt.Fprintf(&b, "Always pass sub_id=%d to tools. You will get a report like this whenever something happens or every so often.\n", sub.ID)
-		fmt.Fprintf(&b, "This is your first report: load the %q skill (and any other skill you need), then look at the map once with get_map_view before deciding.\n\n", sub.Role)
+		fmt.Fprintf(&b, "This is your first report: load the %q skill (and any other skill you need), then look at the map once with get_map_view before deciding.\n", sub.Role)
+		if lessons != "" {
+			fmt.Fprintf(&b, "Lessons the team wrote after earlier games of this matchup (newest first; weigh them, they are not orders):\n%s\n", lessons)
+		}
+		b.WriteString("\n")
 	}
 	fmt.Fprintf(&b, "## Report at %s (why now: %s)\n", clock(state.Frame), reason)
 	if sub.Directive != "" {
