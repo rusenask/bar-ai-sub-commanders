@@ -760,3 +760,12 @@ Counter matrix, flat sites (arm A of 20261015-0212-sbx-il-re-khold, 264 battles)
   rule adds nothing; off.
 - Defending with turrets against a 2x army that reaches us: we lose ~80% either way (efficiency 0.22);
   the line at the turrets loses more battles (20 v 3). Off. Next: the contact fallback to the turrets.
+
+| Change (interleaved) | Specs | Pairs | Efficiency (log2, paired) | Our share lost | Score |
+|---|---|---|---|---|---|
+| contact fallback under 0.4x + fall back to turrets | retreat | 48 | **+0.59 [+0.28, +0.92] better** | +0.09 worse | -0.03 |
+| the same | ground | 72 | +0.17 [-0.03, +0.36] | **-0.05 better** | **+0.15 better** |
+| the same | defend with turrets (force) | 48 | **+0.34 [+0.18, +0.51] better** | +0.02 | +0.02 |
+| kiting while holding (screened) | ground | 72 | -0.09 [-0.29, +0.11] | +0.01 | -0.02 |
+
+- Both into a whole-game test.
