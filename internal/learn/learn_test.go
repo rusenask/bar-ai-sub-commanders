@@ -186,6 +186,34 @@ func TestStagedRules(t *testing.T) {
 	}
 }
 
+// The way cmd/learn runs it: sample -only saves the store before it samples, update loads it again; the
+// staged rule must still move toward the games that did well.
+func TestStagedRulesLearnAcrossSaves(t *testing.T) {
+	dir := t.TempDir()
+	params := []Param{{Name: "a", Min: 0, Max: 10, Default: 5}}
+	s := New("k", params)
+	s.Active = []string{"a@mid"}
+	if err := s.Save(dir); err != nil {
+		t.Fatal(err)
+	}
+	rs := s.Sample(12, rand.New(rand.NewPCG(3, 4)))
+	s2, err := Load(dir, "k", params)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var trials []Trial
+	for _, r := range rs {
+		trials = append(trials, Trial{Rules: r, Score: r["a@mid"]}) // higher is better
+	}
+	s2.Update(trials)
+	if s2.Mean["a@mid"] <= 5 {
+		t.Errorf("a@mid mean %v: should move up", s2.Mean["a@mid"])
+	}
+	if s2.Mean["a"] != 5 {
+		t.Errorf("a moved: %v", s2.Mean["a"])
+	}
+}
+
 func TestActiveRulesOnly(t *testing.T) {
 	s := New("k", []Param{{Name: "a", Min: 0, Max: 10, Default: 5}, {Name: "b", Min: 0, Max: 10, Default: 5}})
 	s.Active, s.MeanEvery = []string{"a"}, 3

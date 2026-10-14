@@ -48,6 +48,9 @@ SCENARIO=battle DUEL_MINUTES=4 PARALLEL=6 WIDGET_SRC=$(testenv/arm.sh mine) LABE
 go run ./cmd/gamereport -battles testenv/batch/<dir>      # efficiency per spec
 ```
 
+Battle verdicts compare within each spec (`(within specs)` rows): pooled, the gap between specs drowns
+the change. Also read the per-spec table: a gain in one mirror can hide a loss in another.
+
 Then confirm in whole games that it holds up (micro that wins battles can still lose games: chasing,
 over-committing).
 

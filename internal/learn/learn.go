@@ -235,6 +235,7 @@ func Load(dir, key string, params []Param) (*Store, error) {
 			s.Sigma[p.Name] = StartSigma
 		}
 	}
+	s.ensureStaged()
 	return s, nil
 }
 
@@ -319,6 +320,9 @@ func Score(result string, minutes, dealtTaken, limitMinutes float64) float64 {
 
 // Update adds a generation's trials and moves the mean toward the elites.
 func (s *Store) Update(trials []Trial) GenSummary {
+	// staged rules searched since the last save (sample -only saves before it samples): without them
+	// here the mean never moved and every game counted as the mean's own
+	s.ensureStaged()
 	gen := s.Generation + 1
 	sum := GenSummary{Generation: gen, Games: len(trials), MeanTrials: -1}
 	if len(trials) == 0 {
