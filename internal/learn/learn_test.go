@@ -245,3 +245,21 @@ func TestOnlyValidatedRulesAreServed(t *testing.T) {
 		t.Errorf("served %+v %v: want the validated 7", ov, ok)
 	}
 }
+
+func TestParamsFromNestedDoctrine(t *testing.T) {
+	ps, err := ParamsFromDoctrine("../../widget/LuaUI/Include/sc_doctrine.lua")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]float64{"skirmisher_kite": 0.6, "skirmisher_hold": 0.72, "artillery_kite": 0.62, "focus_kill_time": 2,
+		"focus_overkill": 1.2, "micro_kite_range": 450, "engage_attack": 1.2}
+	got := map[string]float64{}
+	for _, p := range ps {
+		got[p.Name] = p.Default
+	}
+	for k, v := range want {
+		if got[k] != v {
+			t.Errorf("%s default %v, want %v", k, got[k], v)
+		}
+	}
+}

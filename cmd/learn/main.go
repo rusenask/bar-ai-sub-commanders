@@ -14,6 +14,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math"
 	"math/rand/v2"
 	"os"
 	"path/filepath"
@@ -39,7 +40,7 @@ func main() {
 	samples := fs.String("samples", "", "update: the directory sample wrote")
 	limit := fs.Float64("minutes", 60, "update: the games' length")
 	only := fs.String("only", "", "sample: search only these rules (comma-separated; kept in the store; \"all\" clears it)")
-	scoreBy := fs.String("score", "result", "update: what a game is scored on: result (win/alive/loss, trades) or a stage (opening, mid, late: enemy metal killed minus metal lost in it, in thousands)")
+	scoreBy := fs.String("score", "result", "update: what a game is scored on: result (win/alive/loss, trades), a stage (opening, mid, late: enemy metal killed minus metal lost in it, in thousands) or battle (battle lab: log2 efficiency against the generation's mean for the same spec)")
 	evidence := fs.String("evidence", "", "validate: the A/B batches that show the mean beats the defaults")
 	meanEvery := fs.Int("mean-every", 0, "sample: every this many games play the mean itself (kept in the store)")
 	_ = fs.Parse(os.Args[2:])
@@ -79,6 +80,7 @@ func main() {
 		fmt.Printf("%d rule sets for generation %d of %s in %s\n", *n, store.Generation+1, store.Key, *out)
 	case "update":
 		var trials []learn.Trial
+		var specs []string // battle: each trial's spec
 		files, _ := filepath.Glob(filepath.Join(*samples, "g*.json"))
 		for _, f := range files {
 			var ov learn.Overlay
@@ -100,6 +102,15 @@ func main() {
 			}
 			s := analysis.Summarize(g)
 			score := learn.Score(g.Result, s.Minutes, s.DealtTaken, *limit)
+			if *scoreBy == "battle" {
+				if g.Battle == nil {
+					fmt.Printf("game %s: not a battle: left out\n", i)
+					continue
+				}
+				trials = append(trials, learn.Trial{Rules: ov.Rules, Result: g.Result, Minutes: s.Minutes, Score: math.Log2(math.Max(g.Battle.Efficiency(), 0.125)), Source: fh.Name(), At: time.Now()})
+				specs = append(specs, g.Battle.Spec)
+				continue
+			}
 			if *scoreBy != "result" {
 				st, ok := stageByName(*scoreBy)
 				if !ok {
@@ -113,6 +124,17 @@ func main() {
 				score = net / 1000
 			}
 			trials = append(trials, learn.Trial{Rules: ov.Rules, Result: g.Result, Minutes: s.Minutes, Score: score, Source: fh.Name(), At: time.Now()})
+		}
+		if *scoreBy == "battle" {
+			// specs differ far more than rules move them: score each battle against its spec's mean
+			mean, n := map[string]float64{}, map[string]float64{}
+			for k, sp := range specs {
+				mean[sp] += trials[k].Score
+				n[sp]++
+			}
+			for k, sp := range specs {
+				trials[k].Score -= mean[sp] / n[sp]
+			}
 		}
 		sum := store.Update(trials)
 		if err := store.Save(*dir); err != nil {

@@ -304,6 +304,16 @@ D.tunable = {
 	constructor_share = { D.production, "constructorScale", 0.4, 2, "multiplies the share of production that is constructors (lower = more army early)", "economy" },
 	responders_share = { D.responders, "share", 0.1, 0.6, "share of the army's power in the base response squad", "army" },
 	defend_base_share = { D.team, "defendBaseShare", 0.02, 0.25, "enemy metal in the base, as a share of our army, that makes the team defend", "army" },
+	-- micro (learned in the battle lab: cmd/learn -score battle)
+	micro_kite_range = { D.micro, "kiteRange", 250, 700, "only units with at least this range kite", "army" },
+	micro_outrange = { D.micro, "outrange", 0.6, 1, "an enemy with this fraction of our range or more isn't kited from", "army" },
+	skirmisher_kite = { D.micro.kinds.skirmisher, "kite", 0.3, 0.95, "skirmishers back off from an enemy within this fraction of their range", "army" },
+	skirmisher_hold = { D.micro.kinds.skirmisher, "hold", 0.5, 1, "skirmishers back off to this fraction of their range", "army" },
+	artillery_kite = { D.micro.kinds.artillery, "kite", 0.3, 0.95, "artillery backs off from an enemy within this fraction of its range", "army" },
+	artillery_hold = { D.micro.kinds.artillery, "hold", 0.5, 1, "artillery backs off to this fraction of its range", "army" },
+	focus_kill_time = { D.micro.focus, "killTime", 0.5, 4, "fire control: seconds of fire a target's health is weighed against", "army" },
+	focus_overkill = { D.micro.focus, "overkill", 1, 2.5, "fire control: fire on a target beyond its health x this spills to the next", "army" },
+	focus_armed = { D.micro.focus, "armed", 1, 6, "how much more armed enemies count as targets", "army" },
 }
 D.tuneEvery = 30 * 120 -- one change per rule per this many frames
 D.tuneStep = 0.5 -- a change moves a rule at most this fraction of its current value (or of its range near 0)

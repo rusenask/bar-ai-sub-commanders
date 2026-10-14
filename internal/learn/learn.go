@@ -142,7 +142,7 @@ const (
 )
 
 var (
-	reTunable = regexp.MustCompile(`(?m)^\s*([a-z_]+)\s*=\s*\{\s*(D(?:\.[a-z]+)?)\s*,\s*"([A-Za-z]+)"\s*,\s*([-0-9.]+)\s*,\s*([-0-9.]+)\s*,`)
+	reTunable = regexp.MustCompile(`(?m)^\s*([a-z_]+)\s*=\s*\{\s*(D(?:\.[A-Za-z]+)*)\s*,\s*"([A-Za-z]+)"\s*,\s*([-0-9.]+)\s*,\s*([-0-9.]+)\s*,`)
 )
 
 // ParamsFromDoctrine reads the tunable rules, their bounds and defaults from sc_doctrine.lua.
@@ -170,7 +170,9 @@ func ParamsFromDoctrine(path string) ([]Param, error) {
 	return out, nil
 }
 
-// defaultOf finds `field = value` inside the table `table = {` (or `D.field = value` for D itself).
+// defaultOf finds `field = value` in the table at a path: `D.field = value` for D itself, else the
+// block `D.<name> = {` and, for a longer path (D.micro.kinds.skirmisher), the nested `name = {` inside it
+// at each step; the field is read at that table's own level, not inside its nested tables.
 func defaultOf(src, table, field string) (float64, bool) {
 	if table == "D" {
 		m := regexp.MustCompile(`(?m)^D\.` + field + `\s*=\s*([-0-9.]+)`).FindStringSubmatch(src)
@@ -180,21 +182,79 @@ func defaultOf(src, table, field string) (float64, bool) {
 		v, err := strconv.ParseFloat(m[1], 64)
 		return v, err == nil
 	}
-	start := strings.Index(src, "\n"+table+" = {")
+	parts := strings.Split(table, ".")
+	start := strings.Index(src, "\n"+parts[0]+"."+parts[1]+" = {")
 	if start < 0 {
 		return 0, false
 	}
-	end := strings.Index(src[start+1:], "\n}")
-	if end < 0 {
+	block, ok := braced(src[start:])
+	if !ok {
 		return 0, false
 	}
-	block := src[start : start+1+end]
-	m := regexp.MustCompile(`(?m)^\t` + field + `\s*=\s*([-0-9.]+)`).FindStringSubmatch(block)
+	for _, name := range parts[2:] {
+		re := regexp.MustCompile(`(?m)(?:^|[\s{,])(?:` + regexp.QuoteMeta(name) + `|\["` + regexp.QuoteMeta(name) + `"\])\s*=\s*\{`)
+		loc := re.FindStringIndex(topLevel(block))
+		if loc == nil {
+			return 0, false
+		}
+		inner, ok := braced(block[loc[0]:])
+		if !ok {
+			return 0, false
+		}
+		block = inner
+	}
+	m := regexp.MustCompile(`(?:^|[\s{,])` + field + `\s*=\s*([-0-9.]+)`).FindStringSubmatch(topLevel(block))
 	if m == nil {
 		return 0, false
 	}
 	v, err := strconv.ParseFloat(m[1], 64)
 	return v, err == nil
+}
+
+// braced returns the text inside the first {...} of s (balanced; comments and strings aren't special:
+// the doctrine has no braces in them).
+func braced(s string) (string, bool) {
+	open := strings.Index(s, "{")
+	if open < 0 {
+		return "", false
+	}
+	depth := 0
+	for i := open; i < len(s); i++ {
+		switch s[i] {
+		case '{':
+			depth++
+		case '}':
+			depth--
+			if depth == 0 {
+				return s[open+1 : i], true
+			}
+		}
+	}
+	return "", false
+}
+
+// topLevel blanks out what's inside nested {...} (keeping offsets and the outermost braces), so a search
+// sees only the table's own fields.
+func topLevel(s string) string {
+	b := []byte(s)
+	depth := 0
+	for i, c := range b {
+		switch {
+		case c == '{':
+			depth++
+			if depth > 1 {
+				b[i] = ' '
+			}
+		case c == '}':
+			depth--
+			if depth > 0 {
+				b[i] = ' '
+			}
+		case depth > 0 && c != '\n':
+			b[i] = ' '
+		}
+	}
+	return string(b)
 }
 
 // New starts a store at the doctrine's defaults.
