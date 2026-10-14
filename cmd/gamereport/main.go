@@ -37,6 +37,7 @@ func main() {
 	battles := flag.Bool("battles", false, "the games are battles (scenario battle): efficiency per spec")
 	roles := flag.String("roles", "", "directory of data logger JSONL files of team games: players' roles by side size")
 	micro := flag.String("micro", "", "directory of data logger JSONL files: per-kind unit behaviour and doctrine")
+	team := flag.Int("team", -1, "with -micro: only this team's fight samples in the commit table (0: ours in our own games)")
 	timeline := flag.Bool("timeline", false, "each argument is one game's harness log: show it minute by minute")
 	flag.Parse()
 
@@ -71,6 +72,16 @@ func main() {
 			fmt.Printf("\n%s", analysis.FireText(analysis.FireSummary(fire, 2, 1.2), 2, 1.2))
 		}
 		if cs, err := analysis.ReadCommit(*micro); err == nil && len(cs) > 0 {
+			if *team >= 0 {
+				// our own games: only our side's fights (the enemy's are seen through our sight only)
+				kept := cs[:0]
+				for _, c := range cs {
+					if c.Team == *team {
+						kept = append(kept, c)
+					}
+				}
+				cs = kept
+			}
 			fmt.Printf("\nCommit (%d fights): how groups move at each strength ratio, and how it traded\n\n%s", len(cs), analysis.CommitText(analysis.CommitByRatio(cs, analysis.CommitBounds)))
 		}
 		return

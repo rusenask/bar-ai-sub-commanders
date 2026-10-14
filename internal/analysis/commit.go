@@ -23,6 +23,7 @@ type commitSide struct {
 
 // CommitSample is one fight's start.
 type CommitSample struct {
+	Team          int        `json:"team"`
 	Own           commitSide `json:"own"`
 	OwnTurrets    commitSide `json:"ownTurrets"`
 	Enemy         commitSide `json:"enemy"`

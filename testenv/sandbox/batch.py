@@ -96,6 +96,11 @@ def stage(args):
         (inc / f.name).write_text(f.read_text())
     # no rendering: the game may run as fast as the CPU allows
     (w / "zz_sctest.lua").write_text((T / "LuaUI/Widgets/zz_sctest.lua").read_text().replace("setmaxspeed 20", "setmaxspeed 1000"))
+    if args.datalog:
+        # the data logger too (fight / micro / fire samples of our own games, to set against strong players')
+        (w / "zz_datalog.lua").write_text((T / "LuaUI/Widgets/zz_datalog.lua").read_text())
+        (d / "LuaUI/Config").mkdir(parents=True, exist_ok=True)
+        (d / "LuaUI/Config/datalog.txt").write_text("1\n")
     (d / "springsettings.cfg").write_text((T / "springsettings.template.cfg").read_text())
     script = (T / "script_vsai.txt").read_text()
     import re
@@ -141,6 +146,7 @@ def main():
     ap.add_argument("--side", default="Legion")
     ap.add_argument("--enemy-side", default="Armada")
     ap.add_argument("--battles", default=str(T / "battles"), help="scenario battle: the specs (testenv/battles)")
+    ap.add_argument("--datalog", action="store_true", help="also run the data logger: <batch>/data/<i>.jsonl (gamereport -micro)")
     ap.add_argument("--learn", default="", help="a learning key (internal/learn): each game plays a sampled rule set, "
                     "each generation updates learn/<key>.json")
     ap.add_argument("--generations", type=int, default=1, help="with --learn: generations to run on the same sandboxes")
@@ -271,6 +277,9 @@ def main():
                     data = get_bytes(sb, "/opt/bar/results.tgz")
                     with tarfile.open(fileobj=io.BytesIO(data), mode="r:gz") as tar:
                         tar.extractall(out / "remote", filter="data")
+                    for f in (out / "remote").glob("g*/datalog.jsonl"):
+                        (out / "data").mkdir(exist_ok=True)
+                        f.rename(out / "data" / (f.parent.name[1:] + ".jsonl"))
                 except Exception as e:  # this sandbox's games count as not run
                     gen_errors.append(f"sandbox {k}: {e}")
                     print(f"sandbox {k} failed: {e}", flush=True)
