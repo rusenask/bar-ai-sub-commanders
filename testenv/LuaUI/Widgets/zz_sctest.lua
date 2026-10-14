@@ -582,16 +582,60 @@ local function battleValue(ids)
 	return v
 end
 
+-- where to fight: the flat stretch nearest the map's centre, the whole line (and margin beyond each side)
+-- free of steps over 25 elmos between samples 64 apart and above water. The centre of All That Simmers
+-- has a 200-elmo ridge 400 from the middle: specs 1400+ wide fought across it and never met.
+local function battleSite(distance)
+	local cx0, cz0 = Game.mapSizeX / 2, Game.mapSizeZ / 2
+	local half, margin = distance / 2, 300
+	local best, bestD
+	for gz = 256, Game.mapSizeZ - 256, 256 do
+		for gx = half + margin, Game.mapSizeX - half - margin, 256 do
+			local ok, prev = true, nil
+			for px = gx - half - margin, gx + half + margin, 64 do
+				local h = Spring.GetGroundHeight(px, gz)
+				if h <= 5 or (prev and math.abs(h - prev) > 25) then
+					ok = false
+					break
+				end
+				prev = h
+			end
+			local d = (gx - cx0) ^ 2 + (gz - cz0) ^ 2
+			if ok and (not bestD or d < bestD) then
+				best, bestD = { x = gx, z = gz }, d
+			end
+		end
+	end
+	return best
+end
+
 local function battleFrame(n)
-	local mx, mz = Game.mapSizeX / 2, Game.mapSizeZ / 2
+	local mx, mz = battle.cx or Game.mapSizeX / 2, battle.cz or Game.mapSizeZ / 2
 	local half = battle.distance / 2
 	if n == 12 then
 		battleSpec()
+		local site = battleSite(battle.distance)
+		if site then
+			battle.cx, battle.cz = site.x, site.z
+			mx, mz = site.x, site.z
+			out(string.format("battle site: %d,%d (map centre %d,%d)", site.x, site.z, Game.mapSizeX / 2, Game.mapSizeZ / 2))
+		else
+			out("HARNESS ERROR battle: no flat site for this distance")
+		end
 		Spring.SendCommands("cheat 1", "globallos")
 		if battle.attack > 0 then
 			Spring.SendCommands("godmode 3") -- order their units too (attack)
 		end
 		out(string.format("scenario battle: %d vs %d unit types, %d elmos apart, %d s", #battle.us, #battle.them, battle.distance, battle.seconds))
+		-- the ground between the two sides: height and whether a ground unit can stand there (a battle
+		-- across lava or a cliff never happens)
+		local line = {}
+		for k = 0, 8 do
+			local px = mx - half + battle.distance * k / 8
+			local h = Spring.GetGroundHeight(px, mz)
+			line[#line + 1] = string.format("%.0f", h)
+		end
+		out("battle ground: " .. table.concat(line, " "))
 	elseif not battle.given and n > 12 and Spring.IsCheatingEnabled() then
 		-- give once cheats are on: "cheat 1" goes through the server and took 14 frames in a busy sandbox,
 		-- and gives before it were refused (the battle ran without armies)

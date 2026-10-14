@@ -17,6 +17,10 @@ out wrong.
   (engine-v2/v3 hard)
 - Offline model accuracy isn't game strength: the fight model (AUC 0.81) gave more kills and more lost
   games. (decision model arm F)
+- Look at the ground before trusting a lab: the battle site sat across a 200-elmo ridge and every spec
+  1400+ wide measured armies that never met (assault "engaging" for 3 minutes without moving). The
+  harness now picks a flat site and logs the heights; when a battle reads oddly, check `dist` and `goal`
+  in the battle lines first. (lab, ridge)
 - Battles in one batch aren't independent: same sandboxes, load and timing. Identical widgets in two
   batches drifted +-0.2 log2 and read "worse" once; fire control's pooled +0.13 vanished when interleaved
   (-0.04). Lab A/Bs run interleaved (batch.py --widgets-b), verdicts per pair; run an A/A when the setup

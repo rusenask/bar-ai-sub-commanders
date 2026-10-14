@@ -681,3 +681,16 @@ Mean log2 efficiency, our category (rows) against theirs (columns); 4 battles pe
 - Fixed (out of reach of turrets and artillery), 72 pairs each: siege -0.07 [-0.47, +0.33] can't tell
   (artillery-stands share lost 50% -> 57%, the first version 84%); ground **+0.46 [+0.24, +0.70]
   better**, score +0.12 [+0.00, +0.24] better. Whole games next.
+
+## Battle lab: a ridge between the sides (fixed) — wide-spec results before this are suspect
+
+- The battle harness fought at the map's centre. All That Simmers has a ~200-elmo ridge 400 elmos east of
+  it (heights along the line: 173 175 175 170 158 146 351 148 114): in specs 1400+ elmos wide the two
+  sides stood on either side of it. In the assault spec our army "engaged" for 3 minutes without moving
+  (goal ~950 from them, distance stuck at ~1560); the artillery "push" never came.
+- The harness now picks the flat line nearest the centre (no step over 25 elmos per 64, above water, with
+  300 margin) and logs it (`battle site`, `battle ground`). The same assault: a win in 63 s.
+- Suspect, to re-run: siege specs (1400-1600), big fights (1500: the concave's +0.61), the counter matrix
+  (1400), tactics (1200-1600), and the verdicts drawn on them (dive / fall back / dodge on artillery,
+  hold line on siege, kiting while holding on the matrix). Ground specs (700-800) and air strikes are
+  unaffected.
