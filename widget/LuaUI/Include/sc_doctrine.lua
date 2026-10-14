@@ -44,8 +44,8 @@ D.engage = {
 	roam = false,
 	-- engaging as a concave (sc_squads.lua arc): each unit to its own place on an arc facing the enemy, at
 	-- hold x its range (at least minDist), spacing elmos apart, no wider than maxAngle radians (on = false:
-	-- every unit fight-moves to the target's point)
-	arc = { on = false, hold = 0.85, minDist = 150, spacing = 70, maxAngle = 1.8 },
+	-- every unit fight-moves to the target's point). Lab, big fights: +0.61 log2; games: 4/10/10 vs 2/8/14
+	arc = { on = true, hold = 0.85, minDist = 150, spacing = 70, maxAngle = 1.8 },
 	-- falling back within the enemy's reach: back off at this share of top speed, standing to shoot in
 	-- between (false: one move all the way to the rally point; 0.5 is being measured in games)
 	fallbackPace = false,

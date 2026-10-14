@@ -614,3 +614,13 @@ time step out (set targets kept). 72 per arm.
 - Concave per spec (base -> arc): armada 3.73 -> 6.26, armada defend 3.87 -> 5.06, cortex 3.76 -> 4.79,
   cortex defend 4.79 -> 6.45, legion 1.96 -> 4.55, legion defend 4.05 -> 5.87.
 - In the small specs (12 v 12, mostly holding) it was +0.01: no harm, little use. Whole games next.
+
+## Sandboxes, interleaved: concave engagement in whole games, 24 pairs, Legion vs Armada medium, 60 min — kept (on by default)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-0056-sbx-g32-arc-A (base) | 24 | 2 win, 8 timeout, 14 loss | 1 | 191.2k | 198 / 854 | 0.77 | 22.7 | 13 / 17 | 4.7k |
+| 20261015-0056-sbx-g32-arc-B (concave) | 24 | 4 win, 10 timeout, 10 loss | 3 | 177.0k | 171 / 730 | 0.86 | 16.0 | 11 / 15.5 | 4.4k |
+
+- Paired: score +0.08 [-0.07, +0.24], late metal lost -36k [-87k, +15k], all can't tell; nothing worse.
+  With the lab's +0.61 [+0.44, +0.78] in big fights it is on. 48/48 ran, no crashes.
