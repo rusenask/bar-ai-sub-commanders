@@ -337,3 +337,15 @@ code (v16 mostly never reached the hand-off: its lab built Infestors). Re-measur
 
 - Not better: a smaller army at 12 minutes (the learned rules also delayed the second lab). Not shipped;
   the bridge now serves only validated stores (`learn validate` after an A/B like this one wins).
+
+## force: mostly-anti-air units (Slasher, Samson, Lance) as anti-air for production (v28) — reverted
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261014-1207-force4-v28-cortex-aa (vs v27 cortex default) | 12 | 3 timeout, 9 loss | 2 | 117.0k | 106 / 681 | 0.55 | 20.6 | 11.5 / 15.5 | 3.7k |
+| 20261014-1220-force4-v28-legion-aa (vs v26 focus) | 12 | 1 win, 6 timeout, 5 loss | 2 | 222.5k | 188 / 910 | 0.73 | 22.6 | 11.5 / 19 | 3.5k |
+
+- Verdicts: Cortex all "can't tell" (score -0.06 [-0.16, +0.03]); Legion opening metal lost **worse**
+  (+0.9k [+26, +1.9k]), opening kills better, score -0.14 [-0.41, +0.12]. The units are anti-air by
+  their weapons, but in our armies they still earned their place. The ground/air damage split stays for
+  analysis (aaPrimary), production is as before.

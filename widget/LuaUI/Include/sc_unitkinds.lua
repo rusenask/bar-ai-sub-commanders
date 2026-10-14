@@ -97,9 +97,9 @@ for defID, ud in pairs(UnitDefs) do
 			end
 		end
 	end
-	if mobile and d.armed and d.groundDps > 0 and d.airDps > 1.5 * d.groundDps then
-		d.aaOnly = true
-	end
+	-- (treating mostly-anti-air units as anti-air for production was tried in v28 and reverted: Cortex
+	-- can't tell, Legion's opening worse. The numbers stay for analysis.)
+	d.aaPrimary = mobile and d.armed and d.groundDps > 0 and d.airDps > 1.5 * d.groundDps
 	local move = ud.moveDef and ud.moveDef.name or ""
 	d.naval = mobile and not d.air and (move:find("boat") ~= nil or (ud.minWaterDepth or 0) > 0)
 	d.hover = mobile and move:find("hover") ~= nil
