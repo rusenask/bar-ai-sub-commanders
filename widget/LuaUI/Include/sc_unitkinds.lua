@@ -73,14 +73,32 @@ for defID, ud in pairs(UnitDefs) do
 	-- what a weapon loadout says about a unit
 	local bomb, arty = false, false
 	d.dps = 0
+	-- damage per second against ground and against aircraft, by what each weapon may target: the Slasher
+	-- and the Samson have a weak ground missile next to their anti-air one (63 vs 120 a hit, preferring air;
+	-- strong players' fire 4-7% of the time near ground armies): they are anti-air, not skirmishers
+	local vtolArmor = Game.armorTypes and Game.armorTypes.vtol
+	d.groundDps, d.airDps = 0, 0
 	for i = 1, #weapons do
 		local wd = WeaponDefs[weapons[i].weaponDef]
 		if wd then
 			bomb = bomb or wd.type == "AircraftBomb"
 			arty = arty or (wd.highTrajectory == 1 and (wd.range or 0) >= 600)
+			local per = (wd.salvoSize or 1) * (wd.projectiles or 1) / max(wd.reload or 1, 0.1)
 			local dmg = wd.damages and wd.damages[0] or 0
-			d.dps = d.dps + dmg * (wd.salvoSize or 1) * (wd.projectiles or 1) / max(wd.reload or 1, 0.1)
+			d.dps = d.dps + dmg * per
+			-- a weapon hits the ground unless aircraft are all it may target
+			local only = weapons[i].onlyTargets or {}
+			local airOnly = only.vtol and next(only, next(only)) == nil and next(only) == "vtol"
+			if not airOnly then
+				d.groundDps = d.groundDps + dmg * per
+			end
+			if next(only) == nil or only.vtol then
+				d.airDps = d.airDps + ((vtolArmor and wd.damages and wd.damages[vtolArmor]) or dmg) * per
+			end
 		end
+	end
+	if mobile and d.armed and d.groundDps > 0 and d.airDps > 1.5 * d.groundDps then
+		d.aaOnly = true
 	end
 	local move = ud.moveDef and ud.moveDef.name or ""
 	d.naval = mobile and not d.air and (move:find("boat") ~= nil or (ud.minWaterDepth or 0) > 0)
