@@ -28,6 +28,14 @@ out wrong.
   battles (+0.24) and lost expansions in games (extractors at 20 min 25.5 -> 16.9), because the response
   squad stopped forming. Anything that changes who fights (squads, responders, raids) goes to games after
   the lab; only how a given group fights (targeting, kiting, movement) can be settled in the lab. (v29)
+- Where pros win isn't per-shot targeting: in 25 duels their units held a set target 2.6% of the time
+  and ~half their shots went to targets already covered 1.2x; fire concentrates by itself (2.2 shooters
+  per target, 90% of shots on the 3 most-shot targets). Our fire control's +0.13 is a small edge; the big
+  ones are when and where to commit. (pro fire samples)
+- The pro-derived micro numbers (kite, hold, focus) are on a plateau: a lab search over 576 battles
+  moved none of them more than 5%. Gains will come from new behaviour, not tuning these. (battle-micro)
+- Escorted artillery: diving it feeds the escort, falling back flips on and off under fire; holding lost
+  least. Don't re-try either without a spec where the artillery really advances. (lab, artillery)
 - Micro that helps while engaging can hurt elsewhere: focus fire while holding pulled units off the line
   into the enemy one by one (efficiency -0.36). (battle lab, contact arm)
 - A learning run can look healthy and learn nothing: the staged rules (rule@mid) were never in the saved

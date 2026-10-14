@@ -527,3 +527,27 @@ Siege specs (48 per arm) with three artillery specs; ground specs (72) as a chec
   tell. Armada mirror 2.19 -> 3.13, Legion mirror 0.98 -> 1.17, heavy mirror 1.31 -> 1.38.
 - Two more battles without armies (the give took over 25 frames in a busy sandbox): the harness now waits
   until both armies are complete, up to 10 s.
+
+## Battle lab learning run: micro numbers (sandboxes, 8 generations x 72 battles) — on a plateau
+
+- Key battle-micro, 9 rules (kite range, outrange, skirmisher and artillery kite/hold, fire control kill
+  time, overkill, armed weight), each battle scored as log2 efficiency minus its spec's mean in the
+  generation; every 6th battle plays the mean. 576/576 battles counted.
+- The mean moved less than 5% anywhere (artillery kite 0.62 -> 0.65, overkill 1.2 -> 1.15, skirmisher
+  kite 0.6 -> 0.58, kite range 450 -> 464) and the mean's own battles stayed around 0 (+0.12, -0.09, +0.10,
+  +0.13, +0.15, -0.05, 0.00, -0.13). The pro-derived micro values sit on a plateau in these specs; nothing
+  to validate.
+
+## Sandboxes: fire control + bomber area attack + unseen-AA memory (v30), 12 games each, Legion vs Armada medium, 60 min — kept
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261014-1610-sbx-v30-base (f794153) | 12 | 5 timeout, 7 loss | 0 | 156.4k | 211 / 632 | 0.80 | 18.1 | 11 / 10 | 3.5k |
+| 20261014-1610-sbx-v30-new (9259033) | 12 | 2 win, 5 timeout, 5 loss | 2 | 204.9k | 158 / 825 | 0.77 | 18.7 | 12 / 20 | 3.8k |
+
+- Verdicts: score +0.12 [-0.07, +0.33] can't tell; extractors at 20 min +8.4 [+0.1, +16.1] **better**;
+  opening metal lost -1.4k **better**, opening kills -0.8k worse; mid metal lost +4.7k [+0.4k, +9.2k]
+  **worse**. 24/24 ran, no crashes.
+- Strikes 67 vs 47; 338 "shot down by unseen anti-air" marks over the 12 games (planes now go where
+  they die). Sandbox games run on BAR test-31614: compare only with sandbox batches (extractors at 20
+  min here 10-20, on force 15-25).
