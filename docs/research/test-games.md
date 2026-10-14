@@ -421,3 +421,12 @@ code (v16 mostly never reached the hand-off: its lab built Infestors). Re-measur
 - Against standing enemies (NullAI without `attack`) the same change read worse in the 6-spec lab: a
   cautious army that holds trades well against an enemy that never comes. With them attacking, keeping
   the whole army in the fight wins. The standing-only lab was biased toward caution; defend specs fix it.
+
+## Battle lab in Lightning sandboxes: bolder thresholds (engage attack 1.2 -> 1.0, hold 0.8 -> 0.6) — not kept
+
+- 72 battles per arm, 4 cpu-16 sandboxes each, both arms at once: 3 min per arm. 72/72 ran in both.
+- 20261014-1356-sbx-battle-resp (responders from home) vs 20261014-1357-sbx-battle-bold: efficiency
+  -0.20 [-0.37, -0.03] **worse**, our share lost +0.07 [+0.02, +0.12] **worse**, score -0.12 can't tell.
+  Bolder helped the heavy specs (heavy-defend 0.97 -> 1.55) and hurt raiders and Legion (raiders-defend
+  1.15 -> 0.81, legion-defend 1.57 -> 1.03): if anything, the threshold wants to depend on the unit kind.
+- Sandboxes (BAR test-31614) agree with force: the same responders arm on both read +0.01 [-0.17, +0.19].

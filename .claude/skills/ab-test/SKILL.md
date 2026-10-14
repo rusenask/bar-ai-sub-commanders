@@ -48,6 +48,11 @@ SCENARIO=battle DUEL_MINUTES=4 PARALLEL=6 WIDGET_SRC=$(testenv/arm.sh mine) LABE
 go run ./cmd/gamereport -battles testenv/batch/<dir>      # efficiency per spec
 ```
 
+Or in Lightning sandboxes, both arms at once (3 min for 72 battles per arm; they agree with force):
+`uvx --with lightning-sdk python testenv/sandbox/batch.py 72 --scenario battle --minutes 4 --sandboxes 4
+--instance cpu-16 --parallel 6 --widgets /tmp/arm-mine/Widgets --label sbx-battle-mine` (keep all bar-*
+sandboxes under 12). Compare arms from the same host.
+
 Battle verdicts compare within each spec (`(within specs)` rows): pooled, the gap between specs drowns
 the change. Also read the per-spec table: a gain in one mirror can hide a loss in another.
 
