@@ -636,3 +636,45 @@ time step out (set targets kept). 72 per arm.
 - The losses are all against artillery: artillery-stands share lost 50% -> 84%, cortex push 16% -> 75%:
   the line walked into the reach of what outranges it. Fixed: places inside the reach of their turrets
   or artillery (range 600+) move back toward the rally point; re-testing.
+
+## Battle lab: the measured counter matrix (20261015-0123-sbx-counter, 264 battles, ~2000 metal a side, they attack)
+
+Mean log2 efficiency, our category (rows) against theirs (columns); 4 battles per cell. `scripts/counter_matrix.py`.
+
+### arm: mean log2 efficiency, ours (rows) vs theirs (columns)
+
+| ours \ theirs | raider | assault | skirmisher | heavy | artillery |
+|---|---|---|---|---|---|
+| raider | +0.14 (4) | -1.51 (4) | -3.00 (4) | -3.00 (4) | -3.00 (4) |
+| assault | +1.27 (4) | -1.14 (4) | +2.04 (4) | -0.67 (4) | +1.00 (4) |
+| skirmisher | +0.22 (4) | -2.90 (4) | -0.35 (4) | -2.20 (4) | -3.00 (4) |
+| heavy | +2.48 (4) | -1.10 (4) | -0.95 (4) | +0.86 (4) | -0.25 (4) |
+| artillery | -0.73 (4) | -1.69 (4) | +1.07 (4) | -2.20 (4) | +0.65 (4) |
+
+### cor: mean log2 efficiency, ours (rows) vs theirs (columns)
+
+| ours \ theirs | raider | assault | skirmisher | heavy | artillery |
+|---|---|---|---|---|---|
+| raider | +0.44 (4) | -2.85 (4) | -3.00 (4) | -2.86 (4) | -1.33 (4) |
+| assault | +2.23 (4) | +0.07 (4) | +3.00 (4) | +1.39 (4) | +0.31 (4) |
+| skirmisher | +0.02 (4) | -2.66 (4) | -0.00 (4) | -2.83 (4) | -1.75 (4) |
+| heavy | +1.63 (4) | -2.28 (4) | -1.50 (4) | -1.82 (4) | -0.04 (4) |
+| artillery | -0.79 (4) | -0.44 (4) | +2.75 (4) | -2.06 (4) | +1.13 (4) |
+
+### leg: mean log2 efficiency, ours (rows) vs theirs (columns)
+
+| ours \ theirs | raider | assault | skirmisher | heavy |
+|---|---|---|---|---|
+| raider | +0.03 (4) | -0.17 (4) | -1.38 (4) | -2.14 (4) |
+| assault | -0.38 (4) | -1.51 (4) | -0.77 (4) | -2.86 (4) |
+| skirmisher | +1.51 (4) | +1.12 (4) | +1.01 (4) | +2.81 (4) |
+| heavy | +2.44 (4) | -0.76 (4) | -1.81 (4) | +1.29 (4) |
+
+- Mostly what the doctrine's matrix (D.response) says: assault beats skirmishers, raiders and artillery;
+  heavies beat raiders; raiders lose to everything but raiders.
+- What it shows about our micro: our skirmishers and artillery collapse when the enemy closes in
+  (Janus -2.90 against assault units it outranges 2x, -2.20 against heavies; Cortex the same). Kiting
+  lived in the engaging micro only; a holding squad (most of the time, always when they come to us)
+  never backed off. Kiting while holding is under test.
+- Mirrors we should hold even (we defend, they walk in) lean to losses (Armada assault -1.14, Legion
+  assault -1.51, Cortex heavy -1.82).
