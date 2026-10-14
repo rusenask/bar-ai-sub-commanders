@@ -1,0 +1,9 @@
+# strike-aa-covered
+role air
+us armthund 8
+them armsolar 8
+them armrl 2 150 0
+them armrl 2 -150 0
+them armcir 1 0 150
+distance 3000
+seconds 150

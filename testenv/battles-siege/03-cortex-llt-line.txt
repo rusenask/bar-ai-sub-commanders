@@ -1,0 +1,13 @@
+# cortex-llt-line
+us corraid 8
+us corwolv 4
+them corllt 1 0 -400
+them corllt 1 0 -250
+them corllt 1 0 -100
+them corllt 1 0 100
+them corllt 1 0 250
+them corllt 1 0 400
+them corhlt 1 150 -150
+them corhlt 1 150 150
+distance 1400
+seconds 180

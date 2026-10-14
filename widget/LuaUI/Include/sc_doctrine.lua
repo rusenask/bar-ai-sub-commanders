@@ -195,6 +195,7 @@ D.airRaid = {
 
 -- the Air Force sub-commander (sc_air.lua): its mix and where its wings go
 D.air = {
+	bombRadius = 300, -- bombers strike with an area attack this wide around the target (a fight-move drops nothing on unarmed structures)
 	scouts = 1, -- scout (or radar) planes kept looking at the enemy's side
 	fighters = 0.25, -- share of the armed planes that are fighters (1.5x their air share when they fly)
 	maxFighters = 0.6,

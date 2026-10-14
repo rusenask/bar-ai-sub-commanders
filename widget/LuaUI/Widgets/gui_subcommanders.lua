@@ -3828,7 +3828,13 @@ function Tactics.airUnit(sub, unitID, d, st)
 		order(unitID, CMD.MOVE, { route[i].x, 0, route[i].z }, i > 1 and { "shift" } or nil)
 	end
 	local last = route[#route]
-	order(unitID, CMD.FIGHT, { last.x, spGetGroundHeight(last.x, last.z), last.z }, #route > 1 and { "shift" } or nil)
+	if class == "bomber" and o.action == "strike" then
+		-- bombers drop only on what they're told to: a fight-move flies over undefended structures without
+		-- a bomb (lab: two minutes over solar collectors, nothing hit). Area attack, as players bomb
+		order(unitID, CMD.AREA_ATTACK, { last.x, spGetGroundHeight(last.x, last.z), last.z, P.bombRadius }, #route > 1 and { "shift" } or nil)
+	else
+		order(unitID, CMD.FIGHT, { last.x, spGetGroundHeight(last.x, last.z), last.z }, #route > 1 and { "shift" } or nil)
+	end
 	setTask(unitID, o.action, o.text or o.action, true)
 end
 
@@ -4438,7 +4444,11 @@ local function thinkCombat(sub, unitID, d, st, threats)
 	local ao = sub.airOrder
 	if st.airRaid and ao then
 		if st.airSeq ~= ao.seq or not busy then
-			order(unitID, ao.action == "home" and CMD.MOVE or CMD.FIGHT, { ao.x, spGetGroundHeight(ao.x, ao.z), ao.z })
+			if ao.action ~= "home" and d.kind == "bomber" then
+				order(unitID, CMD.AREA_ATTACK, { ao.x, spGetGroundHeight(ao.x, ao.z), ao.z, Engine.D.air.bombRadius })
+			else
+				order(unitID, ao.action == "home" and CMD.MOVE or CMD.FIGHT, { ao.x, spGetGroundHeight(ao.x, ao.z), ao.z })
+			end
 			st.airSeq = ao.seq
 			setTask(unitID, "airraid", ao.action == "strike" and "air raid" or "air wing: home", true)
 		end

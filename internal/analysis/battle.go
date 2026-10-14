@@ -44,6 +44,9 @@ func (b *Battle) Efficiency() float64 {
 	}
 	them := (b.ThemStart - b.ThemLeft) / b.ThemStart
 	us := (b.UsStart - b.UsLeft) / b.UsStart
+	if us <= 0.01 && them <= 0.01 {
+		return 1 // nobody lost anything (a strike called off): even
+	}
 	if us <= 0.01 {
 		return 8
 	}

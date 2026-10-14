@@ -1,0 +1,8 @@
+# strike-aa-flank
+role air
+us armthund 8
+them armsolar 6 0 -700
+them armsolar 6 0 700
+them armrl 3 0 700
+distance 3000
+seconds 150

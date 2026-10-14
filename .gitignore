@@ -32,3 +32,5 @@ play/*
 !testenv/sandbox/
 !testenv/collect-results.sh
 !testenv/battles/
+!testenv/battles-air/
+!testenv/battles-siege/

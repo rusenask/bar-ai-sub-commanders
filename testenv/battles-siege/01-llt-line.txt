@@ -1,0 +1,14 @@
+# llt-line
+us armstump 8
+us armart 4
+them armllt 1 0 -400
+them armllt 1 0 -250
+them armllt 1 0 -100
+them armllt 1 0 100
+them armllt 1 0 250
+them armllt 1 0 400
+them armbeamer 1 120 -150
+them armbeamer 1 120 150
+them armhlt 1 200 0
+distance 1400
+seconds 180

@@ -546,18 +546,22 @@ end
 -- a BATTLE line (and the usual RESULT for the runners).
 -- Spec: sctest_battle.txt (LuaUI/Config/ first), lines "us <unit> <n>", "them <unit> <n>",
 -- "distance <elmos>", "seconds <n>", "attack 1" (their units fight-move at ours: we defend; without it
--- they stand, and we decide whether to attack).
+-- they stand, and we decide whether to attack). A unit line may end in "<dx> <dz>": an offset from that
+-- side's centre (to lay out a base: turrets, anti-air, an economy). "role air": ours go to an Air Force
+-- sub-commander (default: an Army).
 --------------------------------------------------------------------------------
 
-local battle = { us = {}, them = {}, distance = 700, seconds = 120, attack = 0, name = "default" }
+local battle = { us = {}, them = {}, distance = 700, seconds = 120, attack = 0, role = "army", name = "default" }
 
 local function battleSpec()
 	local text = loadInput("sctest_battle.txt") or "us legkark 6\nus legbar 4\nus leggob 6\nthem armham 8\nthem armrock 4\nthem armpw 6\n"
 	for line in text:gmatch("[^\n]+") do
-		local side, name, n = line:match("^%s*(%a+)%s+([%w_]+)%s+(%d+)")
+		local side, name, n, rest = line:match("^%s*(%a+)%s+([%w_]+)%s+(%d+)(.*)$")
 		if side == "us" or side == "them" then
-			battle[side][#battle[side] + 1] = { name = name, n = tonumber(n) }
+			local dx, dz = (rest or ""):match("^%s+(-?%d+)%s+(-?%d+)")
+			battle[side][#battle[side] + 1] = { name = name, n = tonumber(n), dx = tonumber(dx) or 0, dz = tonumber(dz) or 0 }
 		end
+		battle.role = line:match("^%s*role%s+(%a+)") or battle.role
 		battle.name = line:match("^#%s*(%S+)") or battle.name
 		local k, v = line:match("^%s*(%a+)%s+(%d+)%s*$")
 		if k == "distance" or k == "seconds" or k == "attack" then
@@ -593,12 +597,16 @@ local function battleFrame(n)
 		battle.given = n
 		for _, u in ipairs(battle.us) do
 			if UnitDefNames[u.name] then
-				give(u.n, u.name, myTeam, mx - half, mz)
+				give(u.n, u.name, myTeam, mx - half + u.dx, mz + u.dz)
+			else
+				out("HARNESS ERROR battle: no unit " .. u.name)
 			end
 		end
 		for _, u in ipairs(battle.them) do
 			if UnitDefNames[u.name] then
-				give(u.n, u.name, 1, mx + half, mz)
+				give(u.n, u.name, 1, mx + half + u.dx, mz + u.dz)
+			else
+				out("HARNESS ERROR battle: no unit " .. u.name)
 			end
 		end
 	elseif not battle.given and n > 12 + 30 * 20 then
@@ -610,14 +618,23 @@ local function battleFrame(n)
 	elseif battle.given and n == battle.given + 25 then
 		battle.ours, battle.theirs = {}, {}
 		local list = {}
-		for _, u in ipairs(Spring.GetUnitsInCylinder(mx - half, mz, 600, myTeam)) do
+		-- what was given: both sides' units around the battle, not the commanders at the start positions
+		local function given(team, x)
+			local found = {}
+			for _, u in ipairs(Spring.GetUnitsInCylinder(x, mz, 1500)) do
+				local ud = UnitDefs[Spring.GetUnitDefID(u) or -1]
+				if Spring.GetUnitTeam(u) == team and ud and not (ud.customParams and ud.customParams.iscommander) then
+					found[#found + 1] = u
+				end
+			end
+			return found
+		end
+		for _, u in ipairs(given(myTeam, mx - half)) do
 			battle.ours[u] = true
 			list[#list + 1] = u
 		end
-		for _, u in ipairs(Spring.GetUnitsInCylinder(mx + half, mz, 600)) do
-			if Spring.GetUnitTeam(u) == 1 then
-				battle.theirs[u] = true
-			end
+		for _, u in ipairs(given(1, mx + half)) do
+			battle.theirs[u] = true
 		end
 		battle.start = n
 		battle.usStart, battle.themStart = battleValue(battle.ours), battleValue(battle.theirs)
@@ -631,7 +648,7 @@ local function battleFrame(n)
 			out(string.format("battle: they attack (%d units ordered)", ordered))
 		end
 		local SC = WG.SubCommanders
-		ids.army = SC.create("army")
+		ids.army = SC.create(battle.role)
 		SC.assign(ids.army, list)
 		SC.setAutonomy(ids.army, "full")
 		if SC.setRaids then
@@ -646,16 +663,28 @@ local function battleFrame(n)
 		if n % 300 == 0 or over then
 			local s = WG.SubCommanders and WG.SubCommanders.get(ids.army)
 			-- how many of ours hold a set target (fire control) right now
-			local targeted, alive = 0, 0
+			-- and how far ours are from their side's centre (on average), with their current orders
+			local targeted, alive, far, cmds = 0, 0, 0, {}
 			for u in pairs(battle.ours) do
 				if Spring.ValidUnitID(u) and not Spring.GetUnitIsDead(u) then
 					alive = alive + 1
 					if (Spring.GetUnitRulesParam(u, "unitTargetID") or 0) > 0 then
 						targeted = targeted + 1
 					end
+					local x, _, z = Spring.GetUnitPosition(u)
+					far = far + math.sqrt((x - (mx + half)) ^ 2 + (z - mz) ^ 2)
+					local c = Spring.GetUnitCommands(u, 1)
+					local id = c and c[1] and c[1].id or 0
+					cmds[id] = (cmds[id] or 0) + 1
 				end
 			end
-			out(string.format("battle t=%ds us=%.0f them=%.0f targeted=%d/%d | %s", t, us, them, targeted, alive, s and (s.status or "") or ""))
+			local cl = {}
+			for id, k in pairs(cmds) do
+				cl[#cl + 1] = (CMD[id] or tostring(id)) .. "x" .. k
+			end
+			table.sort(cl)
+			out(string.format("battle t=%ds us=%.0f them=%.0f targeted=%d/%d dist=%.0f cmds=%s | %s", t, us, them, targeted, alive,
+				alive > 0 and far / alive or 0, table.concat(cl, ","), s and (s.status or "") or ""))
 		end
 		if over and not duelState.done then
 			local result = (them <= 0.1 * battle.themStart and us > 0.1 * battle.usStart and "WIN")

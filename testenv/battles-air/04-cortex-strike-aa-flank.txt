@@ -1,0 +1,8 @@
+# cortex-strike-aa-flank
+role air
+us corshad 8
+them corsolar 6 0 -700
+them corsolar 6 0 700
+them corrl 3 0 700
+distance 3000
+seconds 150

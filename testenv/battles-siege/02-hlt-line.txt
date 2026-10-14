@@ -1,0 +1,11 @@
+# hlt-line
+us armstump 10
+us armart 4
+them armhlt 1 0 -300
+them armhlt 1 0 0
+them armhlt 1 0 300
+them armllt 1 -60 -150
+them armllt 1 -60 150
+them armbeamer 1 100 0
+distance 1400
+seconds 180

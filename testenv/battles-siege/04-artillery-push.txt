@@ -1,0 +1,7 @@
+# artillery-push
+us armflash 10
+them armart 6
+them armstump 3
+distance 1600
+seconds 150
+attack 1

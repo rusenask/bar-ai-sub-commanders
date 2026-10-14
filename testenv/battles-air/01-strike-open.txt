@@ -1,0 +1,7 @@
+# strike-open
+role air
+us armthund 6
+them armsolar 6
+them armsolar 4 300 300
+distance 3000
+seconds 120
