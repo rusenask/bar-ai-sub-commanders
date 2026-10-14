@@ -602,3 +602,15 @@ time step out (set targets kept). 72 per arm.
   better, score +0.03 can't tell. Backing off at half speed keeps the squad in reach longer; it stays off.
 - Defend at 0.7 instead of 0.5: nothing tells (score +0.04 [-0.18, +0.24]); stays 0.5.
 - 48/48 games ran, no crashes.
+
+## Battle lab, big fights with an edge (32 v 16 units, 6 specs), interleaved, 72 pairs each
+
+| Arm vs base | Efficiency (log2, paired) | Our share lost | Score |
+|---|---|---|---|
+| concave (each unit to its own place on an arc facing the enemy, at 0.85 x its range) | **+0.61 [+0.44, +0.78] better** | **-0.09 [-0.12, -0.06] better** | **+0.09 [+0.03, +0.17] better** |
+| roam move state | -0.01 [-0.20, +0.17] | +0.02 | +0.05 |
+
+- 20261015-0048-sbx-il-big-barc, 20261015-0048-sbx-il-big-broam; 288/288 battles, no harness errors.
+- Concave per spec (base -> arc): armada 3.73 -> 6.26, armada defend 3.87 -> 5.06, cortex 3.76 -> 4.79,
+  cortex defend 4.79 -> 6.45, legion 1.96 -> 4.55, legion defend 4.05 -> 5.87.
+- In the small specs (12 v 12, mostly holding) it was +0.01: no harm, little use. Whole games next.
