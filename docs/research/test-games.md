@@ -694,3 +694,13 @@ Mean log2 efficiency, our category (rows) against theirs (columns); 4 battles pe
   (1400), tactics (1200-1600), and the verdicts drawn on them (dive / fall back / dodge on artillery,
   hold line on siege, kiting while holding on the matrix). Ground specs (700-800) and air strikes are
   unaffected.
+
+## Sandboxes, interleaved: hold line in whole games, 24 pairs — neutral, stays off
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-0152-sbx-g33-holdline-A (base, concave on) | 24 | 3 win, 10 timeout, 11 loss | 2 | 144.2k | 146 / 642 | 0.81 | 17.3 | 10.5 / 14.5 | 3.8k |
+| 20261015-0152-sbx-g33-holdline-B (hold line 450) | 24 | 3 win, 8 timeout, 13 loss | 2 | 193.9k | 220 / 764 | 0.77 | 18.3 | 11.5 / 15 | 4.1k |
+
+- Paired: score -0.01 [-0.17, +0.16]; mid kills +2.7k [-0.4k, +5.7k], late losses +37k [-7k, +84k]; all
+  can't tell. 48/48 ran, no crashes. Off; it returns with the turret line if that holds up.
