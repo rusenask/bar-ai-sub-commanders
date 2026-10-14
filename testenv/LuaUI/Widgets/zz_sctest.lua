@@ -551,6 +551,7 @@ end
 -- sub-commander (default: an Army).
 --------------------------------------------------------------------------------
 
+local replayEnd -- replay scenario: the frame the recorded game ended (sctest_replayend.txt)
 local battle = { us = {}, them = {}, distance = 700, seconds = 120, attack = 0, role = "army", name = "default" }
 
 local function battleSpec()
@@ -733,6 +734,13 @@ local function gameFrame(n)
 			out("scenario replay")
 		elseif n % (30 * 60) == 0 then
 			out(string.format("t=%dmin", n / 1800))
+		end
+		-- our own games end without a game over when the time runs out: stop where the game stopped (the
+		-- data logger writes its end on shutdown)
+		replayEnd = replayEnd or tonumber(loadInput("sctest_replayend.txt") or "") or false
+		if replayEnd and n >= replayEnd then
+			out("DONE")
+			Spring.SendCommands("quitforce")
 		end
 		return
 	end

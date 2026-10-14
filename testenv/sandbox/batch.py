@@ -131,10 +131,20 @@ def stage(args):
     # no rendering: the game may run as fast as the CPU allows
     (w / "zz_sctest.lua").write_text((T / "LuaUI/Widgets/zz_sctest.lua").read_text().replace("setmaxspeed 20", "setmaxspeed 1000"))
     if args.datalog:
-        # the data logger too (fight / micro / fire samples of our own games, to set against strong players')
-        (w / "zz_datalog.lua").write_text((T / "LuaUI/Widgets/zz_datalog.lua").read_text())
-        (d / "LuaUI/Config").mkdir(parents=True, exist_ok=True)
-        (d / "LuaUI/Config/datalog.txt").write_text("1\n")
+        # the data logger, on a replay of each game after it ends (run_games.sh): a spectator sees both
+        # sides in full, as with strong players' replays (in the game it would see only what we see)
+        r = d / "replaystage"
+        (r / "LuaUI/Widgets").mkdir(parents=True)
+        (r / "LuaUI/Include").mkdir(parents=True)
+        (r / "LuaUI/Config").mkdir(parents=True)
+        (r / "LuaUI/Widgets/zz_datalog.lua").write_text((T / "LuaUI/Widgets/zz_datalog.lua").read_text())
+        (r / "LuaUI/Widgets/zz_sctest.lua").write_text((T / "LuaUI/Widgets/zz_sctest.lua").read_text()
+                                                       .replace("setmaxspeed 40", "setmaxspeed 1000").replace("setmaxspeed 20", "setmaxspeed 1000"))
+        (r / "LuaUI/Include/sc_unitkinds.lua").write_text((ROOT / "widget/LuaUI/Include/sc_unitkinds.lua").read_text())
+        (r / "springsettings.cfg").write_text((T / "springsettings.template.cfg").read_text())
+        for name, text in (("datalog.txt", "1\n"), ("sctest_scenario.txt", "replay\n"), ("sctest_speed.txt", "1000 0\n")):
+            (r / name).write_text(text)
+            (r / "LuaUI/Config" / name).write_text(text)
     (d / "springsettings.cfg").write_text((T / "springsettings.template.cfg").read_text())
     script = (T / "script_vsai.txt").read_text()
     import re
@@ -196,7 +206,8 @@ def main():
     ap.add_argument("--side", default="Legion")
     ap.add_argument("--enemy-side", default="Armada")
     ap.add_argument("--battles", default=str(T / "battles"), help="scenario battle: the specs (testenv/battles)")
-    ap.add_argument("--datalog", action="store_true", help="also run the data logger: <batch>/data/<i>.jsonl (gamereport -micro)")
+    ap.add_argument("--datalog", action="store_true", help="also replay each game with the data logger (a spectator: both sides): "
+                    "<batch>/data/<i>.jsonl (gamereport -micro, -formation)")
     ap.add_argument("--widgets-b", default="", help="an interleaved A/B: arm B's widgets play the even-numbered games (odd: --widgets), "
                     "battle specs in pairs; the batch is split into <label>-A and <label>-B for make compare")
     ap.add_argument("--learn", default="", help="a learning key (internal/learn): each game plays a sampled rule set, "

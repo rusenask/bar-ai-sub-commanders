@@ -13,6 +13,7 @@ one() {
 	for try in 1 2; do
 		rm -rf "$G"
 		cp -r /opt/bar/stage "$G"
+		[ -d "$G/replaystage" ] && rm -rf "$G/demos"
 		# an interleaved A/B (batch.py --widgets-b): even games play arm B's widgets
 		if [ -d "$G/armB" ]; then
 			if [ $((i % 2)) = 0 ]; then
@@ -35,12 +36,39 @@ one() {
 		SPRING_DATADIR=/opt/bar/data:/opt/bar/engine timeout "$LIMIT" /opt/bar/engine/spring-headless --write-dir "$G" "$G/script.txt" > run.log 2>&1
 		echo "exit=$? try=$try" > exit.txt
 		[ -s sctest_out.txt ] || cp LuaUI/Config/sctest_out.txt . 2>/dev/null # BAR 31614+: widgets write under LuaUI/Config
-		[ -s datalog.jsonl ] || cp LuaUI/Config/datalog.jsonl . 2>/dev/null # the data logger (batch.py --datalog)
 		grep -q "RESULT" sctest_out.txt 2>/dev/null && break
 	done
+	# batch.py --datalog: replay the game as a spectator with the data logger (both sides in full)
+	if [ -d "$G/replaystage" ]; then
+		demo=$(ls "$G"/demos/*.sdfz 2>/dev/null | head -1)
+		R="/opt/bar/games/r$i"
+		rm -rf "$R" && cp -r "$G/replaystage" "$R"
+		# where the game ended (timed-out games have no game over to stop the replay)
+		grep -o '^\[[0-9]*\]' "$G/sctest_out.txt" 2>/dev/null | tail -1 | tr -d '[]' > "$R/LuaUI/Config/sctest_replayend.txt"
+		if [ -n "$demo" ]; then
+			cd "$R" || return
+			# a replay listens on the port its game was recorded with: two at once collide (exit 21, no
+			# message). Each in its own network namespace where allowed, else one at a time
+			if unshare -n true 2>/dev/null; then
+				unshare -n -- bash -c "ip link set lo up 2>/dev/null; SPRING_DATADIR=/opt/bar/data:/opt/bar/engine timeout $LIMIT /opt/bar/engine/spring-headless --write-dir '$R' '$demo'" > run.log 2>&1
+			else
+				flock /opt/bar/replay.lock env SPRING_DATADIR=/opt/bar/data:/opt/bar/engine timeout "$LIMIT" /opt/bar/engine/spring-headless --write-dir "$R" "$demo" > run.log 2>&1
+			fi
+			echo "replay exit=$?" >> "$G/exit.txt"
+			[ -s datalog.jsonl ] || cp LuaUI/Config/datalog.jsonl . 2>/dev/null
+			if grep -q '"type":"end"' datalog.jsonl 2>/dev/null; then
+				cp datalog.jsonl "$G/datalog.jsonl"
+			else
+				cp run.log "$G/replay.log"
+			fi
+		else
+			echo "replay: no demo" >> "$G/exit.txt"
+		fi
+		rm -rf "$R"
+	fi
 }
 export -f one
 export LIMIT
 seq "$FIRST" "$LAST" | xargs -P "$PARALLEL" -I{} bash -c 'one {}'
-cd /opt/bar/games && tar czf /opt/bar/results.tgz g*/sctest_out.txt g*/run.log g*/exit.txt $(ls g*/datalog.jsonl 2>/dev/null) 2>/dev/null
+cd /opt/bar/games && tar czf /opt/bar/results.tgz g*/sctest_out.txt g*/run.log g*/exit.txt $(ls g*/datalog.jsonl g*/replay.log 2>/dev/null) 2>/dev/null
 echo "done $FIRST-$LAST"
