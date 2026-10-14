@@ -220,6 +220,8 @@ D.air = {
 D.micro = {
 	outrange = 0.9, -- an enemy with at least this fraction of our range isn't outranged: no kiting from it
 	kiteRange = 450, -- only units with at least this range kite (short-range kiters were rare in the data)
+	-- focus fire (Tactics.micro): armed enemies count this much more; a target is kept this many frames
+	focus = { on = true, armed = 3, every = 45 },
 	kinds = {
 		default = { hold = 0.73, kite = false },
 		raider = { hold = 0.67, kite = false },

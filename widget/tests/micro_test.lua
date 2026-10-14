@@ -44,4 +44,14 @@ return {
 		s.phase = "defend"
 		T.eq(M.auto(s), "hold")
 	end,
+	focus_fire = function()
+		local M = micro()
+		local t = M.focusTarget({
+			{ id = 1, hp = 900, cost = 300, armed = true }, -- healthy
+			{ id = 2, hp = 50, cost = 300, armed = true }, -- nearly dead: finish it
+			{ id = 3, hp = 20, cost = 60, armed = false }, -- a nearly dead extractor
+		})
+		T.eq(t.id, 2)
+		T.eq(M.focusTarget({}), nil)
+	end,
 }

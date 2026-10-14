@@ -53,6 +53,20 @@ return function(ctx)
 		return nil
 	end
 
+	-- focus fire: of the enemies in reach ({ id, hp, cost, armed, mobile }), the one to shoot: armed units
+	-- first (they shoot back), then the most value per hit point left (finish what's nearly dead, kill
+	-- what's worth most): concentrated fire removes enemy guns sooner than each unit taking the nearest
+	function M.focusTarget(cands)
+		local best, bestScore
+		for _, c in ipairs(cands) do
+			local score = (c.cost or 0) / math.max(c.hp or 1, 1) * (c.armed and D.micro.focus.armed or 1)
+			if not bestScore or score > bestScore then
+				best, bestScore = c, score
+			end
+		end
+		return best
+	end
+
 	-- may a unit of this kind join raids under the style?
 	function M.raids(category, styleName)
 		local kinds = M.style(styleName).raidKinds

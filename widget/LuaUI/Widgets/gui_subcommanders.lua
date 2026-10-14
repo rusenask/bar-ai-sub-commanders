@@ -4130,6 +4130,32 @@ function Tactics.micro(unitID, d, st, x, z)
 			end
 		end
 	end
+	-- focus fire (sc_micro.lua): every unit in reach of the same enemies converges on the one worth most
+	-- per hit point left, armed ones first
+	local F = Engine.D.micro.focus
+	if F.on and range > 0 and (not st.focusUntil or frame >= st.focusUntil or not isAlive(st.focus or -1)) then
+		local cands = {}
+		for _, u in ipairs(spGetUnitsInCylinder(x, z, range)) do
+			if isEnemyUnit(u) then
+				local ud = unitDef(u)
+				local hp = Spring.GetUnitHealth(u)
+				-- what it can hit: planes for anti-air, the ground for the rest (most ground guns can't aim up)
+				if ud and hp and (ud.armed or ud.mex > 0 or ud.builder) and (ud.air == (d.aaOnly or false)) then
+					cands[#cands + 1] = { id = u, hp = hp, cost = ud.cost, armed = ud.armed and not ud.aaOnly }
+				end
+			end
+		end
+		local t = Engine.micro.focusTarget(cands)
+		if t then
+			order(unitID, CMD.ATTACK, { t.id })
+			st.focus, st.focusUntil, st.engaged = t.id, frame + F.every, nil
+			setTask(unitID, "focus", "focus fire", true)
+			return true
+		end
+		st.focus = nil
+	elseif F.on and st.focus and frame < st.focusUntil then
+		return true
+	end
 	return false
 end
 
