@@ -26,6 +26,18 @@ description: Run and judge A/B test batches of BAR games for a sub-commander cha
 Before comparing arms: every game ran (`ran: N/M`), no `WIDGET CRASHED`, no sandbox errors in `meta.txt`.
 For each failure read its log and name the cause; a batch with silent failures is a biased batch.
 
+## Deciding: the verdicts, not the averages
+
+`make compare` ends with a verdict table per arm against the first (the baseline): each metric's
+difference with a 95% bootstrap interval, by stage (opening < 10 min, mid 10-25, late 25+). "can't tell"
+means the interval holds zero: the arms may be the same. Read it like this:
+
+- Keep a change when its target metric (the stage it was meant for) says **better** and nothing says
+  **worse**. Say which stage it helps: an idea can pay in one stage and cost in another.
+- "can't tell" on everything = no evidence either way: run more games (24+ a side) before deciding, or
+  drop it if it was a long shot. Don't call 3 wins against 1 an improvement on its own.
+- Any **worse** = revert, or restrict the change to the stage where it helps.
+
 ## Running
 
 On the force host (default: headless, 6 at a time, 16 games of 60 minutes in about half an hour; the

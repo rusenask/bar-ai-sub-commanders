@@ -103,14 +103,16 @@ func main() {
 			arms = append(arms, analysis.Arm{Label: filepath.Base(dir), Games: load([]string{dir})})
 		}
 		if *asJSON {
-			out := map[string]analysis.ReportData{}
+			out := map[string]any{}
 			for _, a := range arms {
 				out[a.Label] = analysis.BuildReport(a.Label, a.Games, bench)
 			}
+			out["verdicts"] = analysis.Verdicts(arms)
 			printJSON(out)
 			return
 		}
 		analysis.Compare(os.Stdout, arms)
+		analysis.WriteVerdicts(os.Stdout, arms)
 		return
 	}
 	games := load(flag.Args())

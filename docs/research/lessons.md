@@ -75,8 +75,9 @@ out wrong.
   often. Our constructors die inside the base to BARbarian's main pushes, not on the road: the fix is
   holding the base against Hammers and Rockos, not running.
 
-- Focus fire pays (v26): army units converging on the enemy in reach worth most per hit point left (armed
-  first) traded 0.77 against 0.64 and lost a quarter fewer units for the same kills.
+- Focus fire (v26) kills more in the mid-game (verdict: better, +3k enemy metal killed between minutes 10
+  and 25); its overall score difference at 12 games is "can't tell". 3 wins against 1 looked like more
+  than it was: decide on `make compare`'s verdicts, by stage.
 
 - Learning 18 rules at once from 24 games a generation found no trend in 6 generations: one game's
   result is mostly noise. Search fewer rules at a time (the few that moved the same way in every

@@ -312,6 +312,8 @@ code (v16 mostly never reached the hand-off: its lab built Infestors). Re-measur
 
 - Engaged army units shoot the enemy in reach worth most per hit point left (armed 3x): trades 0.64 ->
   0.77, units lost 998 -> 738 for the same kills; more undecided games turn into wins (1 -> 3).
+- Verdict (bootstrap, added after): overall score +0.10 [-0.13, +0.33] "can't tell"; mid-game enemy metal
+  killed +3.0k [+150, +5.8k] **better**; nothing worse. A mid-game improvement, not a proven overall win.
 
 ## First learning run (internal/learn): Armada and Cortex vs medium, 6 generations x 24 games, sandboxes
 

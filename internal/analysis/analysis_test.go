@@ -252,3 +252,26 @@ func TestRoles(t *testing.T) {
 		t.Errorf("text:\n%s", txt)
 	}
 }
+
+func TestVerdicts(t *testing.T) {
+	mk := func(result string, lostMid int) *Game {
+		return &Game{Result: result, Seconds: 3600, Stats: map[string]float64{"damageDealt": 1, "damageReceived": 1},
+			Lost: []Death{{Minute: 15, Cost: lostMid}}}
+	}
+	var a, b []*Game
+	for i := range 12 {
+		a = append(a, mk("LOSS", 1000+i))
+		b = append(b, mk("TIMEOUT", 200+i))
+	}
+	vs := Verdicts([]Arm{{Label: "base", Games: a}, {Label: "new", Games: b}})["new"]
+	got := map[string]string{}
+	for _, r := range vs {
+		got[r.Metric] = r.Verdict
+	}
+	if got["mid: metal lost"] != "better" || !strings.HasPrefix(got["score (win 1+, alive 0.5, loss by time; trades)"], "better") {
+		t.Errorf("verdicts %v", got)
+	}
+	if got["opening: metal lost"] != "can't tell" {
+		t.Errorf("no difference in the opening: %v", got["opening: metal lost"])
+	}
+}
