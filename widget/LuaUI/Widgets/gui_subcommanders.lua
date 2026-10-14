@@ -4592,7 +4592,41 @@ function Engine.holdLine(sub, members, threat)
 	end
 	local dx, dz = fx - rx, fz - rz
 	local len = max(sqrt(dx * dx + dz * dz), 1)
-	sub.holdSlots = Engine.squads.arc(members, rx + dx / len * D, rz + dz / len * D)
+	local slots = Engine.squads.arc(members, rx + dx / len * D, rz + dz / len * D)
+	-- not into the reach of what outranges a line (their turrets and artillery: lab, the line walked into
+	-- standing artillery and lost 84% instead of 50%): such a place moves back toward the rally point
+	local far = {}
+	for _, e in pairs(Engine.tm.enemies) do
+		local ed = Engine.tm.defOf(e)
+		if ed and ed.armed and not ed.aaOnly and not ed.air and (e.static or (ed.range or 0) >= 600) and Engine.tm.weight(e, frame) > 0 then
+			far[#far + 1] = { x = e.x, z = e.z, r = (ed.range or 0) + 80 }
+		end
+	end
+	if #far > 0 then
+		for id, p in pairs(slots) do
+			for _ = 1, 8 do
+				local inside = false
+				for _, e in ipairs(far) do
+					if dist2(p.x, p.z, e.x, e.z) < e.r * e.r then
+						inside = true
+						break
+					end
+				end
+				if not inside then
+					break
+				end
+				local bx, bz = sub.rallyX - p.x, sub.rallyZ - p.z
+				local bl = sqrt(bx * bx + bz * bz)
+				if bl < 50 then
+					break
+				end
+				local step = min(120, bl)
+				p = { x = p.x + bx / bl * step, z = p.z + bz / bl * step }
+			end
+			slots[id] = p
+		end
+	end
+	sub.holdSlots = slots
 end
 
 local function thinkCombat(sub, unitID, d, st, threats)

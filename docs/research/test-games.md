@@ -624,3 +624,15 @@ time step out (set targets kept). 72 per arm.
 
 - Paired: score +0.08 [-0.07, +0.24], late metal lost -36k [-87k, +15k], all can't tell; nothing worse.
   With the lab's +0.61 [+0.44, +0.78] in big fights it is on. 48/48 ran, no crashes.
+
+## Battle lab: hold line (a line facing the threat 450 elmos out from the rally point, not a ring), interleaved, 72 pairs each
+
+| Specs | Efficiency (log2, paired) | Our share lost | Score |
+|---|---|---|---|
+| ground | **+0.59 [+0.34, +0.82] better** | -0.06 [-0.12, +0.00] | **+0.30 [+0.16, +0.45] better** |
+| big fights | -0.06 [-0.19, +0.09] | +0.01 | +0.01 |
+| siege | **-0.79 [-1.18, -0.41] worse** | **+0.18 worse** | -0.13 worse |
+
+- The losses are all against artillery: artillery-stands share lost 50% -> 84%, cortex push 16% -> 75%:
+  the line walked into the reach of what outranges it. Fixed: places inside the reach of their turrets
+  or artillery (range 600+) move back toward the rally point; re-testing.
