@@ -4,7 +4,9 @@
 //	learn sample -key legion-vs-armada -n 36 -out /tmp/overlays   # rule sets for the next games (g1.json ...)
 //	learn update -key legion-vs-armada -batch testenv/batch/<dir> -samples /tmp/overlays
 //	learn show -key legion-vs-armada                              # generations, scores, what moved
-//	learn overlay -key legion-vs-armada -out LuaUI/Config/sc_learned.json   # the mean, for real games
+//	learn overlay -key legion-vs-armada -out /tmp/rules.json   # the mean (for an A/B: force-batch OVERLAY=)
+//	learn validate -key legion-vs-armada -evidence "batch A vs batch B: ..."   # the mean beat the defaults:
+//	                                                                          # real games get it (the bridge)
 package main
 
 import (
@@ -37,6 +39,7 @@ func main() {
 	samples := fs.String("samples", "", "update: the directory sample wrote")
 	limit := fs.Float64("minutes", 60, "update: the games' length")
 	only := fs.String("only", "", "sample: search only these rules (comma-separated; kept in the store; \"all\" clears it)")
+	evidence := fs.String("evidence", "", "validate: the A/B batches that show the mean beats the defaults")
 	meanEvery := fs.Int("mean-every", 0, "sample: every this many games play the mean itself (kept in the store)")
 	_ = fs.Parse(os.Args[2:])
 	if *key == "" {
@@ -111,6 +114,15 @@ func main() {
 			fmt.Printf("| %d | %d | %d | %d | %.3f | %.3f | %.3f |\n", h.Generation, h.Games, h.Wins, h.Losses, h.MeanScore, h.EliteScore, h.MeanTrials)
 		}
 		fmt.Println("\nmoved from the doctrine:", strings.Join(store.Changes(), ", "))
+	case "validate":
+		if *evidence == "" {
+			log.Fatal("-evidence is required: the A/B batches that show the mean beats the defaults")
+		}
+		store.Validate(*evidence)
+		if err := store.Save(*dir); err != nil {
+			log.Fatal(err)
+		}
+		fmt.Printf("%s generation %d validated: real games get it\n", store.Key, store.Generation)
 	case "overlay":
 		writeJSON(*out, store.MeanOverlay())
 		fmt.Printf("%s generation %d -> %s\n", store.Key, store.Generation, *out)

@@ -325,3 +325,13 @@ code (v16 mostly never reached the hand-off: its lab built Infestors). Re-measur
   (more army early), responders_share 0.30 -> 0.23-0.25, defend_base_share 0.08 -> 0.056-0.063; tested
   directly as an A/B on force (v27).
 - Ran on the widget before focus fire (frozen arm) and on slow sandboxes (~1x per game).
+
+## force: Cortex vs Armada, default rules vs the first learning run's mean (v27, with focus fire)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261014-1133-force4-v27-cortex-default | 12 | 5 timeout, 7 loss | 1 | 190.0k | 199 / 931 | 0.55 | 26.1 | 11.5 / 18 | 3.6k |
+| 20261014-1150-force4-v27-cortex-learned | 12 | 4 timeout, 8 loss | 1 | 159.9k | 131 / 838 | 0.56 | 26.7 | 10 / 16 | 2.7k |
+
+- Not better: a smaller army at 12 minutes (the learned rules also delayed the second lab). Not shipped;
+  the bridge now serves only validated stores (`learn validate` after an A/B like this one wins).

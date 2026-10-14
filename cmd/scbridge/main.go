@@ -18,7 +18,6 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"strings"
 	"syscall"
 	"time"
 
@@ -101,12 +100,17 @@ func run() error {
 			g.OnHello = func(info *game.Info) map[string]any {
 				m := learn.Matchup(info.Faction, info.Enemies)
 				st, err := learn.Find(*learnDir, m, params)
-				if err != nil || st == nil || st.Generation == 0 {
+				if err != nil || st == nil {
 					log.Info("no learned rules", "matchup", m)
 					return nil
 				}
-				ov := st.MeanOverlay()
-				log.Info("learned rules", "store", st.Key, "generation", st.Generation, "moved", strings.Join(st.Changes(), ", "))
+				// only rules that beat the defaults in an A/B (learn validate) go to real games
+				ov, ok := st.ServedOverlay()
+				if !ok {
+					log.Info("learned rules not validated yet", "store", st.Key, "generation", st.Generation)
+					return nil
+				}
+				log.Info("learned rules", "store", st.Key, "generation", ov.Generation, "evidence", st.Validated.Evidence)
 				return map[string]any{"key": ov.Key, "generation": ov.Generation, "rules": ov.Rules}
 			}
 			// at game over: the result goes on the learned rules, and the strategist writes lessons for the
@@ -119,8 +123,8 @@ func run() error {
 					go strat.Debrief(ctx, info, summary)
 				}
 				st, err := learn.Find(*learnDir, learn.Matchup(info.Faction, info.Enemies), params)
-				if err != nil || st == nil || st.Generation == 0 {
-					return
+				if err != nil || st == nil || st.Validated == nil {
+					return // a real game played the defaults: nothing learned to measure
 				}
 				if err := st.RecordReal(*learnDir, summary, "real game on "+info.Map); err != nil {
 					log.Warn("record game", "err", err)

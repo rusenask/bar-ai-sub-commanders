@@ -55,6 +55,32 @@ type Store struct {
 	Active []string `json:"active,omitempty"`
 	// MeanEvery: every this many samples is the mean itself (default 6), to measure where the search is.
 	MeanEvery int `json:"meanEvery,omitempty"`
+	// Validated: the mean beat the doctrine's defaults in an A/B (set by hand with `learn validate`, with
+	// the batches as evidence). Only validated rules go to real games: a search's mean can be worse than
+	// where it started (the first Cortex run's was).
+	Validated *Validation `json:"validated,omitempty"`
+}
+
+// Validation records the A/B that let a store's mean into real games.
+type Validation struct {
+	Generation int                `json:"generation"`
+	Rules      map[string]float64 `json:"rules"`
+	Evidence   string             `json:"evidence"`
+	At         time.Time          `json:"at"`
+}
+
+// Validate marks the current mean as tested against the defaults (evidence: the A/B batches).
+func (s *Store) Validate(evidence string) {
+	ov := s.MeanOverlay()
+	s.Validated = &Validation{Generation: s.Generation, Rules: ov.Rules, Evidence: evidence, At: time.Now()}
+}
+
+// ServedOverlay is what real games get: the validated rules, or nothing.
+func (s *Store) ServedOverlay() (Overlay, bool) {
+	if s.Validated == nil {
+		return Overlay{}, false
+	}
+	return Overlay{Key: s.Key, Generation: s.Validated.Generation, Rules: s.Validated.Rules}, true
 }
 
 func (s *Store) active(name string) bool {

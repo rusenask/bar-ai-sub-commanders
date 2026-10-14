@@ -170,3 +170,17 @@ func TestActiveRulesOnly(t *testing.T) {
 		t.Errorf("%d mean samples, want every third", means)
 	}
 }
+
+func TestOnlyValidatedRulesAreServed(t *testing.T) {
+	s := New("k", []Param{{Name: "a", Min: 0, Max: 10, Default: 5}})
+	if _, ok := s.ServedOverlay(); ok {
+		t.Fatal("nothing validated yet")
+	}
+	s.Mean["a"] = 7
+	s.Validate("A/B 12 v 12")
+	s.Mean["a"] = 9 // the search moves on
+	ov, ok := s.ServedOverlay()
+	if !ok || ov.Rules["a"] != 7 {
+		t.Errorf("served %+v %v: want the validated 7", ov, ok)
+	}
+}
