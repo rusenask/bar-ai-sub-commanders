@@ -4490,16 +4490,109 @@ function Tactics.squad(sub)
 	local prev = sub.squadOrder
 	if not target then
 		sub.squadOrder = nil
+		Engine.holdLine(sub, members, nil)
 		return
 	end
 	local engaged = prev and prev.id == target.id and prev.action == "engage"
 	local action, ratio = S.decide(sq, target.x, target.z, frame, { home = home, engaged = engaged, support = turretSupport(target.x, target.z, 700) })
 	sub.squadOrder = { action = action, id = target.id, x = target.x, z = target.z, ratio = ratio }
 	-- engaging as a concave: each unit's place on an arc facing the enemy (sc_squads.lua arc)
-	sub.arcSlots = (action == "engage" and Engine.D.engage.arc.on) and S.arc(members, target.x, target.z) or nil
+	sub.arcSlots = (action == "engage" and Engine.D.engage.arc.on) and Engine.siegeSlots(members, target, S.arc(members, target.x, target.z)) or nil
+	Engine.holdLine(sub, members, action ~= "engage" and target or nil)
 	if not prev or prev.action ~= action or prev.id ~= target.id then
 		log(sub, sformat(ACTION_TEXT[action], target.name, ratio))
 	end
+end
+
+-- our static defences (ground) within r of (x, z): { x, z (value-weighted centre), value }, nil if none
+function Engine.ourTurrets(x, z, r)
+	local sx, sz, v = 0, 0, 0
+	for _, u in ipairs(spGetUnitsInCylinder(x, z, r, myTeam)) do
+		local ud = unitDef(u)
+		if ud and ud.staticDef and not ud.aaOnly and not spGetUnitIsBeingBuilt(u) then
+			local ux, _, uz = spGetUnitPosition(u)
+			sx, sz, v = sx + ux * ud.cost, sz + uz * ud.cost, v + ud.cost
+		end
+	end
+	return v > 0 and { x = sx / v, z = sz / v, value = v } or nil
+end
+
+-- assault with artillery (doctrine.engage.siege): against a target under their turrets, units that
+-- outrange the turrets shell them from just outside their reach and the others wait there too, until
+-- the turrets near the target are down to minPower; then the normal concave
+function Engine.siegeSlots(members, target, slots)
+	local G = Engine.D.engage.siege
+	if not G or not G.on or not slots then
+		return slots
+	end
+	local statics, power, reach = {}, 0, 0
+	for _, e in pairs(Engine.tm.enemies) do
+		local ed = Engine.tm.defOf(e)
+		if e.static and ed and ed.armed and not ed.aaOnly and dist2(e.x, e.z, target.x, target.z) < (Engine.D.engage.radius + 400) ^ 2 then
+			statics[#statics + 1] = { x = e.x, z = e.z, range = ed.range or 0 }
+			power, reach = power + ed.cost, max(reach, ed.range or 0)
+		end
+	end
+	if power < G.minPower then
+		return slots
+	end
+	local outranging, total = 0, 0
+	for _, m in ipairs(members) do
+		total = total + m.cost
+		if (m.range or 0) * 0.95 >= reach + G.margin then
+			outranging = outranging + m.cost
+		end
+	end
+	if total <= 0 or outranging < total * G.outrangeShare then
+		return slots -- nothing to shell them with from outside: the plain concave
+	end
+	for _, m in ipairs(members) do
+		local p = slots[m.id]
+		if p then
+			-- the turret nearest the slot, and how far inside its reach (plus margin) the slot is
+			local near, nd
+			for _, t in ipairs(statics) do
+				local d = sqrt(dist2(p.x, p.z, t.x, t.z))
+				if not nd or d - t.range < nd then
+					near, nd = t, d - t.range
+				end
+			end
+			local need = G.margin - nd -- > 0: inside reach + margin
+			if near and need > 0 then
+				local dx, dz = p.x - near.x, p.z - near.z
+				local len = max(sqrt(dx * dx + dz * dz), 1)
+				slots[m.id] = { x = p.x + dx / len * need, z = p.z + dz / len * need }
+			end
+		end
+	end
+	return slots
+end
+
+-- holding: the squad's places on a line across the rally point facing the threat it holds against (or
+-- the enemy's side), so more of it can shoot when they come (sc_squads.lua arc around a point
+-- doctrine.engage.holdLine elmos out in front); nil when off or nowhere to face
+function Engine.holdLine(sub, members, threat)
+	sub.holdSlots = nil
+	local D = Engine.D.engage.holdLine
+	local rx, rz = sub.rallyX, sub.rallyZ
+	if not D or not rx then
+		return
+	end
+	local fx, fz = (threat and threat.x) or Engine.enemyX, (threat and threat.z) or Engine.enemyZ
+	if not fx then
+		return
+	end
+	-- with our turrets near, the line stands just in front of them (doctrine.engage.turretLine): fights
+	-- under our turrets traded best for players and BARbarian (pro-micro.md)
+	local T = Engine.D.engage.turretLine
+	local tur = T and Engine.ourTurrets(rx, rz, T.radius)
+	if tur and tur.value >= T.minValue then
+		rx, rz = tur.x, tur.z
+		D = T.ahead
+	end
+	local dx, dz = fx - rx, fz - rz
+	local len = max(sqrt(dx * dx + dz * dz), 1)
+	sub.holdSlots = Engine.squads.arc(members, rx + dx / len * D, rz + dz / len * D)
 end
 
 local function thinkCombat(sub, unitID, d, st, threats)
@@ -4629,6 +4722,22 @@ local function thinkCombat(sub, unitID, d, st, threats)
 			local hl = max(sqrt(hdx * hdx + hdz * hdz), 1)
 			rx, rz = rx + hdx / hl * min(behind, hl), rz + hdz / hl * min(behind, hl)
 		end
+		-- falling back to our turrets when they're near (doctrine.engage.retreatToTurrets): the pursuers
+		-- meet them there
+		local RT = Engine.D.engage.retreatToTurrets
+		if RT and so and so.action == "fallback" then
+			local tur = Engine.ourTurrets(x, z, RT.radius)
+			if tur and tur.value >= RT.minValue then
+				local a = (unitID % 12) / 12 * 2 * pi
+				rx, rz = clampToMap(tur.x + cos(a) * 120, tur.z + sin(a) * 120)
+				if dist2(x, z, rx, rz) > 200 * 200 and (not busy or st.fallbackTo ~= floor(tur.x / 200) .. ":" .. floor(tur.z / 200)) then
+					order(unitID, CMD.MOVE, { rx, spGetGroundHeight(rx, rz), rz })
+					st.fallbackTo = floor(tur.x / 200) .. ":" .. floor(tur.z / 200)
+					setTask(unitID, "rally", "falling back to our turrets", true)
+				end
+				return
+			end
+		end
 		-- a fighting retreat: in reach of the enemy, each pass (1 s) step back toward the rally point what
 		-- it covers in fallbackPace of the time, and stand and shoot the rest (fire control's set targets
 		-- pick the pursuers), instead of running the whole way with its back turned (our retreats traded
@@ -4641,6 +4750,16 @@ local function thinkCombat(sub, unitID, d, st, threats)
 			local gx, gz = clampToMap(x + dx / len * step, z + dz / len * step)
 			order(unitID, CMD.MOVE, { gx, spGetGroundHeight(gx, gz), gz })
 			setTask(unitID, "rally", "falling back, fighting", true)
+			return
+		end
+		-- holding in a line facing them (Engine.holdLine), not a ring around the rally point
+		local slot = not behind and not (so and so.action == "fallback") and sub.holdSlots and sub.holdSlots[unitID]
+		if slot then
+			local gx, gz = clampToMap(slot.x, slot.z)
+			if dist2(x, z, gx, gz) > 100 * 100 and (not busy or (st.softUntil and frame > st.softUntil)) then
+				order(unitID, CMD.FIGHT, { gx, spGetGroundHeight(gx, gz), gz })
+				setTask(unitID, "rally", "holding the line", true)
+			end
 			return
 		end
 		if rx and dist2(x, z, rx, rz) > 260 * 260 and (not busy or (st.softUntil and frame > st.softUntil) or (so and so.action == "fallback")) then

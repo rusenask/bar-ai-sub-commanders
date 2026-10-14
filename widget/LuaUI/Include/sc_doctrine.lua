@@ -27,6 +27,18 @@ D.engage = {
 	minAttack = 1200, -- metal value of the smallest squad that attacks on its own (BARb quota.attack)
 	chase = 2600, -- an army chases intruders it drove off this far from home (if it still beats them)
 	raid = { 250, 900 }, -- [min, max] metal value of a raid squad (BARb quota.raid)
+	-- assault with artillery: a target under at least minPower of their turrets, with at least
+	-- outrangeShare of the squad outranging them (range x 0.95 >= theirs + margin): every unit stands
+	-- outside the turrets' reach + margin (the outranging ones shell from there) until they're down
+	siege = { on = false, minPower = 300, outrangeShare = 0.15, margin = 80 },
+	-- holding with our turrets within radius of the rally point (minValue metal of them): the line stands
+	-- `ahead` elmos in front of them, toward the threat (false: off)
+	turretLine = false,
+	-- falling back to our turrets within radius of the unit (minValue metal) instead of the rally point
+	retreatToTurrets = false,
+	-- holding in a line: the squad's places on an arc around a point this far out in front of the rally
+	-- point, toward the threat (false: a ring around the rally point)
+	holdLine = false,
 	-- army units on BAR's "roam" move state: idle ones go for enemies in sight (false: the default
 	-- maneuver, which answers only what comes close; 23% of our units could shoot in our big fights)
 	roam = false,
