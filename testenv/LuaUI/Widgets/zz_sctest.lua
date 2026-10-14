@@ -545,10 +545,11 @@ end
 -- full vision to count both. Ends when one side is down to 10% of its metal or at the time limit, with
 -- a BATTLE line (and the usual RESULT for the runners).
 -- Spec: sctest_battle.txt (LuaUI/Config/ first), lines "us <unit> <n>", "them <unit> <n>",
--- "distance <elmos>", "seconds <n>".
+-- "distance <elmos>", "seconds <n>", "attack 1" (their units fight-move at ours: we defend; without it
+-- they stand, and we decide whether to attack).
 --------------------------------------------------------------------------------
 
-local battle = { us = {}, them = {}, distance = 700, seconds = 120, name = "default" }
+local battle = { us = {}, them = {}, distance = 700, seconds = 120, attack = 0, name = "default" }
 
 local function battleSpec()
 	local text = loadInput("sctest_battle.txt") or "us legkark 6\nus legbar 4\nus leggob 6\nthem armham 8\nthem armrock 4\nthem armpw 6\n"
@@ -559,7 +560,7 @@ local function battleSpec()
 		end
 		battle.name = line:match("^#%s*(%S+)") or battle.name
 		local k, v = line:match("^%s*(%a+)%s+(%d+)%s*$")
-		if k == "distance" or k == "seconds" then
+		if k == "distance" or k == "seconds" or k == "attack" then
 			battle[k] = tonumber(v)
 		end
 	end
@@ -582,6 +583,9 @@ local function battleFrame(n)
 	if n == 12 then
 		battleSpec()
 		Spring.SendCommands("cheat 1", "globallos")
+		if battle.attack > 0 then
+			Spring.SendCommands("godmode 3") -- order their units too (attack)
+		end
 		out(string.format("scenario battle: %d vs %d unit types, %d elmos apart, %d s", #battle.us, #battle.them, battle.distance, battle.seconds))
 	elseif n == 20 then
 		for _, u in ipairs(battle.us) do
@@ -608,6 +612,15 @@ local function battleFrame(n)
 		end
 		battle.start = n
 		battle.usStart, battle.themStart = battleValue(battle.ours), battleValue(battle.theirs)
+		if battle.attack > 0 then
+			local ordered = 0
+			for u in pairs(battle.theirs) do
+				if Spring.GiveOrderToUnit(u, CMD.FIGHT, { mx - half, Spring.GetGroundHeight(mx - half, mz), mz }, 0) then
+					ordered = ordered + 1
+				end
+			end
+			out(string.format("battle: they attack (%d units ordered)", ordered))
+		end
 		local SC = WG.SubCommanders
 		ids.army = SC.create("army")
 		SC.assign(ids.army, list)

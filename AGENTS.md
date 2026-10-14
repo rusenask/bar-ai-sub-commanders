@@ -42,7 +42,7 @@ widget reconnects by itself within a few seconds. Sub-commanders survive `/luaui
   (`testenv/batch.sh`) are for watching games.
 
 - Micro (targeting, focus fire, kiting, movement, retreats) is measured in the **battle lab**: one
-  engagement in isolation, ~16 s each (`SCENARIO=battle testenv/force-batch.sh 36 battle`, specs in
+  engagement in isolation, ~16 s each (`SCENARIO=battle testenv/force-batch.sh 72 battle`, specs in
   [testenv/battles](testenv/battles/README.md), `gamereport -battles`). Whole games are for economy,
   macro and anything that depends on the game's course.
 - Test games connect to a separate test bridge on port 17878 (`make test-bridge`), not the Docker bridge on

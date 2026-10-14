@@ -41,10 +41,10 @@ means the interval holds zero: the arms may be the same. Read it like this:
 ## Micro changes: the battle lab first
 
 A change to how units fight (targeting, focus fire, kiting, approach, retreats) is tested in battles, not
-games: 36 battles (6 specs x 6) take a few minutes on force and the verdict has a "battle efficiency" row.
+games: 72 battles (9 specs x 8, standing and attacking enemies) take ~7 minutes on force and the verdict has a "battle efficiency" row.
 
 ```sh
-SCENARIO=battle DUEL_MINUTES=4 PARALLEL=6 WIDGET_SRC=$(testenv/arm.sh mine) LABEL=battle-mine testenv/force-batch.sh 36 battle
+SCENARIO=battle DUEL_MINUTES=4 PARALLEL=6 WIDGET_SRC=$(testenv/arm.sh mine) LABEL=battle-mine testenv/force-batch.sh 72 battle
 go run ./cmd/gamereport -battles testenv/batch/<dir>      # efficiency per spec
 ```
 
