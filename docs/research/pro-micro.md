@@ -85,3 +85,31 @@ By unit (most sampled):
 - Our fire control splits at 1.2x over 2 s, about the players' median coverage; in the battle lab it is
   worth +0.13 log2 efficiency over attack orders (test-games.md). Their edge is elsewhere: when and where
   they commit.
+
+## When strong players commit (data logger v7 fight samples: approach, 142 duels)
+
+`gamereport -micro testenv/data/pro-commit`; ours: `gamereport -micro testenv/batch/20261014-1636-sbx-ours-datalog/data -team 0` (12 of
+our games, Legion vs Armada medium, sandboxes). A group "moves in" / "pulls back" when its armed units'
+average speed toward / away from the enemy group is over 20% of top speed. Trade = their value lost
+over ours in the 25 s after.
+
+| Ratio (ours / theirs) | Pros: in / hold / back | Pros: trade in / back | Ours: in / hold / back | Ours: trade in / back |
+|---|---|---|---|---|
+| 0-0.33 | 38 / 33 / 29% | 1.68 / 1.40 | 40 / 33 / 26% | 0.56 / 0.75 |
+| 0.33-0.5 | 38 / 32 / 29% | 0.96 / 0.90 | 38 / 39 / 23% | 0.31 / 0.15 |
+| 0.5-0.67 | 43 / 31 / 26% | 1.00 / 0.95 | 48 / 32 / 19% | 0.22 / 1.29 |
+| 0.67-0.8 | 46 / 32 / 22% | 0.98 / 0.84 | 48 / 32 / 21% | 0.56 / 1.23 |
+| 0.8-1 | 49 / 31 / 20% | 0.99 / 0.94 | 52 / 31 / 17% | 1.15 / 0.37 |
+| 1-1.2 | 53 / 29 / 17% | 1.01 / 1.02 | 50 / 31 / 19% | 1.10 / 0.19 |
+| 1.2-1.5 | 56 / 31 / 13% | 1.17 / 0.90 | 48 / 39 / 13% | 0.95 / 0.21 |
+| 1.5-2 | 59 / 29 / 12% | 1.32 / 1.18 | 49 / 35 / 16% | 0.90 / 0.15 |
+| 2-3 | 61 / 29 / 10% | 1.22 / 1.05 | 54 / 32 / 15% | 0.95 / 0.34 |
+| 3+ | 63 / 28 / 9% | 0.65 / 0.68 | 60 / 29 / 11% | 0.82 / 0.32 |
+
+- How often they push in or pull back at each ratio is close to ours: the decision isn't the gap.
+- The outcome is: players trade about even whatever the ratio, and their retreats cost no more than
+  their pushes. Ours trade 0.2-0.6 when outmatched and our retreats bleed (0.15-0.37 at 0.8-3x): the
+  fallback is a plain move to the rally point, all at once, backs turned. Next doctrine: a fighting
+  retreat.
+- Our biggest losses (outmatched, moving in): groups of 8+ near our own base (141k metal lost at
+  0.29), i.e. the base defence against BARbarian's pushes.
