@@ -551,3 +551,19 @@ Siege specs (48 per arm) with three artillery specs; ground specs (72) as a chec
 - Strikes 67 vs 47; 338 "shot down by unseen anti-air" marks over the 12 games (planes now go where
   they die). Sandbox games run on BAR test-31614: compare only with sandbox batches (extractors at 20
   min here 10-20, on force 15-25).
+
+## Battle lab (sandboxes): dodging incoming fire — off
+
+Engine.dodge, 5 times a second: enemy shells and slow unguided missiles over an army (blast >= 30,
+horizontal speed <= 14 elmos/frame), where they land, and the units inside the blast that can get out in
+time step out (set targets kept). 72 per arm.
+
+| Arm | Siege: efficiency / share lost | Ground: efficiency / share lost | Dodges (max per battle) |
+|---|---|---|---|
+| landing = the shell's target (unit or ground) | -0.33 [-0.71, +0.04] / +0.02 | -0.01 / +0.02 | 223 |
+| landing = the shell's own ballistic arc | **-0.37 [-0.71, -0.04] worse** / +0.00 | -0.08 / +0.03 | 170 |
+
+- The first try never fired: Shellshocker shells have a 37.5 blast, under the 40 cut-off. With 30 they
+  are dodged, but our share lost doesn't drop at all (artillery-stands 51% -> 52%); what drops is what
+  we kill (dodging units aren't shooting). Off until we know whether the landing prediction is right and
+  what actually kills our units under artillery.

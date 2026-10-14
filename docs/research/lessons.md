@@ -141,6 +141,11 @@ out wrong.
   only show up in run.log after the game, which the next game overwrites.
 
 ## Process traps
+
+- The widget's main chunk is at BAR Lua's 200-local limit: one more `local` at the top level and BAR
+  refuses to load it ("main function has more than 200 local variables"); the Lua here allows more, so
+  luac didn't see it. `scripts/lua-locals.sh` (make lint) now counts them; new ones go in a table
+  (Engine, Const).
 - BAR from game version test-31614 sandboxes user widgets: no `socket`, files only under `LuaUI/`
   (writes only under `LuaUI/Config/` and `LuaUI/Widgets/`), no `require`/`loadstring`. Our harness and
   logger fell silent on those replays ("sctest_out.txt: is outside the write paths for user widgets"):
