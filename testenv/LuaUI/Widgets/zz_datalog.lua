@@ -394,7 +394,22 @@ local function scanFights(frame)
 						-- the enemy), depth (RMS along it), inRange (share of units with an enemy within their own
 						-- range: how many can shoot), exposed (share within an enemy unit's range: how many can be
 						-- shot), in elmos and shares
-						local function formation(list, tx, tz)
+						-- the other side's armed units (turrets too) with their reach: in-range and exposed come
+						-- from positions, the same for both sides (asking the engine for an enemy unit's nearest
+						-- enemy returns nothing to a player, so the enemy side always read 0)
+						local function reachOf(list)
+							local out = {}
+							for _, u in ipairs(list) do
+								local d = defs[u.defID]
+								local x, _, z = spGetUnitPosition(u.id)
+								if d and d.armed and x then
+									out[#out + 1] = { x = x, z = z, range = d.range }
+								end
+							end
+							return out
+						end
+						local ownReach, enemyReach = reachOf(own), reachOf(enemy)
+						local function formation(list, tx, tz, others)
 							local pts, sx, sz, w = {}, 0, 0, 0
 							for _, u in ipairs(list) do
 								local d = defs[u.defID]
@@ -416,23 +431,22 @@ local function scanFights(frame)
 								local rx, rz = p.x - mx, p.z - mz
 								local along, across = rx * fx + rz * fz, rx * -fz + rz * fx
 								s2, w2, d2 = s2 + (rx * rx + rz * rz) * p.c, w2 + across * across * p.c, d2 + along * along * p.c
-								if Spring.GetUnitNearestEnemy(p.id, p.range, false) then
-									inRange = inRange + 1
-								end
-								-- in reach of an enemy weapon: the nearest armed enemy's range covers it
-								local e = Spring.GetUnitNearestEnemy(p.id, 1200, false)
-								local ed = e and defs[Spring.GetUnitDefID(e) or -1]
-								if ed and ed.armed then
-									local ex, _, ez = spGetUnitPosition(e)
-									if (ex - p.x) ^ 2 + (ez - p.z) ^ 2 <= ed.range * ed.range then
-										exposed = exposed + 1
+								local canShoot, canBeShot = false, false
+								for _, o in ipairs(others) do
+									local d2o = (o.x - p.x) ^ 2 + (o.z - p.z) ^ 2
+									canShoot = canShoot or d2o <= p.range * p.range
+									canBeShot = canBeShot or d2o <= o.range * o.range
+									if canShoot and canBeShot then
+										break
 									end
 								end
+								inRange = inRange + (canShoot and 1 or 0)
+								exposed = exposed + (canBeShot and 1 or 0)
 							end
 							return { spread = floor(sqrt(s2 / w)), width = floor(sqrt(w2 / w)), depth = floor(sqrt(d2 / w)),
 								inRange = floor(inRange / #pts * 100 + 0.5) / 100, exposed = floor(exposed / #pts * 100 + 0.5) / 100, n = #pts }
 						end
-						local ownForm, enemyForm = formation(own, ecx, ecz), formation(enemy, cx, cz)
+						local ownForm, enemyForm = formation(own, ecx, ecz, enemyReach), formation(enemy, cx, cz, ownReach)
 						local enemyTurrets = {}
 						local enemyMobile = {}
 						for _, e in ipairs(enemy) do
@@ -689,7 +703,7 @@ function widget:Initialize()
 	math.randomseed(os.time())
 	gameKey = os.date("%Y%m%d-%H%M%S") .. "-" .. math.random(1000, 9999)
 	out = openOutput("datalog.jsonl")
-	write({ type = "start", game = gameKey, map = Game.mapName, mapX = Game.mapSizeX, mapZ = Game.mapSizeZ, version = 8 })
+	write({ type = "start", game = gameKey, map = Game.mapName, mapX = Game.mapSizeX, mapZ = Game.mapSizeZ, version = 9 })
 	-- who is allied with whom (team games: roles within a side), and each team's faction
 	local list = {}
 	for t, ally in pairs(teams) do

@@ -63,6 +63,29 @@ def sh(sb, script, timeout=3 * 3600):
     return r.exit_code, r.output or ""
 
 
+def sh_long(sb, script, timeout=3 * 3600, every=30):
+    """A long job that survives the API dropping a waiting call ("499 client connection is closing" lost
+    5 of 6 sandboxes' 60-minute games): start it in the background on the sandbox, then poll for its end
+    with short calls, retrying the ones that fail."""
+    sh(sb, f"rm -f /opt/bar/job.done /opt/bar/job.log; nohup bash -lc '{script}; echo $? > /opt/bar/job.done' > /opt/bar/job.log 2>&1 &", timeout=120)
+    deadline, misses = time.time() + timeout, 0
+    while time.time() < deadline:
+        time.sleep(every)
+        try:
+            code, out = sh(sb, "cat /opt/bar/job.done 2>/dev/null; echo; tail -c 400 /opt/bar/job.log", timeout=120)
+            misses = 0
+        except Exception as e:
+            misses += 1
+            if misses >= 10:
+                raise
+            print(f"poll failed ({e}); retrying", flush=True)
+            continue
+        first = out.split("\n", 1)[0].strip()
+        if first.isdigit():
+            return int(first), out
+    raise TimeoutError(f"job still running after {timeout} s")
+
+
 def put_bytes(sb, data, remote):
     b64 = base64.b64encode(data).decode()
     sh(sb, f"mkdir -p $(dirname {remote}) && : > {remote}.b64")
@@ -307,7 +330,7 @@ def main():
                         sh(sb, "rm -rf /opt/bar/overlays && mkdir -p /opt/bar/overlays && tar xzf /opt/bar/overlays.tgz -C /opt/bar/overlays")
                     else:
                         sh(sb, "rm -rf /opt/bar/overlays")
-                    code, log = sh(sb, f"rm -rf /opt/bar/games /opt/bar/results.tgz; bash /opt/bar/run_games.sh {first} {last} {par[k]} {limit}")
+                    code, log = sh_long(sb, f"rm -rf /opt/bar/games /opt/bar/results.tgz; bash /opt/bar/run_games.sh {first} {last} {par[k]} {limit}")
                     print(f"sandbox {k}: {log.strip()[-200:]}", flush=True)
                     data = get_bytes(sb, "/opt/bar/results.tgz")
                     with tarfile.open(fileobj=io.BytesIO(data), mode="r:gz") as tar:
