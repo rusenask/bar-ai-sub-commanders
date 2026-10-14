@@ -430,3 +430,12 @@ code (v16 mostly never reached the hand-off: its lab built Infestors). Re-measur
   Bolder helped the heavy specs (heavy-defend 0.97 -> 1.55) and hurt raiders and Legion (raiders-defend
   1.15 -> 0.81, legion-defend 1.57 -> 1.03): if anything, the threshold wants to depend on the unit kind.
 - Sandboxes (BAR test-31614) agree with force: the same responders arm on both read +0.01 [-0.17, +0.19].
+
+## Battle lab (sandboxes): focus fire per unit kind, 72 each — no change
+
+- 20261014-1401-sbx-battle-fbase (focus for all), -raidnf (raiders fight the nearest), -frontnf (raiders,
+  assault and heavy fight the nearest; skirmishers and artillery focus): efficiency +0.13 [-0.06, +0.33]
+  and +0.10 [-0.08, +0.28], share lost -0.04 and -0.03, all can't tell. Focus stays on for every kind;
+  the switch (`focus = false` in a micro kind) stays for later tests.
+- Per-spec efficiencies moved by up to 0.5 between arms of near-identical code (raiders-mirror 0.78 /
+  0.92 / 1.25): 8 battles per spec only show effects of about 0.2 log2 or more.
