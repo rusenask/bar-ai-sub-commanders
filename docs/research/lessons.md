@@ -75,6 +75,9 @@ out wrong.
   often. Our constructors die inside the base to BARbarian's main pushes, not on the road: the fix is
   holding the base against Hammers and Rockos, not running.
 
+- Focus fire pays (v26): army units converging on the enemy in reach worth most per hit point left (armed
+  first) traded 0.77 against 0.64 and lost a quarter fewer units for the same kills.
+
 ## Engine and widget traps
 
 - Widgets get no attacker in `UnitDamaged` (they do in `UnitDestroyed`); use `Spring.GetUnitExperience`

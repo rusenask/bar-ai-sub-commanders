@@ -302,3 +302,13 @@ code (v16 mostly never reached the hand-off: its lab built Infestors). Re-measur
 | 20261014-0335-sbx-v25-cortex | 12 | 4 timeout, 8 loss | 1 | 152.3k | 132 / 876 | 0.57 | 31.1 | 12.5 / 13.5 | 4.4k |
 
 - Worse (Armada 11 losses from 6, extractors at 20 min 8 from 12); constructors still died as often.
+
+## force: focus fire (v26), 12 games each, Legion vs Armada medium, 60 min — kept
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261014-1027-force4-v26-base | 12 | 1 win, 8 timeout, 3 loss | 0 | 256.9k | 214 / 998 | 0.64 | 14.9 | 11 / 16.5 | 4.3k |
+| 20261014-1051-force4-v26-focus | 12 | 3 win, 5 timeout, 4 loss | 0 | 246.1k | 222 / 738 | 0.77 | 14.0 | 11 / 17 | 4.2k |
+
+- Engaged army units shoot the enemy in reach worth most per hit point left (armed 3x): trades 0.64 ->
+  0.77, units lost 998 -> 738 for the same kills; more undecided games turn into wins (1 -> 3).
