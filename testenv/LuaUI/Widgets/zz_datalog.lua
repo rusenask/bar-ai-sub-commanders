@@ -2,7 +2,9 @@
 -- Watches a game (best as a spectator with full view: BARbarian vs BARbarian) and writes one JSON line per
 -- sample to datalog.jsonl in the write dir:
 --   fight:  a team's armed group in contact with the enemy; both sides' features now, how each side is
---           moving (approach: toward the other group, as a share of top speed; v7), and the value each
+--           moving (approach: toward the other group, as a share of top speed; v7), its formation (v8:
+--           spread, width across and depth along the line to the enemy, the share of units with an enemy in
+--           their own weapon range, the share in reach of the other side's weapons), and the value each
 --           side lost among those units 25 game seconds later
 --   unit:   a combat unit when finished; its team's situation; damage it dealt over its life (valued at
 --           the victims' metal cost per hit point), until it died, 8 minutes passed or the game ended
@@ -387,6 +389,50 @@ local function scanFights(frame)
 							return k > 0 and floor(sum / k * 100 + 0.5) / 100 or 0
 						end
 						local ownApproach, enemyApproach = approach(own, ecx, ecz), approach(enemy, cx, cz)
+						-- formation, of a side's mobile armed units facing the other side's centre (tx, tz):
+						-- spread (value-weighted RMS distance from their centre), width (RMS across the line to
+						-- the enemy), depth (RMS along it), inRange (share of units with an enemy within their own
+						-- range: how many can shoot), exposed (share within an enemy unit's range: how many can be
+						-- shot), in elmos and shares
+						local function formation(list, tx, tz)
+							local pts, sx, sz, w = {}, 0, 0, 0
+							for _, u in ipairs(list) do
+								local d = defs[u.defID]
+								if d and d.mobile then
+									local x, _, z = spGetUnitPosition(u.id)
+									pts[#pts + 1] = { x = x, z = z, c = d.cost, id = u.id, range = d.range }
+									sx, sz, w = sx + x * d.cost, sz + z * d.cost, w + d.cost
+								end
+							end
+							if w <= 0 then
+								return nil
+							end
+							local mx, mz = sx / w, sz / w
+							local dx, dz = tx - mx, tz - mz
+							local len = max(sqrt(dx * dx + dz * dz), 1)
+							local fx, fz = dx / len, dz / len -- toward the enemy
+							local s2, w2, d2, inRange, exposed = 0, 0, 0, 0, 0
+							for _, p in ipairs(pts) do
+								local rx, rz = p.x - mx, p.z - mz
+								local along, across = rx * fx + rz * fz, rx * -fz + rz * fx
+								s2, w2, d2 = s2 + (rx * rx + rz * rz) * p.c, w2 + across * across * p.c, d2 + along * along * p.c
+								if Spring.GetUnitNearestEnemy(p.id, p.range, false) then
+									inRange = inRange + 1
+								end
+								-- in reach of an enemy weapon: the nearest armed enemy's range covers it
+								local e = Spring.GetUnitNearestEnemy(p.id, 1200, false)
+								local ed = e and defs[Spring.GetUnitDefID(e) or -1]
+								if ed and ed.armed then
+									local ex, _, ez = spGetUnitPosition(e)
+									if (ex - p.x) ^ 2 + (ez - p.z) ^ 2 <= ed.range * ed.range then
+										exposed = exposed + 1
+									end
+								end
+							end
+							return { spread = floor(sqrt(s2 / w)), width = floor(sqrt(w2 / w)), depth = floor(sqrt(d2 / w)),
+								inRange = floor(inRange / #pts * 100 + 0.5) / 100, exposed = floor(exposed / #pts * 100 + 0.5) / 100, n = #pts }
+						end
+						local ownForm, enemyForm = formation(own, ecx, ecz), formation(enemy, cx, cz)
 						local enemyTurrets = {}
 						local enemyMobile = {}
 						for _, e in ipairs(enemy) do
@@ -421,6 +467,8 @@ local function scanFights(frame)
 								heightDiff = floor(oh / #own - ehx / max(ehn, 1)),
 								ownApproach = ownApproach,
 								enemyApproach = enemyApproach,
+								ownForm = ownForm,
+								enemyForm = enemyForm,
 								ownStart = ownStartDist(team, cx, cz),
 								enemyStart = nearestEnemyStart(team, cx, cz),
 							},
@@ -641,7 +689,7 @@ function widget:Initialize()
 	math.randomseed(os.time())
 	gameKey = os.date("%Y%m%d-%H%M%S") .. "-" .. math.random(1000, 9999)
 	out = openOutput("datalog.jsonl")
-	write({ type = "start", game = gameKey, map = Game.mapName, mapX = Game.mapSizeX, mapZ = Game.mapSizeZ, version = 7 })
+	write({ type = "start", game = gameKey, map = Game.mapName, mapX = Game.mapSizeX, mapZ = Game.mapSizeZ, version = 8 })
 	-- who is allied with whom (team games: roles within a side), and each team's faction
 	local list = {}
 	for t, ally in pairs(teams) do
