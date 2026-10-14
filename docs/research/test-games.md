@@ -678,3 +678,6 @@ Mean log2 efficiency, our category (rows) against theirs (columns); 4 battles pe
   never backed off. Kiting while holding is under test.
 - Mirrors we should hold even (we defend, they walk in) lean to losses (Armada assault -1.14, Legion
   assault -1.51, Cortex heavy -1.82).
+- Fixed (out of reach of turrets and artillery), 72 pairs each: siege -0.07 [-0.47, +0.33] can't tell
+  (artillery-stands share lost 50% -> 57%, the first version 84%); ground **+0.46 [+0.24, +0.70]
+  better**, score +0.12 [+0.00, +0.24] better. Whole games next.
