@@ -1,7 +1,8 @@
 -- Data logger for training decision models (test-only, see design/decision-models.md).
 -- Watches a game (best as a spectator with full view: BARbarian vs BARbarian) and writes one JSON line per
 -- sample to datalog.jsonl in the write dir:
---   fight:  a team's armed group in contact with the enemy; both sides' features now, and the value each
+--   fight:  a team's armed group in contact with the enemy; both sides' features now, how each side is
+--           moving (approach: toward the other group, as a share of top speed; v7), and the value each
 --           side lost among those units 25 game seconds later
 --   unit:   a combat unit when finished; its team's situation; damage it dealt over its life (valued at
 --           the victims' metal cost per hit point), until it died, 8 minutes passed or the game ended
@@ -362,6 +363,30 @@ local function scanFights(frame)
 							local _, y = spGetUnitPosition(u.id)
 							oh = oh + y
 						end
+						-- how each side moves: toward (+1) or away from (-1) the other group's centre, as a share
+						-- of top speed (the commit decision: push in, hold, pull back)
+						local ecx, ecz, en = 0, 0, 0
+						for _, e in ipairs(enemy) do
+							local ex, _, ez = spGetUnitPosition(e.id)
+							ecx, ecz, en = ecx + ex, ecz + ez, en + 1
+						end
+						ecx, ecz = ecx / en, ecz / en
+						local function approach(list, tx, tz)
+							local sum, k = 0, 0
+							for _, u in ipairs(list) do
+								local d = defs[u.defID]
+								if d and d.mobile and d.speed > 0 then
+									local x, _, z = spGetUnitPosition(u.id)
+									local vx, _, vz = Spring.GetUnitVelocity(u.id)
+									local dx, dz = tx - x, tz - z
+									local dist = max(sqrt(dx * dx + dz * dz), 1)
+									sum = sum + ((vx or 0) * dx + (vz or 0) * dz) / dist * 30 / d.speed
+									k = k + 1
+								end
+							end
+							return k > 0 and floor(sum / k * 100 + 0.5) / 100 or 0
+						end
+						local ownApproach, enemyApproach = approach(own, ecx, ecz), approach(enemy, cx, cz)
 						local enemyTurrets = {}
 						local enemyMobile = {}
 						for _, e in ipairs(enemy) do
@@ -394,6 +419,8 @@ local function scanFights(frame)
 								enemy = summarize(enemyMobile),
 								enemyTurrets = summarize(enemyTurrets),
 								heightDiff = floor(oh / #own - ehx / max(ehn, 1)),
+								ownApproach = ownApproach,
+								enemyApproach = enemyApproach,
 								ownStart = ownStartDist(team, cx, cz),
 								enemyStart = nearestEnemyStart(team, cx, cz),
 							},
@@ -614,7 +641,7 @@ function widget:Initialize()
 	math.randomseed(os.time())
 	gameKey = os.date("%Y%m%d-%H%M%S") .. "-" .. math.random(1000, 9999)
 	out = openOutput("datalog.jsonl")
-	write({ type = "start", game = gameKey, map = Game.mapName, mapX = Game.mapSizeX, mapZ = Game.mapSizeZ, version = 6 })
+	write({ type = "start", game = gameKey, map = Game.mapName, mapX = Game.mapSizeX, mapZ = Game.mapSizeZ, version = 7 })
 	-- who is allied with whom (team games: roles within a side), and each team's faction
 	local list = {}
 	for t, ally in pairs(teams) do
