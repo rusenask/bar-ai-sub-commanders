@@ -1,6 +1,6 @@
 # Strong teams' roles and micro (team games)
 
-103 rated team games (average player 25+, BAR's replay archive, mostly 8v8), played headless on force (`PRESET=team testenv/force-replays.sh`). Regenerate: `go run ./cmd/gamereport -roles testenv/data/team` and `-micro testenv/data/team`.
+120 rated team games (average player 25+, BAR's replay archive; 2v2 to 8v8, mostly 8v8), played headless on force (`PRESET=team testenv/force-replays.sh`). Regenerate: `go run ./cmd/gamereport -roles testenv/data/team` and `-micro testenv/data/team`.
 
 ## Roles
 
@@ -8,11 +8,12 @@ Each player labelled by what they spent on: air if 40%+ of their unit metal flew
 
 | Players per side | Players | ground | air | eco | defense | naval | idle | Sides with an air player | First armed plane (median minute) |
 |---|---|---|---|---|---|---|---|---|---|
-| 2 | 12 | 83% | 0% | 17% | 0% | 0% | 0% | 0% | 14.8 |
-| 4 | 128 | 77% | 12% | 5% | 2% | 4% | 0% | 44% | 8.8 |
-| 5 | 20 | 90% | 5% | 0% | 5% | 0% | 0% | 25% | 7.2 |
+| 2 | 40 | 78% | 0% | 15% | 2% | 5% | 0% | 0% | 8.8 |
+| 3 | 24 | 62% | 0% | 8% | 8% | 21% | 0% | 0% | 11.0 |
+| 4 | 144 | 75% | 11% | 6% | 2% | 5% | 1% | 42% | 8.7 |
+| 5 | 30 | 83% | 3% | 7% | 7% | 0% | 0% | 17% | 13.7 |
 | 7 | 14 | 79% | 14% | 0% | 7% | 0% | 0% | 100% | 1.9 |
-| 8 | 1296 | 65% | 14% | 4% | 5% | 10% | 1% | 94% | 3.5 |
+| 8 | 1344 | 66% | 14% | 4% | 5% | 9% | 1% | 94% | 3.5 |
 
 ## Micro in team games
 
@@ -32,6 +33,11 @@ Each player labelled by what they spent on: air if 40%+ of their unit metal flew
 | air transport | 639 | 55% | 0.64 (0.45-0.80) | 9% / 10% | 1.11 | 36% | -8 | 1% (0%) | 2 / 7 / 14 / 4% |
 
 ## What it means for our sub-commanders
+
+- **Small teams have no air specialist.** In 2v2 and 3v3 no side has a dedicated air player; planes come
+  around minute 9-11 as part of a ground player's army. A dedicated Air Force sub-commander fits 4v4 and
+  bigger (42% of 4v4 sides, 94% of 8v8); in duels and small games air belongs in the Army's mix.
+- 2v2 has a real eco player in 15% of players (one of the pair builds the economy).
 
 - One air player per side is the norm in bigger games (94% of 8v8 sides, first armed plane by minute
   3.5; in 4v4 44% of sides, minute 9). Our Air Force at minute 10 matches 4v4 timing; with allies (team
