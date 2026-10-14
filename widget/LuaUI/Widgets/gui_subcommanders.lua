@@ -7000,6 +7000,31 @@ function Engine.tune(key, value, role)
 	return value
 end
 
+-- learned rules (internal/learn): at game start the widget reads LuaUI/Config/sc_learned.json (written by
+-- the bridge for real games, by the test runners for exploration games) and applies each rule within its
+-- doctrine bounds. Under the BAR 31614+ widget sandbox only LuaUI/ is readable: that's why it lives there.
+function Engine.applyLearned()
+	local text = VFS.LoadFile("LuaUI/Config/sc_learned.json", VFS.RAW)
+	if not text or not Json then
+		return
+	end
+	local ok, data = pcall(Json.decode, text)
+	if not ok or type(data) ~= "table" or type(data.rules) ~= "table" then
+		spEcho("Sub-Commanders: LuaUI/Config/sc_learned.json is not valid")
+		return
+	end
+	local n = 0
+	for key, value in pairs(data.rules) do
+		local t = Engine.D.tunable[key]
+		if t and tonumber(value) then
+			t[1][t[2]] = max(t[3], min(t[4], tonumber(value)))
+			n = n + 1
+		end
+	end
+	Engine.learned = { key = data.key, generation = data.generation, rules = n }
+	spEcho(sformat("Sub-Commanders: %d learned rules (%s, generation %s)", n, tostring(data.key), tostring(data.generation)))
+end
+
 function Engine.rules()
 	local out = {}
 	for key, t in pairs(Engine.D.tunable) do
@@ -7111,6 +7136,7 @@ function Engine.teamReport()
 			return out
 		end)(),
 		commander = { mode = Engine.comMode, now = Engine.comModeNow, personality = Engine.comPersonality },
+		learned = Engine.learned, -- rules learned from past games (internal/learn), applied at game start
 		armyStyle = { setting = Engine.armyStyle, now = Engine.armyStyleNow, desc = Engine.micro.style(Engine.armyStyleNow).desc },
 		territory = Engine.pickets and {
 			exposedFrontierCells = Engine.terr.exposed, -- our edge cells enemies can walk to (cliffs, water, map edge excluded)
@@ -7488,6 +7514,7 @@ function widget:Initialize()
 	frame = spGetGameFrame()
 	widgetHandler:AddAction("sc", textCommand, nil, "t")
 	exportAPI()
+	Engine.applyLearned()
 	if savedConfig then
 		restore(savedConfig.game)
 	end

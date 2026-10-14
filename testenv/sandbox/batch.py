@@ -130,62 +130,110 @@ def main():
     ap.add_argument("--map", default="All That Simmers v1.1.1")
     ap.add_argument("--side", default="Legion")
     ap.add_argument("--enemy-side", default="Armada")
+    ap.add_argument("--learn", default="", help="a learning key (internal/learn): each game plays a sampled rule set, "
+                    "each generation updates learn/<key>.json")
+    ap.add_argument("--generations", type=int, default=1, help="with --learn: generations to run on the same sandboxes")
     args = ap.parse_args()
     Sandbox.configure(api_key=key())
-    stamp = time.strftime("%Y%m%d-%H%M")
-    out = T / "batch" / f"{stamp}-{args.label}"
-    (out / "remote").mkdir(parents=True)
     commit = subprocess.run(["git", "-C", str(ROOT), "rev-parse", "--short", "HEAD"], capture_output=True, text=True).stdout.strip()
-    (out / "meta.txt").write_text(
-        f"label: {args.label}\ncommit: {commit}\nwidgets: {args.widgets or 'working tree'}\n"
-        f"scenario: {args.scenario}  script: script_vsai.txt  opponent: {args.opponent}  map: {args.map}  speed: 100  lockstep: 0  "
-        f"minutes: {args.minutes}  workers: {args.sandboxes}x{args.parallel} ({args.instance} sandboxes)  side: {args.side} vs {args.enemy_side}\n"
-        f"started: {time.strftime('%Y-%m-%d %H:%M')}\n")
     tgz = stage(args)
     runner = (T / "sandbox/run_games.sh").read_bytes()
     limit = args.minutes * 60 // 2 + 300
     n = min(args.sandboxes, args.games)
     per = [(args.games * k // n + 1, args.games * (k + 1) // n) for k in range(n)]
-    start = time.time()
+    gens = args.generations if args.learn else 1
     boxes, errors = [None] * n, []
 
-    def work(k):
+    def setup(k):
         first, last = per[k]
         try:
-            sb = Sandbox.create(name=f"bar-{args.label}-{k}", teamspace=TEAMSPACE, instance_type=args.instance,
-                                runtime="python313", warm=RECIPE, timeout=(limit * ((last - first) // args.parallel + 2) + 1800) * 1000)
+            sb = Sandbox.create(name=f"bar-{args.label}-{k}", teamspace=TEAMSPACE, instance_type=args.instance, runtime="python313",
+                                warm=RECIPE, timeout=gens * (limit * ((last - first) // args.parallel + 2) + 1800) * 1000)
             boxes[k] = sb
             warm = getattr(sb, "warm", None)
             print(f"sandbox {k}: games {first}-{last}, warm={getattr(warm, 'state', '?')} {getattr(warm, 'reason', '')}", flush=True)
-            sh(sb, "test -f /opt/bar/ready || exit 1")
+            code, _ = sh(sb, "test -f /opt/bar/ready")
+            if code != 0:
+                raise RuntimeError("not set up (/opt/bar/ready missing)")
             put_bytes(sb, tgz, "/opt/bar/stage.tgz")
             put_bytes(sb, runner, "/opt/bar/run_games.sh")
             sh(sb, "rm -rf /opt/bar/stage && mkdir -p /opt/bar/stage && tar xzf /opt/bar/stage.tgz -C /opt/bar/stage")
-            code, log = sh(sb, f"bash /opt/bar/run_games.sh {first} {last} {args.parallel} {limit}")
-            print(f"sandbox {k}: {log.strip()[-200:]}", flush=True)
-            data = get_bytes(sb, "/opt/bar/results.tgz")
-            with tarfile.open(fileobj=io.BytesIO(data), mode="r:gz") as tar:
-                tar.extractall(out / "remote", filter="data")
-        except Exception as e:  # keep the others going; this sandbox's games count as not run
-            errors.append(f"sandbox {k}: {e}")
-            print(f"sandbox {k} failed: {e}", flush=True)
-        finally:
+        except Exception as e:
+            errors.append(f"sandbox {k} setup: {e}")
+            print(f"sandbox {k} setup failed: {e}", flush=True)
             if boxes[k] is not None:
                 try:
                     boxes[k].delete()
-                except Exception as e:
-                    print(f"sandbox {k}: delete failed: {e}", flush=True)
+                except Exception:
+                    pass
+                boxes[k] = None
 
-    threads = [threading.Thread(target=work, args=(k,)) for k in range(n)]
-    for t in threads:
-        t.start()
-    for t in threads:
-        t.join()
-    if errors:
-        with open(out / "meta.txt", "a") as f:
-            f.write("".join(f"error: {e}\n" for e in errors))
-    subprocess.run(["bash", str(T / "collect-results.sh"), str(out), str(args.games), str(int(start)), args.scenario,
-                    args.opponent, args.map, str(args.minutes)])
+    def parallel(fn, *a):
+        threads = [threading.Thread(target=fn, args=(k, *a)) for k in range(n)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+    try:
+        parallel(setup)
+        for gen in range(gens):
+            stamp = time.strftime("%Y%m%d-%H%M")
+            label = args.label if gens == 1 else f"{args.label}-g{gen + 1}"
+            out = T / "batch" / f"{stamp}-{label}"
+            (out / "remote").mkdir(parents=True)
+            (out / "meta.txt").write_text(
+                f"label: {label}\ncommit: {commit}\nwidgets: {args.widgets or 'working tree'}\n"
+                f"scenario: {args.scenario}  script: script_vsai.txt  opponent: {args.opponent}  map: {args.map}  speed: 100  lockstep: 0  "
+                f"minutes: {args.minutes}  workers: {n}x{args.parallel} ({args.instance} sandboxes)  side: {args.side} vs {args.enemy_side}\n"
+                + (f"learn: {args.learn}\n" if args.learn else "") + f"started: {time.strftime('%Y-%m-%d %H:%M')}\n")
+            overlays = None
+            if args.learn:
+                overlays = out / "overlays"
+                subprocess.run(["go", "run", "./cmd/learn", "sample", "-key", args.learn, "-n", str(args.games), "-out", str(overlays)],
+                               cwd=ROOT, check=True)
+                buf = io.BytesIO()
+                with tarfile.open(fileobj=buf, mode="w:gz") as tar:
+                    tar.add(overlays, arcname=".")
+                otgz = buf.getvalue()
+            start = time.time()
+            gen_errors = []
+
+            def play(k):
+                sb, (first, last) = boxes[k], per[k]
+                if sb is None:
+                    return
+                try:
+                    if overlays is not None:
+                        put_bytes(sb, otgz, "/opt/bar/overlays.tgz")
+                        sh(sb, "rm -rf /opt/bar/overlays && mkdir -p /opt/bar/overlays && tar xzf /opt/bar/overlays.tgz -C /opt/bar/overlays")
+                    else:
+                        sh(sb, "rm -rf /opt/bar/overlays")
+                    code, log = sh(sb, f"rm -rf /opt/bar/games /opt/bar/results.tgz; bash /opt/bar/run_games.sh {first} {last} {args.parallel} {limit}")
+                    print(f"sandbox {k}: {log.strip()[-200:]}", flush=True)
+                    data = get_bytes(sb, "/opt/bar/results.tgz")
+                    with tarfile.open(fileobj=io.BytesIO(data), mode="r:gz") as tar:
+                        tar.extractall(out / "remote", filter="data")
+                except Exception as e:  # this sandbox's games count as not run
+                    gen_errors.append(f"sandbox {k}: {e}")
+                    print(f"sandbox {k} failed: {e}", flush=True)
+
+            parallel(play)
+            if errors or gen_errors:
+                with open(out / "meta.txt", "a") as f:
+                    f.write("".join(f"error: {e}\n" for e in errors + gen_errors))
+            subprocess.run(["bash", str(T / "collect-results.sh"), str(out), str(args.games), str(int(start)), args.scenario,
+                            args.opponent, args.map, str(args.minutes)])
+            if args.learn:
+                subprocess.run(["go", "run", "./cmd/learn", "update", "-key", args.learn, "-batch", str(out), "-samples", str(overlays),
+                                "-minutes", str(args.minutes)], cwd=ROOT)
+    finally:
+        for sb in boxes:
+            if sb is not None:
+                try:
+                    sb.delete()
+                except Exception as e:
+                    print(f"delete failed: {e}", flush=True)
 
 
 if __name__ == "__main__":

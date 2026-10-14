@@ -13,6 +13,8 @@ one() {
 	for try in 1 2; do
 		rm -rf "$G"
 		cp -r /opt/bar/stage "$G"
+		# a learning run: this game's rule set (internal/learn), read by the widget at start
+		[ -f "/opt/bar/overlays/g$i.json" ] && mkdir -p "$G/LuaUI/Config" && cp "/opt/bar/overlays/g$i.json" "$G/LuaUI/Config/sc_learned.json"
 		cd "$G" || return
 		SPRING_DATADIR=/opt/bar/data:/opt/bar/engine timeout "$LIMIT" /opt/bar/engine/spring-headless --write-dir "$G" "$G/script.txt" > run.log 2>&1
 		echo "exit=$? try=$try" > exit.txt
