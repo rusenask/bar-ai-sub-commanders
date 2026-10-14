@@ -56,6 +56,12 @@ sandboxes under 12). Compare arms from the same host.
 Battle verdicts compare within each spec (`(within specs)` rows): pooled, the gap between specs drowns
 the change. Also read the per-spec table: a gain in one mirror can hide a loss in another.
 
+To tune micro numbers instead of testing one change, let the learner search them on battles (scored
+against each spec's mean; every 6th battle plays the mean):
+`batch.py 72 --scenario battle --minutes 4 --sandboxes 6 --parallel 6 --widgets ... --learn battle-micro
+--generations 8 --learn-only "<micro tunables>" --mean-every 6 --learn-score battle`, then A/B the mean
+(`go run ./cmd/learn overlay`) against the defaults before `learn validate`.
+
 Then confirm in whole games that it holds up (micro that wins battles can still lose games: chasing,
 over-committing).
 
