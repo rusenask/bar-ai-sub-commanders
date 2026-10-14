@@ -63,3 +63,25 @@ By unit (most sampled):
   50% health: an experiment to run (retreat_fighter lower), not a change yet.
 - Air: gunships fight from 0.69 and come in from behind (-33); bombers drop from close (0.17) and close in
   on long-range targets; fighters engage from 0.3 of range.
+
+## How strong players split fire (data logger v6 "fire" samples, 142 duels)
+
+`gamereport -micro testenv/data/pro-fire` (logged again with `TAG=fire testenv/force-replays.sh`):
+19,273 scans, 170,889 unit-moments within 1.2x range of an armed enemy.
+
+| | Strong players |
+|---|---|
+| holding a set target (BAR's target-on-the-move) | 1.9% |
+| shooting a unit | 62% |
+| shooters per target | 2.27 |
+| shots at a target nobody else shoots | 21% |
+| shots at the scan's 3 most-shot targets | 90% |
+| coverage (dps x 2 s / health), shot-weighted median | 1.23 |
+| shots at targets covered over 1.2x | 51% (set targets: 53%) |
+| shots at armed targets | 97% |
+
+- Players hardly use set target, and they don't avoid overkill: half the shots go to targets already
+  covered. Fire concentrates by itself (engine targeting plus how the units are placed).
+- Our fire control splits at 1.2x over 2 s, about the players' median coverage; in the battle lab it is
+  worth +0.13 log2 efficiency over attack orders (test-games.md). Their edge is elsewhere: when and where
+  they commit.
