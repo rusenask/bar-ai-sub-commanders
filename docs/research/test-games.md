@@ -588,3 +588,17 @@ time step out (set targets kept). 72 per arm.
 
 - Earlier one-arm-per-batch lab verdicts of about 0.2-0.4 log2 or less are doubtful; the replicated
   ones (focus fire vs none, bombers) stand. From now on lab A/Bs are interleaved.
+
+## Sandboxes, interleaved: fighting retreat and stricter home defence, 12 pairs each, Legion vs Armada medium, 60 min — neither kept
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261014-1836-sbx-g31-g31retreat-A (base) | 12 | 3 win, 5 timeout, 4 loss | 0 | 230.3k | 216 / 853 | 0.70 | 19.1 | 13.5 / 18 | 4.8k |
+| 20261014-1836-sbx-g31-g31retreat-B (fallbackPace 0.5) | 12 | 3 win, 5 timeout, 4 loss | 0 | 285.8k | 247 / 1186 | 0.73 | 28.0 | 12.5 / 22 | 4.9k |
+| 20261014-1836-sbx-g31-g31defend-A (base) | 12 | 1 win, 8 timeout, 3 loss | 1 | 289.0k | 244 / 1114 | 0.75 | 14.0 | 10 / 19.5 | 4.3k |
+| 20261014-1836-sbx-g31-g31defend-B (engage defend 0.7) | 12 | 2 win, 6 timeout, 4 loss | 2 | 224.9k | 220 / 861 | 0.75 | 16.5 | 10 / 16.5 | 4.6k |
+
+- Fighting retreat (used 45 times): mid metal lost +5.2k [+2.1k, +8.7k] **worse**, opening kills +0.4k
+  better, score +0.03 can't tell. Backing off at half speed keeps the squad in reach longer; it stays off.
+- Defend at 0.7 instead of 0.5: nothing tells (score +0.04 [-0.18, +0.24]); stays 0.5.
+- 48/48 games ran, no crashes.
