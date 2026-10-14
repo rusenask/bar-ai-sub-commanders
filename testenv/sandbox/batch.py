@@ -12,6 +12,7 @@ like batch.sh (make compare / make report). Sandboxes are always deleted at the 
 import argparse
 import base64
 import io
+import random
 import os
 import subprocess
 import sys
@@ -143,12 +144,34 @@ def main():
     per = [(args.games * k // n + 1, args.games * (k + 1) // n) for k in range(n)]
     gens = args.generations if args.learn else 1
     boxes, errors = [None] * n, []
+    par = [args.parallel] * n  # games at a time per sandbox (lower on a fallback instance)
+
+    def create(k, first, last):
+        """The shared pool runs out ("503 no sandbox capacity available; retry shortly", or a bare 500):
+        retry with backoff for ~20 minutes, from the fourth try alternating with the next smaller
+        instance (half the games at a time)."""
+        smaller = {"cpu-16": "cpu-8", "cpu-8": "cpu-4"}.get(args.instance)
+        delay, last_err = 15, None
+        for attempt in range(12):
+            inst = args.instance if attempt < 3 or not smaller or attempt % 2 == 0 else smaller
+            p = args.parallel if inst == args.instance else max(1, args.parallel // 2)
+            try:
+                sb = Sandbox.create(name=f"bar-{args.label}-{k}", teamspace=TEAMSPACE, instance_type=inst, runtime="python313",
+                                    warm=RECIPE, timeout=gens * (limit * ((last - first) // p + 2) + 1800) * 1000)
+                par[k] = p
+                if inst != args.instance:
+                    print(f"sandbox {k}: {inst} (no {args.instance} capacity), {p} games at a time", flush=True)
+                return sb
+            except Exception as e:
+                last_err = e
+                time.sleep(delay + random.random() * 10)
+                delay = min(delay * 2, 180)
+        raise RuntimeError(f"no capacity after retries: {last_err}")
 
     def setup(k):
         first, last = per[k]
         try:
-            sb = Sandbox.create(name=f"bar-{args.label}-{k}", teamspace=TEAMSPACE, instance_type=args.instance, runtime="python313",
-                                warm=RECIPE, timeout=gens * (limit * ((last - first) // args.parallel + 2) + 1800) * 1000)
+            sb = create(k, first, last)
             boxes[k] = sb
             warm = getattr(sb, "warm", None)
             print(f"sandbox {k}: games {first}-{last}, warm={getattr(warm, 'state', '?')} {getattr(warm, 'reason', '')}", flush=True)
@@ -177,6 +200,10 @@ def main():
 
     try:
         parallel(setup)
+        up = sum(1 for b in boxes if b is not None)
+        print(f"{up}/{n} sandboxes up", flush=True)
+        if up == 0:
+            sys.exit("no sandbox came up: " + "; ".join(errors[:3]))
         for gen in range(gens):
             stamp = time.strftime("%Y%m%d-%H%M")
             label = args.label if gens == 1 else f"{args.label}-g{gen + 1}"
@@ -209,7 +236,7 @@ def main():
                         sh(sb, "rm -rf /opt/bar/overlays && mkdir -p /opt/bar/overlays && tar xzf /opt/bar/overlays.tgz -C /opt/bar/overlays")
                     else:
                         sh(sb, "rm -rf /opt/bar/overlays")
-                    code, log = sh(sb, f"rm -rf /opt/bar/games /opt/bar/results.tgz; bash /opt/bar/run_games.sh {first} {last} {args.parallel} {limit}")
+                    code, log = sh(sb, f"rm -rf /opt/bar/games /opt/bar/results.tgz; bash /opt/bar/run_games.sh {first} {last} {par[k]} {limit}")
                     print(f"sandbox {k}: {log.strip()[-200:]}", flush=True)
                     data = get_bytes(sb, "/opt/bar/results.tgz")
                     with tarfile.open(fileobj=io.BytesIO(data), mode="r:gz") as tar:
