@@ -152,3 +152,21 @@ func TestLessons(t *testing.T) {
 		t.Errorf("newest first:\n%s", got[:80])
 	}
 }
+
+func TestActiveRulesOnly(t *testing.T) {
+	s := New("k", []Param{{Name: "a", Min: 0, Max: 10, Default: 5}, {Name: "b", Min: 0, Max: 10, Default: 5}})
+	s.Active, s.MeanEvery = []string{"a"}, 3
+	rs := s.Sample(9, rand.New(rand.NewPCG(5, 6)))
+	means := 0
+	for _, r := range rs {
+		if r["b"] != 5 {
+			t.Fatalf("b was searched: %v", r["b"])
+		}
+		if s.IsMean(r) {
+			means++
+		}
+	}
+	if means != 3 {
+		t.Errorf("%d mean samples, want every third", means)
+	}
+}

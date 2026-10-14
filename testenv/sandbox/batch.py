@@ -136,6 +136,8 @@ def main():
     ap.add_argument("--learn", default="", help="a learning key (internal/learn): each game plays a sampled rule set, "
                     "each generation updates learn/<key>.json")
     ap.add_argument("--generations", type=int, default=1, help="with --learn: generations to run on the same sandboxes")
+    ap.add_argument("--learn-only", default="", help="with --learn: search only these rules (comma-separated)")
+    ap.add_argument("--mean-every", type=int, default=0, help="with --learn: every this many games play the mean")
     args = ap.parse_args()
     Sandbox.configure(api_key=key())
     commit = subprocess.run(["git", "-C", str(ROOT), "rev-parse", "--short", "HEAD"], capture_output=True, text=True).stdout.strip()
@@ -231,8 +233,12 @@ def main():
             overlays = None
             if args.learn:
                 overlays = out / "overlays"
-                subprocess.run(["go", "run", "./cmd/learn", "sample", "-key", args.learn, "-n", str(args.games), "-out", str(overlays)],
-                               cwd=ROOT, check=True)
+                cmd = ["go", "run", "./cmd/learn", "sample", "-key", args.learn, "-n", str(args.games), "-out", str(overlays)]
+                if args.learn_only:
+                    cmd += ["-only", args.learn_only]
+                if args.mean_every:
+                    cmd += ["-mean-every", str(args.mean_every)]
+                subprocess.run(cmd, cwd=ROOT, check=True)
                 buf = io.BytesIO()
                 with tarfile.open(fileobj=buf, mode="w:gz") as tar:
                     tar.add(overlays, arcname=".")

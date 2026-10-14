@@ -50,6 +50,23 @@ type Store struct {
 	Trials     []Trial            `json:"trials"`
 	// History of each generation: how the mean scored (its own trials) and how all samples scored.
 	History []GenSummary `json:"history"`
+	// Active, when set, are the only rules searched; the others stay at their mean. One game says little,
+	// so a few rules at a time learn faster than all of them (the first run moved 18 and found no trend).
+	Active []string `json:"active,omitempty"`
+	// MeanEvery: every this many samples is the mean itself (default 6), to measure where the search is.
+	MeanEvery int `json:"meanEvery,omitempty"`
+}
+
+func (s *Store) active(name string) bool {
+	if len(s.Active) == 0 {
+		return true
+	}
+	for _, a := range s.Active {
+		if a == name {
+			return true
+		}
+	}
+	return false
 }
 
 // GenSummary is one generation's outcome.
@@ -182,15 +199,19 @@ func (s *Store) Save(dir string) error {
 
 func clamp(v, lo, hi float64) float64 { return math.Max(lo, math.Min(hi, v)) }
 
-// Sample draws n rule sets for the next games: every sixth is the mean itself (to measure it), the rest
-// Gaussian around it, clamped to the bounds.
+// Sample draws n rule sets for the next games: every MeanEvery-th is the mean itself (to measure it), the
+// rest Gaussian around it on the active rules, clamped to the bounds.
 func (s *Store) Sample(n int, rng *rand.Rand) []map[string]float64 {
+	every := s.MeanEvery
+	if every <= 0 {
+		every = 6
+	}
 	out := make([]map[string]float64, n)
 	for i := range out {
 		r := map[string]float64{}
 		for _, p := range s.Params {
 			v := s.Mean[p.Name]
-			if i%6 != 0 {
+			if i%every != 0 && s.active(p.Name) {
 				v += rng.NormFloat64() * s.Sigma[p.Name] * (p.Max - p.Min)
 			}
 			v = clamp(v, p.Min, p.Max)
@@ -279,7 +300,7 @@ func (s *Store) Update(trials []Trial) GenSummary {
 	sum.EliteScore /= float64(k)
 	for _, p := range s.Params {
 		span := p.Max - p.Min
-		if span <= 0 {
+		if span <= 0 || !s.active(p.Name) {
 			continue
 		}
 		var vals []float64

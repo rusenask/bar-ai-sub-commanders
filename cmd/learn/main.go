@@ -36,6 +36,8 @@ func main() {
 	batch := fs.String("batch", "", "update: the batch directory (<i>.txt harness logs)")
 	samples := fs.String("samples", "", "update: the directory sample wrote")
 	limit := fs.Float64("minutes", 60, "update: the games' length")
+	only := fs.String("only", "", "sample: search only these rules (comma-separated; kept in the store; \"all\" clears it)")
+	meanEvery := fs.Int("mean-every", 0, "sample: every this many games play the mean itself (kept in the store)")
 	_ = fs.Parse(os.Args[2:])
 	if *key == "" {
 		log.Fatal("-key is required")
@@ -50,6 +52,19 @@ func main() {
 	}
 	switch cmd {
 	case "sample":
+		if *only == "all" {
+			store.Active = nil
+		} else if *only != "" {
+			store.Active = strings.Split(*only, ",")
+		}
+		if *meanEvery > 0 {
+			store.MeanEvery = *meanEvery
+		}
+		if *only != "" || *meanEvery > 0 {
+			if err := store.Save(*dir); err != nil {
+				log.Fatal(err)
+			}
+		}
 		if err := os.MkdirAll(*out, 0o755); err != nil {
 			log.Fatal(err)
 		}
