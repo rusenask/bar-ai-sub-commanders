@@ -70,6 +70,9 @@ func main() {
 		if fire, err := analysis.ReadFire(*micro); err == nil && len(fire) > 0 {
 			fmt.Printf("\n%s", analysis.FireText(analysis.FireSummary(fire, 2, 1.2), 2, 1.2))
 		}
+		if cs, err := analysis.ReadCommit(*micro); err == nil && len(cs) > 0 {
+			fmt.Printf("\nCommit (%d fights): how groups move at each strength ratio, and how it traded\n\n%s", len(cs), analysis.CommitText(analysis.CommitByRatio(cs, analysis.CommitBounds)))
+		}
 		return
 	}
 	if *benchFrom != "" {

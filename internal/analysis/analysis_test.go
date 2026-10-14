@@ -344,3 +344,18 @@ func TestVoidBattleLeftOut(t *testing.T) {
 		t.Fatalf("%v %+v %q %v", err, g.Battle, g.Result, g.Errors)
 	}
 }
+
+func TestCommit(t *testing.T) {
+	log := `{"type":"fight","own":{"value":200},"ownTurrets":{"value":0},"enemy":{"value":100},"enemyTurrets":{"value":0},"ownApproach":0.6,"enemyApproach":-0.5,"ownLost":50,"enemyLost":100}
+{"type":"fight","own":{"value":100},"ownTurrets":{"value":0},"enemy":{"value":200},"enemyTurrets":{"value":0},"ownApproach":-0.7,"ownLost":20,"enemyLost":10}
+{"type":"fight","own":{"value":100},"enemy":{"value":100}}
+`
+	cs, err := parseCommit(strings.NewReader(log))
+	if err != nil || len(cs) != 2 {
+		t.Fatalf("%v %d (the sample without an approach is v6: left out)", err, len(cs))
+	}
+	bins := CommitByRatio(cs, []float64{0, 1, 10})
+	if bins[0].Out != 1 || bins[0].TradeOut != 0.5 || bins[1].In != 1 || bins[1].TradeIn != 2 {
+		t.Errorf("%+v", bins)
+	}
+}
