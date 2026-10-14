@@ -459,3 +459,61 @@ code (v16 mostly never reached the hand-off: its lab built Infestors). Re-measur
 - The lab's best change (+0.24 in battles) cost the economy in games: the army waits at a rally point
   outside the base, so with only home units eligible the response squad seldom formed and raids took the
   expansions.
+
+## Battle lab: fire control with BAR's set-target command (mode settarget) — promising, not yet on
+
+Squad-level allocation every 15 frames: targets best first, shooters (fewest other choices first) until
+their dps x killTime covers health x overkill, the rest spill over; orders are set targets (movement
+untouched). 72 battles per arm; two void battles (armies never given: a late `cheat 1`) are left out.
+
+| Arm vs attack-order focus | Host | Efficiency (log2) | Score |
+|---|---|---|---|
+| split (killTime 2, overkill 1.2) | sandboxes | +0.05 [-0.15, +0.27] | +0.11 [-0.00, +0.22] |
+| everyone on the best (overkill off) | sandboxes | -0.02 [-0.22, +0.19] | +0.00 |
+| spread (killTime 1) | sandboxes | +0.14 [-0.08, +0.37] | +0.11 [-0.01, +0.22] |
+| split | force | **+0.23 [+0.04, +0.41] better** | +0.04 [-0.07, +0.15] |
+| split, both hosts pooled (144 a side) | | +0.14 [-0.01, +0.29] | +0.07 [-0.01, +0.15] |
+
+- Batches 20261014-1508-sbx-battle-fc{attack,split,all,spread}, 20261014-1508-battle-f-fcattack,
+  20261014-1516-battle-f-fcsplit. Splitting fire is what helps (everyone-on-the-best is no better than
+  attack orders); a decisive run (spread vs split vs attack, 144+ each) is next.
+
+## Battle lab: air strikes and siege, first baselines (sandboxes, 8 per spec)
+
+- Bombers flew over undefended solar collectors for two minutes without a bomb: a fight-move doesn't
+  drop on unarmed structures. Area attack now (29ee591): the open strike destroys 90%, losing nothing.
+
+| Spec | Won / drawn / lost | Efficiency | Our share lost | Their share lost |
+|---|---|---|---|---|
+| strike-open | 7/1/0 | 8.00 | 0% | 90% |
+| strike-aa-flank (one cluster under 3 Nettles) | 8/0/0 | 7.92 | 2% | 96% |
+| cortex-strike-aa-flank | 8/0/0 | 8.00 | 0% | 99% |
+| strike-aa-covered (called off: right) | 0/8/0 | 1.00 | 0% | 0% |
+| llt-line (8 Stouts + 4 Shellshockers vs 6 LLT, 2 Beamers, 1 HLT) | 8/0/0 | 7.60 | 11% | 100% |
+| hlt-line | 8/0/0 | 5.59 | 18% | 100% |
+| cortex-llt-line | 8/0/0 | 4.25 | 25% | 100% |
+| artillery-push (10 Blitz vs 6 Shellshockers + 3 Stouts attacking) | 0/8/0 | **0.37** | 32% | 11% |
+
+- Turret lines are no problem (our artillery outranges them); enemy artillery is: the raiders fight the
+  escort tank while the artillery behind it shells them from out of their reach.
+- Counting artillery at half in squad decisions (kindWeight) changed nothing on the artillery specs
+  (push 0.36 -> 0.29, cortex push 0.55 -> 0.90, standing 0.68 -> 0.61) and leaned worse on the ground
+  specs (-0.20 [-0.41, +0.01]): not used.
+
+## Battle lab (sandboxes): doctrines against enemy artillery — none kept
+
+Siege specs (48 per arm) with three artillery specs; ground specs (72) as a check. Base: as committed.
+
+| Arm | Artillery specs (push / stands / cortex push) | Siege verdict | Ground verdict |
+|---|---|---|---|
+| base | 0.37 / 0.64 / 1.03 | | |
+| dive the artillery when its group is within 1100 of the squad's centre | 0.27 / 0.63 / 0.46 (never fired: the group sat ~1450 away) | -0.31, noise | +0.19 can't tell |
+| dive when any member is within 900, artillery at half value, fight on as engaged | 0.17 / 0.45 / 0.19 | **-0.62 [-0.93, -0.31] worse** | score -0.14 worse |
+| shelled and outmatched: fall back (move) out of reach, else dive | 0.16 / 0.54 / 0.30 | **-0.56 [-0.92, -0.23] worse** | -0.12 can't tell |
+| the same without the artillery discount | 0.15 / 0.68 / 0.14 | **-0.82 [-1.12, -0.51] worse** | |
+
+- Diving escorted artillery feeds raiders to the escort; falling back flips on and off as units leave and
+  re-enter its reach, and the squad oscillates under fire. Holding (the base) loses least.
+- The "push" specs don't push: with `attack 1` the artillery group moved ~100 elmos in a minute and sat
+  ~1450 from our squad, so they test standing artillery. The spec needs fixing before it can judge an
+  artillery doctrine.

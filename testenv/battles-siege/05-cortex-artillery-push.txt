@@ -1,0 +1,7 @@
+# cortex-artillery-push
+us corak 12
+them corwolv 6
+them corraid 3
+distance 1600
+seconds 150
+attack 1

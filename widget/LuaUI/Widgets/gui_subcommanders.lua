@@ -6795,12 +6795,21 @@ function widget:UnitFinished(unitID, unitDefID, unitTeam)
 	end
 end
 
-function widget:UnitDestroyed(unitID, unitDefID, unitTeam)
+function widget:UnitDestroyed(unitID, unitDefID, unitTeam, attackerID)
 	local sub = owner[unitID]
 	if sub then
 		local d = defs[unitDefID]
 		if d and (d.mobile or d.factory) and not spGetUnitIsBeingBuilt(unitID) then
 			log(sub, "lost " .. d.human)
+		end
+		-- a plane shot down by something we never saw: their anti-air reaches here (the threat map remembers
+		-- it, so strikes and routes keep out until it fades)
+		if d and d.air and not spGetUnitIsBeingBuilt(unitID) and not (attackerID and Engine.tm.enemies[attackerID]) then
+			local x, _, z = spGetUnitPosition(unitID)
+			if x then
+				Engine.tm.markAA(x, z, d.cost, frame)
+				log(sub, sformat("%s shot down by unseen anti-air at %d,%d: keeping planes out of there", d.human, x, z))
+			end
 		end
 		-- a factory the player gave us: the economy rebuilds it (see Jobs.rebuildFactory)
 		if d and d.factory and not spGetUnitIsBeingBuilt(unitID) then

@@ -1,0 +1,6 @@
+# artillery-stands
+us armflash 10
+them armart 6
+them armstump 3
+distance 1400
+seconds 150

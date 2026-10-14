@@ -8,6 +8,7 @@
 -- usage: local ThreatMap = VFS.Include("LuaUI/Include/sc_threatmap.lua", nil, VFS.RAW_FIRST)
 --        local tm = ThreatMap({ defs = defs, mapX = Game.mapSizeX, mapZ = Game.mapSizeZ, doctrine = D })
 --        tm.see(unitID, defID, x, z, frame); tm.forget(unitID); tm.update(frame, ownUnits)
+--        tm.markAA(x, z, value, frame)  -- a plane of ours died to something unseen: anti-air there
 -- Pure Lua (no engine calls): unit-tested in widget/tests/threatmap_test.lua.
 
 local max, min, floor, sqrt = math.max, math.min, math.floor, math.sqrt
@@ -23,7 +24,7 @@ return function(ctx)
 	-- a radar contact we haven't identified: assume a typical armed unit (doctrine.threat.blip)
 	local BLIP = { mobile = true, armed = true, cost = T.blip and T.blip.cost or 120, range = T.blip and T.blip.range or 350, kind = "unknown" }
 	local function defOf(e)
-		return e.blip and BLIP or defs[e.defID]
+		return e.mark or (e.blip and BLIP) or defs[e.defID]
 	end
 	tm.defOf = defOf
 	local ground, air, infl = {}, {}, {}
@@ -74,6 +75,10 @@ return function(ctx)
 	-- weight of a remembered enemy at `frame`: 1 while fresh, fading to 0 (mobile units only)
 	function tm.weight(e, frame)
 		local age = frame - e.last
+		if e.mark then
+			-- unseen anti-air where a plane died: full for a while, then fading
+			return max(0, min(1, 1 - (age - T.fresh) / max(1, (T.markMemory or 5400) - T.fresh)))
+		end
 		if e.static then
 			return age < T.staticMemory and 1 or 0
 		end
@@ -118,6 +123,26 @@ return function(ctx)
 			tm.count = tm.count + 1
 		end
 		e.x, e.z, e.last = x, z, frame
+	end
+
+	-- one of our planes died to an unseen attacker at (x, z): remember anti-air worth `value` there, the
+	-- edge of their air defence we learned the hard way. A mark near an earlier one adds to it.
+	tm.marks = 0
+	function tm.markAA(x, z, value, frame)
+		local r = T.markRange or 500
+		for _, e in pairs(tm.enemies) do
+			if e.mark and (e.x - x) ^ 2 + (e.z - z) ^ 2 < r * r then
+				e.mark.cost = min(e.mark.cost + value, T.markMax or 2000)
+				e.last = frame
+				return e
+			end
+		end
+		tm.marks = tm.marks + 1
+		local e = { first = frame, last = frame, x = x, z = z, static = true,
+			mark = { armed = true, aaOnly = true, mobile = false, cost = min(value, T.markMax or 2000), range = r, kind = "unseen anti-air" } }
+		tm.enemies["aa:" .. tm.marks] = e
+		tm.count = tm.count + 1
+		return e
 	end
 
 	function tm.forget(unitID)
@@ -184,7 +209,7 @@ return function(ctx)
 
 	-- metal value of armed enemies remembered within r of (x, z), weighted by how fresh they are.
 	-- opts: mobileOnly, air (count anti-air too), aaOnly (only anti-air), fresh (only those seen in the
-	-- last doctrine.threat.fresh)
+	-- last doctrine.threat.fresh), kindWeight (kind -> how much a unit of it counts, default 1)
 	function tm.enemyPower(x, z, r, frame, opts)
 		local r2, p = r * r, 0
 		for _, e in pairs(tm.enemies) do
@@ -194,7 +219,8 @@ return function(ctx)
 				and not (opts and opts.fresh and frame - e.last > T.fresh) then
 				local dx, dz = e.x - x, e.z - z
 				if dx * dx + dz * dz <= r2 then
-					p = p + d.cost * tm.weight(e, frame)
+					local kw = opts and opts.kindWeight and opts.kindWeight[d.kind] or 1
+					p = p + d.cost * tm.weight(e, frame) * kw
 				end
 			end
 		end

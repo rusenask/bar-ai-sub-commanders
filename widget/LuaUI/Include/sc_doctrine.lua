@@ -82,6 +82,11 @@ D.threat = {
 	staticMemory = 30 * 60 * 10, -- static defences are remembered much longer
 	fresh = 30 * 8, -- seen this recently: full weight
 	minRange = 200, -- treat short-ranged and unknown weapons as at least this
+	-- a plane of ours shot down by something we never saw: unseen anti-air of the plane's value is assumed
+	-- within markRange of where it fell (marks add up to markMax), fading over markMemory
+	markRange = 500,
+	markMax = 2000,
+	markMemory = 30 * 180,
 	blip = { cost = 120, range = 350 }, -- what an unidentified radar contact is assumed to be
 	-- a big army that walks out of sight isn't gone: units seen in a group worth hordePower+ are remembered
 	-- for hordeMemory, never fading below hordeFloor of their value (a watched game forgot a huge horde

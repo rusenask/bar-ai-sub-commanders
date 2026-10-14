@@ -62,6 +62,18 @@ return {
 		T.eq(tm.enemyPower(1000, 1000, 500, 0, { air = true }), 550, "with anti-air")
 		T.eq(tm.enemyPower(1000, 1000, 500, 0, { air = true, aaOnly = true }), 200, "only the anti-air (air raids)")
 		T.eq(tm.enemyPower(3000, 3000, 500, 0, { mobileOnly = true }), 0, "mobile only")
+		T.eq(tm.enemyPower(1000, 1000, 500, 0, { kindWeight = { artillery = 0.4 } }), 200, "artillery counts less up close")
+	end,
+	unseen_anti_air_where_planes_fell = function()
+		local tm = F.map()
+		tm.markAA(2000, 2000, 300, 0)
+		tm.markAA(2100, 2000, 300, 30) -- near the first: one mark, stronger
+		T.eq(tm.enemyPower(2000, 2000, 300, 30, { air = true, aaOnly = true }), 600, "anti-air assumed where they fell")
+		T.eq(tm.enemyPower(2000, 2000, 300, 30), 0, "not a ground threat")
+		tm.update(30, {}, true)
+		T.ok(tm.threat(2000, 2000, "air") > 0, "the air layer avoids it")
+		T.eq(tm.threat(2000, 2000), 0)
+		T.eq(tm.enemyPower(2000, 2000, 300, 30 + 30 * 400, { air = true, aaOnly = true }), 0, "forgotten after markMemory")
 	end,
 	safe_point_falls_back_toward_home = function()
 		local tm = F.map()
