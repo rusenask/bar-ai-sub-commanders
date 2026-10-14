@@ -26,3 +26,7 @@ uvx --with lightning-sdk python testenv/sandbox/sbx.py run <id> 'ls /opt/bar'   
 - The pool is shared with the teamspace: creation can fail with `503 no sandbox capacity available` (or
   a bare 500). batch.py retries with backoff for ~20 minutes, alternating with the next smaller instance
   (half the games at a time), and stops if none comes up. 36 cpu-16 at once was refused; 9 worked.
+- Throughput varies with the shared pool: on a quiet afternoon a cpu-16 ran 4 games of 60 minutes in ~13
+  minutes (4.6x each); during a capacity crunch the same ran at ~1x (a pure-Python loop 2x slower, games
+  CPU-bound). force measured 15x for two games at once at the same time. Check the game minute vs wall
+  time early (`sbx.py run <id> 'tail -1 /opt/bar/games/g*/sctest_out.txt'`) before planning on a run.
