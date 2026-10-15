@@ -1400,3 +1400,13 @@ Each feature on its own (arm B, per game it was used in):
   income at 20 min +2.5 [-9.2, +13.6]. The minute-25 pace above is a median over the games still alive
   then (biased). Hardening cuts extractor losses but doesn't keep us alive longer against hard; kept for
   the losses it saves, not as a fix for hard.
+
+## Why our army loses its fights against hard (LLM review of g77-B, checked against the logs)
+
+- Our engagements against groups at 1-5x odds: in 32 of 124 the odds fell under 0.7x within a minute
+  ("engaging ... 3.9x their strength" -> "holding: intruders is too strong here (0.5x)"): we commit on
+  what we see, and hard's army is in the fog. Also pushes called off at peak strength ("the base needs
+  us"), and the army keeps building while the economy collapses. The review's "129-1549x suicide charges"
+  was a misreading (those are our odds against single intruders).
+- Next: fog-aware odds (count their groups seen near the target lately, not just what's visible now),
+  and no calling off a winning push unless our structures are falling.

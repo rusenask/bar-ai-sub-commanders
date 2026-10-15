@@ -50,6 +50,11 @@ FEATURES = {
              "fired at their radar/jammer clusters, weighted toward our air strikes, army pushes and cannon "
              "targets (blind them where we strike).",
              r"Juno|juno"),
+    "army": ("The Army sub-commander: one squad that engages where it wins (arc / concave, focus fire, kiting),"
+             " regroups, holds, falls back to our turrets, raids their economy, sends a response squad to raids;"
+             " its factories build a mix countering what the enemy fields. Judge how its fights went: when it"
+             " engaged, at what odds, what it lost, and why fights were lost.",
+             r"engag|holding|regroup|falling back|fall back|push|raid|response squad|lost |army style|team plan|factory:"),
     "rez": ("Resurrection bots (Lazarus / Graverobber / Zagreus): two kept, raising the most metal among the "
             "wrecks near home or the army, out of known threat.",
             r"resurrect|Zagreus|Lazarus|Graverobber|rezbot|raised"),
