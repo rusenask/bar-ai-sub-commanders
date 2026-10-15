@@ -1430,3 +1430,17 @@ Each feature on its own (arm B, per game it was used in):
   own set (450 / 900 / 0.55 / 0.5) scored 1.093, in the top five. Importance: step 0.36, spacing 0.28,
   reach 0.21, metal weight 0.15. The creep's geometry isn't the bottleneck; a nudge (step 550, spacing
   1000, reach 0.52) is a candidate for a seqtest, not a change on this evidence.
+
+## A higher bar for "the base is under attack" against hard (force, Legion vs Armada hard, 24 pairs)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-2301-force-g79-defendbase-hard-A (max(600, 8% of our army)) | 24 | 24 loss | 2 | 90.0k | 92 / 554 | 0.55 | 32.8 | 13 / 21 | 3.4k |
+| 20261015-2301-force-g79-defendbase-hard-B (max(1000, 15%)) | 24 | 1 win, 23 loss | 2 | 76.9k | 89 / 463 | 0.55 | 31.0 | 12 / 14.5 | 4.1k |
+
+- The first win against hard (1 of 24). Army at 12 min **better** +675 [+303, +1.1k], opening kills
+  **better** +302; income at 20 min -8.5 and extractors -2.4 (can't tell: raids do more at home with
+  the army away). Survival 34.2 -> 33.0. "Defend: the base is under attack" entries 1697 -> 1265. Mixed:
+  a medium seqtest decides. Context (game 2, minute 17): the response squad and the economy's guards
+  answered the raid; the plan flips push / defend about once a minute because entering defend for the
+  base skips the hold; Defense's constructors sometimes stand "nothing to do" with threats in its zone.
