@@ -1901,7 +1901,9 @@ function Jobs.techVehicles(sub, unitID, d)
 			o = opt
 		end
 	end
-	if not o or not canSpend(sub, defs[o]) or econ.m < defs[o].cost * 0.25 then
+	-- not canSpend: its posture cap (1120 at 50 metal/s) is under the plant's 2600, so it was never built
+	-- below 132 metal/s and the Cortex overlay's Tzars never came (g50: 0 in 24 games). Like the T2 lab
+	if not o or econ.m < defs[o].cost * 0.25 then
 		return false
 	end
 	local dx, dz = (Engine.enemyX or MAP_X / 2) - Engine.homeX, (Engine.enemyZ or MAP_Z / 2) - Engine.homeZ
@@ -2567,6 +2569,8 @@ local BUILDER_PLANS = {
 	end,
 	army = function(sub, u, d, x, z)
 		return Jobs.removeMarked(sub, u, d, x, z)
+			-- the construction vehicle a faction overlay's quota makes (doctrine.factions) is the Army's
+			or (not d.commander and Engine.auto(sub).factories and Jobs.techVehicles(sub, u, d))
 			or Jobs.repair(sub, u, d, x, z)
 			or Jobs.needFactory(sub, u, d, x, z)
 			or Jobs.helpBuild(sub, u, d, x, z)
