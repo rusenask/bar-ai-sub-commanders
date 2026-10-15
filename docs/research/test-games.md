@@ -1313,3 +1313,14 @@ Each feature on its own (arm B, per game it was used in):
   blocker now: no tier 2 constructor ("no constructor here can build it" 99x in 22 games; partly noise,
   logged by tier 1 builders while a T2 one existed). Fixed: the T2 lab makes one more constructor when a
   strategic structure is due and nobody on the team can build it; the log says which case.
+
+## Firebases v6 vs v7 against hard (force, Legion vs Armada hard, 24 pairs)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-1850-force-g72-firebase-v6-v7-hard-A (v6) | 24 | 24 loss | 4 | 82.5k | 84 / 509 | 0.61 | 27.8 | 12.5 / 15 | 4.0k |
+| 20261015-1850-force-g72-firebase-v6-v7-hard-B (v7: creep scaled to strength) | 24 | 1 timeout, 23 loss | 6 | 97.1k | 85 / 572 | 0.60 | 28.1 | 13 / 18.5 | 3.5k |
+
+- Score +0.01, can't tell (saturated). Opening metal lost **better** -403 [-766, -19]; firebases spent
+  more (1.6k vs 1.0k) at a lower return (0.67 vs 0.95). The strength gate rarely bites (their known army
+  is often unknown or small early). Waiting for the medium seqtest (fb-v6-v7) before deciding.
