@@ -430,8 +430,17 @@ D.strategic = {
 	shield = { on = true, minute = false, income = 80, max = 1 },
 	-- long-range plasma cannon (Basilica / Basilisk / Olympus, range ~4800): from `minute` at `income`, at
 	-- the first safe place that reaches their base (reach x range); fire control every 2 s
-	lrpc = { on = false, minute = 25, income = 100, max = 2, reach = 0.9, maxCost = 8000, minValue = 300,
+	-- v2 (when it pays, not on a clock): from `minute` once their own cannons are known (counter-battery),
+	-- or with a surplus (`income` and metal storage `surplus` full) while the team isn't defending, and
+	-- only where `minTargetValue` metal of their structures is in reach (v1, from minute 25 at 100 metal/s,
+	-- was part of the package that lost -0.27, g54)
+	lrpc = { on = true, minute = 20, income = 80, surplus = 0.5, minTargetValue = 3000, max = 2, reach = 0.9, maxCost = 8000, minValue = 300,
 		weights = { lrpc = 6, nuke = 6, antinuke = 4, factory = 5, energy = 3, shield = 3, extractor = 2, turret = 1, other = 0.5 } },
+	-- nuke silo (Armageddon / Apocalypse / Supernova: ~8000 metal; each missile 1000-1500 metal and 125-190k
+	-- energy): late, with a big economy (`income` metal/s, `energy` energy/s, metal storage `surplus` full,
+	-- not while defending); `stockpile` missiles kept; fired at the richest cluster of theirs (`minValue`
+	-- metal within 0.8 x its blast) that none of their anti-nukes covers, every `every` s at most
+	nuke = { on = true, minute = 30, income = 120, energy = 3000, surplus = 0.4, max = 1, stockpile = 1, minValue = 4000, every = 30 },
 	-- Juno (T1, missile with a 700 radius that kills radar, jammers and mines): Intelligence builds one
 	-- once `minTargets` of their intel structures are known, at `income`; fires at the biggest cluster
 	juno = { on = false, income = 20, minTargets = 2, aoe = 650, stockpile = 1 },

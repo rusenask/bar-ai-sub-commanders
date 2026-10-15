@@ -3125,13 +3125,13 @@ function Engine.ourStrategic()
 		return C
 	end
 	C.frame = frame
-	for _, k in ipairs({ "antinuke", "shieldGen", "lrpc", "junoSilo", "rezBot" }) do
+	for _, k in ipairs({ "antinuke", "shieldGen", "lrpc", "junoSilo", "rezBot", "nukeSilo" }) do
 		C[k] = {}
 	end
 	for _, u in ipairs(Spring.GetTeamUnits(myTeam) or {}) do
 		local ud = unitDef(u)
 		if ud then
-			for _, k in ipairs({ "antinuke", "shieldGen", "lrpc", "junoSilo", "rezBot" }) do
+			for _, k in ipairs({ "antinuke", "shieldGen", "lrpc", "junoSilo", "rezBot", "nukeSilo" }) do
 				if ud[k] then
 					C[k][#C[k] + 1] = u
 				end
@@ -3141,7 +3141,7 @@ function Engine.ourStrategic()
 	C.planned = {}
 	for _, p in pairs(planned) do
 		local pd = defs[p.defID]
-		for _, k in ipairs({ "antinuke", "shieldGen", "lrpc", "junoSilo" }) do
+		for _, k in ipairs({ "antinuke", "shieldGen", "lrpc", "junoSilo", "nukeSilo" }) do
 			if pd and pd[k] then
 				C.planned[k] = (C.planned[k] or 0) + 1
 			end
@@ -3218,7 +3218,10 @@ function Jobs.strategic(sub, unitID, d, ux, uz)
 			blocked("shieldGen")
 		end
 		local L = G.lrpc
-		if L.on and have("lrpc") < L.max and minute >= L.minute and income >= L.income and Engine.enemyX then
+		local losing = Engine.team.plan.phase == "defend"
+		local counter = #Engine.enemyHas("lrpc") > 0
+		local surplus = income >= L.income and econ.mFrac >= (L.surplus or 0) and not losing
+		if L.on and have("lrpc") < L.max and minute >= L.minute and (counter or surplus) and Engine.enemyX then
 			-- the cheapest cannon (Olympus 5200, not Legion's 63000-metal Starfall: smoke test 4 started 26)
 			local function isGun(od)
 				return od.lrpc and od.cost <= (L.maxCost or 8000)
@@ -3248,10 +3251,20 @@ function Jobs.strategic(sub, unitID, d, ux, uz)
 						end
 					end
 				end
-				if not x then
+				-- worth it only with enough of theirs in reach from there (doctrine.strategic.lrpc.minTargetValue)
+				local inReach = 0
+				if x then
+					for _, e in pairs(Enemy.units) do
+						local ed = defs[e.defID]
+						if ed and not ed.mobile and frame - e.last < 30 * 600 and dist2(x, z, e.x, e.z) <= (range * 0.95) ^ 2 then
+							inReach = inReach + ed.cost
+						end
+					end
+				end
+				if not x or inReach < (L.minTargetValue or 0) then
 					if frame - (sub["strat:lrpcsite"] or -99999) > 30 * 300 then
 						sub["strat:lrpcsite"] = frame
-						log(sub, "lrpc due: no safe place reaches anything of theirs")
+						log(sub, x and sformat("lrpc due: only %d metal of theirs in reach", inReach) or "lrpc due: no safe place reaches anything of theirs")
 					end
 				elseif buildCheapestUseful(sub, unitID, d, x, z, isGun, function(od)
 					return -od.cost
@@ -3260,6 +3273,20 @@ function Jobs.strategic(sub, unitID, d, ux, uz)
 				end
 			end
 			blocked("lrpc")
+		end
+		-- a nuke silo late, with a big economy and a surplus, not while defending (doctrine.strategic.nuke)
+		local N = G.nuke
+		if N and N.on and have("nukeSilo") < N.max and minute >= N.minute and income >= N.income and econ.eInc >= N.energy
+			and econ.mFrac >= N.surplus and not losing then
+			local ax, az = Engine.safeEnergyAnchor()
+			if buildCheapestUseful(sub, unitID, d, ax or hx, az or hz, function(od)
+				return od.nukeSilo
+			end, function(od)
+				return -od.cost
+			end, "nuke silo", "strategic") then
+				return true
+			end
+			blocked("nukeSilo")
 		end
 	end
 	if intelRole then
@@ -3384,6 +3411,41 @@ function Engine.strategicControl()
 					local td = Enemy.units[t.id] and defs[Enemy.units[t.id].defID]
 					if owner[u] then
 						log(owner[u], sformat("%s fires on their %s (%s, %d metal)", ud.human, td and td.human or "structure", t.role, t.cost or 0))
+					end
+				end
+			end
+		end
+	end
+	-- nukes: one stockpiled, fired at the richest cluster of theirs no anti-nuke covers
+	local N = G.nuke
+	if N and N.on and #C.nukeSilo > 0 then
+		local cands, antis = {}, {}
+		-- never near our own army or base (their army in a fight with ours is ours too under the blast)
+		local army = Engine.anyArmy()
+		local sq = army and army.squad
+		local function ours(x, z)
+			return Engine.inBase(x, z) or (sq and sq.x and dist2(x, z, sq.x, sq.z) < 1400 * 1400)
+		end
+		for _, e in pairs(Enemy.units) do
+			local ed = defs[e.defID]
+			if ed and (frame - e.last < 30 * (ed.mobile and 60 or 600)) then
+				if ed.interceptor then
+					antis[#antis + 1] = { x = e.x, z = e.z, r = ed.mobile and 1600 or 2000 }
+				end
+				if not ours(e.x, e.z) then
+					cands[#cands + 1] = { x = e.x, z = e.z, cost = ed.cost }
+				end
+			end
+		end
+		for _, u in ipairs(C.nukeSilo) do
+			local ud = unitDef(u)
+			if ud and not spGetUnitIsBeingBuilt(u) and stock(u, N.stockpile) > 0 and frame - (Engine.lastNuke or -99999) > 30 * N.every then
+				local x, z, v = Engine.strategic.nukeTarget(cands, ud.weaponAoe or 640, antis, N.minValue)
+				if x then
+					order(u, CMD.ATTACK, { x, spGetGroundHeight(x, z), z })
+					Engine.lastNuke = frame
+					if owner[u] then
+						log(owner[u], sformat("%s: nuke on %d metal of theirs at %d,%d (%d anti-nukes known)", ud.human, v, x, z, #antis))
 					end
 				end
 			end

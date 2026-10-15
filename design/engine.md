@@ -271,16 +271,23 @@ each switched on by doctrine once its games say so:
   is optional, `minute`; timed, the whole package lost -0.27); interceptors kept stockpiled (2).
 - **Shield** over the labs (cost-weighted centre of our factories; Defense, on): once their long-range
   cannons or a real air force (15%+) are seen, at 80 metal/s.
-- **Long-range plasma cannons** (Basilica / Basilisk / Olympus, range ~4800; Defense): from minute 25 at
-  100 metal/s, at the first place on the way to their base that reaches it and that no known enemy weapon
-  covers. Fire control every 2 s: their cannons and nuke silos first, then labs, big power, shields,
-  extractors; nothing under their shields (the shot only drains them).
+- **Long-range plasma cannons** (Basilica / Basilisk / Olympus, range ~4800; Defense; on). v2, when it
+  pays: from minute 20 once their own cannons are known (counter-battery), or with a surplus (80 metal/s,
+  metal storage half full) while the team isn't defending; only at a safe site with 3000+ metal of their
+  structures in reach. Fire control every 2 s: their cannons and nuke silos first, then labs, big power,
+  shields, extractors; nothing under their shields; targets worth under 300 are left to fire at will
+  (their armies in range). v1 (minute 25, 100 metal/s, on a clock) was part of the package that lost.
+- **Nukes** (Armageddon / Apocalypse / Supernova; Defense; on, v1): a silo from minute 30 at 120 metal/s,
+  3000 energy/s and 40% metal storage, not while defending; one missile stockpiled; fired every 30 s at
+  most at the richest cluster of theirs (4000+ metal within 0.8 x the blast) that none of their
+  anti-nukes (static 2000, mobile 1600) covers, never near our army or base.
 - **Their cannons and silos** are the army's and the strikes' first targets (ATTACK_PREFER artillery 4).
 - **Juno** (Intelligence): built once two of their radar / jammers / mines are known; fired (stockpiled)
   at the densest cluster within its 700 radius every 20 s at most.
 - **Resurrection** (Lazarus / Graverobber / Zagreus): two kept (production quota), raising the most metal
   for the walk among the wrecks near home or the army, out of known threat.
-- Long-range cannons, Juno and resurrection work but are off: they cost more than they won (g54, g58).
+- Juno and resurrection work but are off (they cost more than they won, g54, g58). Cannons, nukes,
+  anti-nukes and shields are kept; versions change when and how they are used.
 
 ## Forward firebases (sc_firebase.lua, doctrine.firebase)
 

@@ -5,6 +5,7 @@
 --                                           labs and big power, never what their shields cover
 --   junoTarget(cands, aoe, minTargets)      where one Juno missile clears the most radar, jammers, mines
 --   rezTarget(bot, wrecks)                  the wreck worth resurrecting
+--   nukeTarget(cands, aoe, antis, minValue) where a nuke destroys the most that no anti-nuke covers
 --
 -- usage: local Strategic = VFS.Include("LuaUI/Include/sc_strategic.lua", nil, VFS.RAW_FIRST)
 --        local S = Strategic({ doctrine = D })
@@ -106,6 +107,39 @@ return function(ctx)
 			end
 		end
 		return best
+	end
+
+	-- cands: what of theirs we know { x, z, cost } (structures, recent army sightings). antis: their
+	-- anti-nukes { x, z, r } (static and mobile; any one in range intercepts). The centre (one of them,
+	-- outside every anti's coverage) with the most metal within 0.8 x aoe, if worth minValue. Returns
+	-- x, z, value or nil
+	function S.nukeTarget(cands, aoe, antis, minValue)
+		local r2 = (aoe * 0.8) ^ 2
+		local bx, bz, bv = nil, nil, 0
+		for _, c in ipairs(cands) do
+			local covered = false
+			for _, a in ipairs(antis or {}) do
+				if d2(c.x, c.z, a.x, a.z) <= a.r * a.r then
+					covered = true
+					break
+				end
+			end
+			if not covered then
+				local v = 0
+				for _, o in ipairs(cands) do
+					if d2(c.x, c.z, o.x, o.z) <= r2 then
+						v = v + (o.cost or 0)
+					end
+				end
+				if v > bv then
+					bx, bz, bv = c.x, c.z, v
+				end
+			end
+		end
+		if bx and bv >= (minValue or 0) then
+			return bx, bz, bv
+		end
+		return nil
 	end
 
 	return S

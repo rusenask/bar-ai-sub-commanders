@@ -39,6 +39,18 @@ return {
 		T.eq(S.junoTarget({ { x = 0, z = 0, cost = 100 } }, 700, 2), nil, "one radar isn't worth a missile")
 		T.ok(S.junoTarget({ { x = 0, z = 0, cost = 100, weight = 2 } }, 700, 2), "one jammer is")
 	end,
+	nuke_hits_the_richest_uncovered_cluster = function()
+		local S = strategic()
+		local cands = {
+			{ x = 0, z = 0, cost = 3000 }, { x = 200, z = 0, cost = 3000 }, -- 6000 under an anti-nuke
+			{ x = 8000, z = 0, cost = 2500 }, { x = 8300, z = 0, cost = 2500 }, -- 5000, open
+			{ x = 15000, z = 0, cost = 900 }, -- not worth a missile
+		}
+		local x, _, v = S.nukeTarget(cands, 640, { { x = 100, z = 0, r = 2000 } }, 3000)
+		T.ok(x == 8000 or x == 8300, "the open cluster")
+		T.eq(v, 5000)
+		T.eq(S.nukeTarget({ { x = 15000, z = 0, cost = 900 } }, 640, {}, 3000), nil, "nothing worth it")
+	end,
 	rez_takes_the_most_metal_for_the_walk = function()
 		local S = strategic()
 		local w = S.rezTarget({ x = 0, z = 0 }, { { id = 1, x = 100, z = 0, value = 100 }, { id = 2, x = 2000, z = 0, value = 1500 } })
