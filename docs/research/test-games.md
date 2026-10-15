@@ -1210,3 +1210,16 @@ Counter matrix, flat sites (arm A of 20261015-0212-sbx-il-re-khold, 264 battles)
 - Score -0.08 [-0.31, +0.16], can't tell; mid metal lost **better** -3.3k [-6.5k, -0.3k]; constructors
   lost equal (v1 had +4). Late metal lost +79k with 9 games to the time limit. Re-run with the fixed
   opening: g65.
+
+## Forward firebases off vs v2, Armada vs Cortex **hard** (force, 24 pairs; old harness opening)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-1508-force-g64-armada-firebase2-hard-A (off) | 24 | 1 win, 23 loss | 3 | 133.8k | 124 / 725 | 0.51 | 31.3 | 12 / 20 | 3.8k |
+| 20261015-1508-force-g64-armada-firebase2-hard-B (v2) | 24 | 2 timeout, 22 loss | 2 | 113.6k | 111 / 620 | 0.57 | 30.5 | 12 / 14.5 | 3.2k |
+
+- Score -0.02 [-0.13, +0.06], can't tell; late metal lost **better** -67k; extractors at 20 min **worse**
+  -5.6 [-10, -1.2]; army at 12 min **worse** -0.56k [-1.15k, -0.03k]. Firebase turrets come on top of
+  the zone-front turrets (up to 1.5x the budget) and out of expansion and army. v3 (running) lets the
+  economy expand under firebases; v4 candidate: firebases replace the front-line turrets instead of
+  adding to them.
