@@ -182,3 +182,18 @@ Our fights by strength ratio (share of each side's units able to shoot):
   12-15 extractors and ~10 constructors from minute 10 (the constructor target follows income: 3 +
   income/10, at most 12). Our trade against hard: log2 -0.63 (against medium about -0.2).
 - Under test: the expansion drive (constructors for free metal spots, up to 20).
+
+## Cortex against BARbarian (Armada) medium (24 games, full view: 20261015-0838-sbx-cortex-full)
+
+| Minutes | Cortex army | Theirs | Cortex constructors | Theirs | Cortex extractors | Theirs | Cortex metal income | Theirs |
+|---|---|---|---|---|---|---|---|---|
+| 5-9 | 1.1k | 2.0k | 7 | 3 | 10 | 11 | 21 | 22 |
+| 10-14 | 1.9k | 5.5k | 12 | 5 | 12 | 20 | 26 | 39 |
+| 15-19 | 3.0k | 9.5k | 12 | 9 | 14 | 35 | 34 | 67 |
+| 20-24 | 4.0k | 12.1k | 10 | 12 | 13 | 46 | 37 | 92 |
+| 40-44 | 33.2k | 30.7k | 12 | 19 | 24 | 49 | 134 | 158 |
+
+- Unlike Legion (army even with BARbarian's at minutes 10-19), Cortex's army is a third of theirs at
+  minutes 10-24 while it runs more constructors (12 v 5): their army holds the map and our constructors
+  can't keep expansions (12-14 extractors for 20 minutes). 2 wins, 4 alive, 18 lost.
+- Under test: army parity (under 0.6x their mobile army: no new constructors).
