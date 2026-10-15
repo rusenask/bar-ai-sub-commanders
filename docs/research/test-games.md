@@ -1290,3 +1290,17 @@ Each feature on its own (arm B, per game it was used in):
 
 - Score -0.04 [-0.26, +0.18], can't tell. Resurrection pays clearly; the cannons lose most of their
   cost (destroyed). Anti-nuke and shield never triggered (medium rarely builds nukes or cannons).
+
+## Firebases v4 vs v6 against **hard** (force, Legion vs Armada hard, 24 pairs; both arms the same code)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-1812-force-g71-firebase-v4-v6-hard-A (v4) | 24 | 24 loss | 2 | 65.3k | 92 / 427 | 0.49 | 26.3 | 12 / 11 | 3.7k |
+| 20261015-1812-force-g71-firebase-v4-v6-hard-B (v6) | 24 | 24 loss | 7 | 68.9k | 72 / 445 | 0.51 | 24.8 | 12.5 / 15 | 3.8k |
+
+- Score -0.01 (all lost: saturated). Firebases on their own: v6 return **2.01** (spent 850, killed 1.7k,
+  lost 1.2k) vs v4 0.78. But mid metal lost **worse** +8.1k [+3.2k, +14.1k] and 7 games lost by minute 25
+  (v4: 2): against a stronger army v6 over-extends. Extractors at 20 min +4.2 (leaning better).
+- Strategic weapons against hard: long-range cannons destroyed with no kills (9.8-12.9k lost a game they
+  were built), a nuke silo destroyed (9.1k), Juno nothing. Hard pushes into us: expensive structures in
+  reach of the front die. Next: firebases v7 (creep scaled to how we stand), cannons placed by safety.
