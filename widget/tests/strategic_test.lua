@@ -28,6 +28,7 @@ return {
 		}
 		T.eq(S.lrpcTarget(gun, targets, {}).id, 2, "their cannon")
 		T.eq(S.lrpcTarget(gun, targets, { { x = 4500, z = 0, r = 550 } }).id, 3, "the cannon is under a shield")
+		T.eq(S.lrpcTarget(gun, { { id = 5, x = 3000, z = 0, cost = 96, role = "turret" } }, {}), nil, "a Sentry: fire at will")
 	end,
 	juno_clears_the_biggest_cluster = function()
 		local S = strategic()

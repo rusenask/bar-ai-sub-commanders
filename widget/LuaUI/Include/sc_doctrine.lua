@@ -389,7 +389,7 @@ D.strategic = {
 	shield = { on = false, minute = 35, income = 80, max = 1 },
 	-- long-range plasma cannon (Basilica / Basilisk / Olympus, range ~4800): from `minute` at `income`, at
 	-- the first safe place that reaches their base (reach x range); fire control every 2 s
-	lrpc = { on = false, minute = 25, income = 100, max = 2, reach = 0.9, maxCost = 8000,
+	lrpc = { on = false, minute = 25, income = 100, max = 2, reach = 0.9, maxCost = 8000, minValue = 300,
 		weights = { lrpc = 6, nuke = 6, antinuke = 4, factory = 5, energy = 3, shield = 3, extractor = 2, turret = 1, other = 0.5 } },
 	-- Juno (T1, missile with a 700 radius that kills radar, jammers and mines): Intelligence builds one
 	-- once `minTargets` of their intel structures are known, at `income`; fires at the biggest cluster

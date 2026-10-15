@@ -43,9 +43,12 @@ return function(ctx)
 	-- targets: { id, x, z, cost, role } with role one of "lrpc", "nuke", "antinuke", "factory", "energy",
 	-- "extractor", "turret", "shield", "other". shields: their shield generators { x, z, r }. A target
 	-- under a shield is skipped (the shot only drains it). Score: cost x the role's weight (doctrine
-	-- .strategic.lrpc.weights), a little less the farther it is. Returns the target or nil
+	-- .strategic.lrpc.weights), a little less the farther it is. Under minValue (cost x weight) it's left
+	-- to fire at will (it shoots their armies in range itself; ordered, smoke 6 shot Sentries of 96 metal).
+	-- Returns the target or nil
 	function S.lrpcTarget(gun, targets, shields)
 		local W = D.strategic.lrpc.weights
+		local minValue = D.strategic.lrpc.minValue or 0
 		local best, bestScore
 		local r2 = gun.range * gun.range
 		for _, t in ipairs(targets) do
@@ -58,7 +61,7 @@ return function(ctx)
 						break
 					end
 				end
-				if not covered then
+				if not covered and (t.cost or 0) * (W[t.role] or W.other or 1) >= minValue then
 					local score = (t.cost or 0) * (W[t.role] or W.other or 1) / (1 + sqrt(dd) / gun.range * 0.3)
 					if score > 0 and (not bestScore or score > bestScore) then
 						best, bestScore = t, score
