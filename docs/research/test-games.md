@@ -1258,3 +1258,5 @@ Counter matrix, flat sites (arm A of 20261015-0212-sbx-il-re-khold, 264 battles)
   firebases): checked against the code. -> v6.
 - The new kill attribution also showed **our nukes killing our own units** (57 in g69: by=legsilo);
   fixed (nothing of ours worth over max(300, a tenth of the target) under 1.2x the blast).
+- g66 completed with `batch.py --only 17-32 --into` (the 8 pairs the dead host lost): 24 pairs, v3
+  +0.08 [-0.15, +0.30], can't tell (15 -> 17 wins, army at 12 min 3.1k -> 4.2k).
