@@ -3580,8 +3580,35 @@ function Engine.strategicControl()
 		for _, u in ipairs(C.nukeSilo) do
 			local ud = unitDef(u)
 			if ud and not spGetUnitIsBeingBuilt(u) and stock(u, N.stockpile) > 0 and frame - (Engine.lastNuke or -99999) > 30 * N.every then
-				local x, z, v = Engine.strategic.nukeTarget(cands, ud.weaponAoe or 640, antis, N.minValue)
-				if x then
+				local aoe = ud.weaponAoe or 640
+				local x, z, v = Engine.strategic.nukeTarget(cands, aoe, antis, N.minValue)
+				-- none of ours under the blast: anything of ours within 1.2 x its radius worth more than
+				-- max(300, a tenth of the target) rules that target out (g69: our Supernova killed 57 of our
+				-- own units spread around the fight; the army squad's centre alone wasn't enough)
+				local safe = false
+				for _ = 1, 6 do
+					if not x then
+						break
+					end
+					local mine = 0
+					for _, o in ipairs(spGetUnitsInCylinder(x, z, aoe * 1.2)) do
+						local od = spGetUnitTeam(o) == myTeam and unitDef(o)
+						mine = mine + (od and od.cost or 0)
+					end
+					if mine <= max(300, v * 0.1) then
+						safe = true
+						break
+					end
+					local keep = {}
+					for _, c in ipairs(cands) do
+						if dist2(c.x, c.z, x, z) > (aoe * 1.5) ^ 2 then
+							keep[#keep + 1] = c
+						end
+					end
+					cands = keep
+					x, z, v = Engine.strategic.nukeTarget(cands, aoe, antis, N.minValue)
+				end
+				if x and safe then
 					order(u, CMD.ATTACK, { x, spGetGroundHeight(x, z), z })
 					Engine.lastNuke = frame
 					Engine.lastNukeAt = { x = x, z = z, r = ud.weaponAoe or 640, frame = frame }
