@@ -401,3 +401,36 @@ func TestFormation(t *testing.T) {
 		t.Errorf("profile: %s", FormationProfile("x", fs))
 	}
 }
+
+func TestFeatures(t *testing.T) {
+	log := `[1800] features minute=1 firebase=600/3 lrpc=5200/1
+[2000] killed minute=1 kind=raider name=armflash cost=100 x=10 z=20 by=leglht feature=firebase
+[2100] killed minute=1 kind=factory name=armlab cost=600 x=10 z=20 by=leglrpc feature=lrpc
+[2200] killed minute=1 kind=raider name=armpw cost=50 x=10 z=20 by=legkark
+[2300] lost minute=1 kind=turret name=leglht cost=90 x=1 z=2 by=armham feature=firebase
+[2400] features minute=2 firebase=900/4 lrpc=5200/1
+`
+	g, err := ParseGame("1", strings.NewReader(log))
+	if err != nil {
+		t.Fatal(err)
+	}
+	fs := map[string]FeatureStats{}
+	for _, f := range Features([]*Game{g}) {
+		fs[f.Name] = f
+	}
+	fb := fs["firebase"]
+	if fb.Spent != 900 || fb.Count != 4 || fb.Killed != 100 || fb.Lost != 90 {
+		t.Fatalf("firebase: %+v", fb)
+	}
+	if l := fs["lrpc"]; l.Killed != 600 || l.Spent != 5200 {
+		t.Fatalf("lrpc: %+v", l)
+	}
+	if g.Killed[2].By != "legkark" || g.Killed[2].Feature != "" {
+		t.Fatalf("untagged kill: %+v", g.Killed[2])
+	}
+	var buf bytes.Buffer
+	FeatureTable(&buf, []Arm{{Label: "a", Games: []*Game{g}}})
+	if !strings.Contains(buf.String(), "| firebase | a | 1 of 1 |") {
+		t.Fatalf("table:\n%s", buf.String())
+	}
+}

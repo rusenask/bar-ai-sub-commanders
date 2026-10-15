@@ -33,10 +33,18 @@ type Eco struct {
 
 // Death is a unit we lost or killed (harness "lost" / "killed" lines).
 type Death struct {
-	Minute int
-	Kind   string
-	Name   string
-	Cost   int
+	Minute  int
+	Kind    string
+	Name    string
+	Cost    int
+	By      string // the killer's unit name ("" or "?" unknown)
+	Feature string // our feature the unit (lost) or its killer (killed) belongs to: firebase, lrpc, nuke, ...
+}
+
+// FeatureLedger is what the widget spent on one feature (harness "features" lines; for rez: metal raised).
+type FeatureLedger struct {
+	Metal float64
+	Count int
 }
 
 // Game is one test game as the harness logged it.
@@ -55,6 +63,8 @@ type Game struct {
 	Logs    map[string]int // sub-commander log messages (numbers stripped) -> times seen
 	Events  []Event        // sub-commander log messages as they appeared (first sighting of each)
 	Battle  *Battle        // scenario battle: the engagement's outcome (battle.go)
+	// the widget's per-feature ledger, latest "features" line: name -> metal spent (rez: raised) and count
+	Features map[string]FeatureLedger
 }
 
 // Event is a sub-commander's log message (or the scripted player's action) at a game time.
@@ -121,10 +131,22 @@ func ParseGame(source string, r io.Reader) (*Game, error) {
 				Builders: int(num(kv, "builders")), Army: num(kv, "army"), Turrets: num(kv, "turrets"),
 				EnergyStalled: int(num(kv, "energyStalled")), MetalOverflow: int(num(kv, "metalOverflow")),
 			})
+		case strings.HasPrefix(body, "features "):
+			g.Features = map[string]FeatureLedger{}
+			for k, v := range keyValues(strings.TrimPrefix(body, "features ")) {
+				if k == "minute" {
+					continue
+				}
+				metal, count, _ := strings.Cut(v, "/")
+				m, _ := strconv.ParseFloat(metal, 64)
+				c, _ := strconv.Atoi(count)
+				g.Features[k] = FeatureLedger{Metal: m, Count: c}
+			}
 		case strings.HasPrefix(body, "lost "), strings.HasPrefix(body, "killed "):
 			verb, rest, _ := strings.Cut(body, " ")
 			kv := keyValues(rest)
-			d := Death{Minute: int(num(kv, "minute")), Kind: strings.ReplaceAll(kv["kind"], "_", " "), Name: kv["name"], Cost: int(num(kv, "cost"))}
+			d := Death{Minute: int(num(kv, "minute")), Kind: strings.ReplaceAll(kv["kind"], "_", " "), Name: kv["name"], Cost: int(num(kv, "cost")),
+				By: kv["by"], Feature: kv["feature"]}
 			if verb == "lost" {
 				g.Lost = append(g.Lost, d)
 			} else {

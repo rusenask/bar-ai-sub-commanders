@@ -1684,6 +1684,56 @@ function Engine.firebaseHave(b)
 	return have, any
 end
 
+-- per-feature ledger (each piece judged on its own, not only by the game's result): metal spent on
+-- each feature's structures, metal raised by resurrection; kills and losses are tagged by the harness
+-- through WG.SubCommanders.featureOf
+Engine.features = {}
+
+-- which feature a unit of ours belongs to: firebase (a structure in one), lrpc, nuke, antinuke, shield,
+-- juno, raised (resurrected), or nil
+function Engine.featureOf(unitID)
+	local d = unitDef(unitID)
+	if not d then
+		return nil
+	end
+	local st = ustate[unitID]
+	if st and st.raised then
+		return "raised"
+	end
+	if d.lrpc then
+		return "lrpc"
+	elseif d.nukeSilo then
+		return "nuke"
+	elseif d.antinuke then
+		return "antinuke"
+	elseif d.shieldGen then
+		return "shield"
+	elseif d.junoSilo then
+		return "juno"
+	elseif d.rezBot then
+		return "rezbot"
+	end
+	if not d.mobile and Engine.D.firebase.on then
+		local x, _, z = spGetUnitPosition(unitID)
+		local R = Engine.D.firebase.radius
+		for _, b in ipairs(Engine.firebases) do
+			if x and dist2(x, z, b.x, b.z) <= R * R then
+				return "firebase"
+			end
+		end
+	end
+	return nil
+end
+
+function Engine.featureSpend(unitID, d)
+	local f = Engine.featureOf(unitID)
+	if f and f ~= "raised" then
+		local F = Engine.features[f] or { spent = 0, count = 0 }
+		F.spent, F.count = F.spent + d.cost, F.count + 1
+		Engine.features[f] = F
+	end
+end
+
 -- free metal spots (no extractor of anyone's, not planned) within r of (x, z)
 function Engine.freeSpotsNear(x, z, r)
 	local n = 0
@@ -3312,15 +3362,52 @@ function Jobs.strategic(sub, unitID, d, ux, uz)
 end
 
 -- their radar, jammers, cameras and mines we know of (Juno's targets)
+-- where we're operating right now: the Air Force's strike, the army's push, our long-range cannons'
+-- targets. Juno there helps the operation: their radar no longer sees our bombers or army coming, and
+-- their jammers no longer hide what our cannons should hit
+function Engine.operationPoints()
+	local pts = {}
+	for _, s in ipairs(subs) do
+		local strike = s.airOrders and s.airOrders.strike
+		if strike and strike.action == "strike" then
+			pts[#pts + 1] = { x = strike.x, z = strike.z }
+		end
+		if s.pushTarget and s.pushTarget.x then
+			pts[#pts + 1] = { x = s.pushTarget.x, z = s.pushTarget.z }
+		end
+	end
+	for _, u in ipairs(Engine.ourStrategic().lrpc) do
+		local st = ustate[u]
+		local e = st and st.lrpcTarget and Enemy.units[st.lrpcTarget]
+		if e then
+			pts[#pts + 1] = { x = e.x, z = e.z }
+		end
+	end
+	return pts
+end
+
 function Engine.junoTargets()
 	local list = {}
+	local J = Engine.D.strategic.juno
+	local ops = J.opWeight and Engine.operationPoints() or {}
 	for _, e in pairs(Enemy.units) do
 		local ed = defs[e.defID]
+		local t
 		if ed and (ed.jammer or 0) > 0 and not ed.commander then
 			-- jammers, static or mobile: they hide an army (worth a missile on their own)
-			list[#list + 1] = { x = e.x, z = e.z, cost = ed.cost, weight = 2 }
+			t = { x = e.x, z = e.z, cost = ed.cost, weight = 2 }
 		elseif ed and not ed.mobile and (ed.intelStructure or ed.mine or ed.kind == "radar" or ed.kind == "camera") then
-			list[#list + 1] = { x = e.x, z = e.z, cost = ed.cost }
+			t = { x = e.x, z = e.z, cost = ed.cost, weight = 1 }
+		end
+		if t then
+			-- v2: near one of our operations (doctrine.strategic.juno.opWeight, within opRadius) it counts more
+			for _, p in ipairs(ops) do
+				if dist2(t.x, t.z, p.x, p.z) <= (J.opRadius or 1800) ^ 2 then
+					t.weight = t.weight * J.opWeight
+					break
+				end
+			end
+			list[#list + 1] = t
 		end
 	end
 	return list
@@ -6825,6 +6912,12 @@ local function exportAPI()
 			local sub = findSub(id)
 			return sub and summarize(sub)
 		end,
+		featureOf = function(unitID)
+			return Engine.featureOf(unitID)
+		end,
+		features = function()
+			return Engine.features
+		end,
 		economy = function()
 			return { metal = econ.m, metalStorage = econ.mS, metalIncome = econ.mInc, metalPull = econ.mPull or 0, energy = econ.e, energyStorage = econ.eS, energyIncome = econ.eInc, energyPull = econ.ePull or 0 }
 		end,
@@ -7836,6 +7929,14 @@ function widget:UnitCreated(unitID, unitDefID, unitTeam, builderID)
 	if unitTeam ~= myTeam or not builderID then
 		return
 	end
+	-- raised from a wreck by a resurrection bot: the feature's return
+	local bd = unitDef(builderID)
+	if bd and bd.rezBot and defs[unitDefID] then
+		getState(unitID).raised = true
+		local F = Engine.features.rez or { spent = 0, count = 0, raised = 0 }
+		F.raised, F.count = (F.raised or 0) + defs[unitDefID].cost, F.count + 1
+		Engine.features.rez = F
+	end
 	if defs[unitDefID] then
 		Engine.noteBuilt(unitDefID)
 	end
@@ -7893,6 +7994,9 @@ function widget:UnitCreated(unitID, unitDefID, unitTeam, builderID)
 end
 
 function widget:UnitFinished(unitID, unitDefID, unitTeam)
+	if unitTeam == myTeam and defs[unitDefID] then
+		Engine.featureSpend(unitID, defs[unitDefID])
+	end
 	local sub = owner[unitID]
 	if not sub then
 		return
@@ -7905,9 +8009,10 @@ function widget:UnitFinished(unitID, unitDefID, unitTeam)
 		applyPriority(sub, unitID)
 	end
 	local d = defs[unitDefID]
-	if d and (d.factory or d.builder or d.antinuke or d.shieldGen or d.lrpc or d.junoSilo) then
+	if d and (d.factory or d.builder or d.antinuke or d.shieldGen or d.lrpc or d.junoSilo or d.nukeSilo) then
 		log(sub, "new " .. d.human)
 	end
+
 end
 
 function widget:UnitDestroyed(unitID, unitDefID, unitTeam, attackerID)

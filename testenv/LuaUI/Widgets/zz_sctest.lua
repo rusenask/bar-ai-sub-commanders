@@ -133,6 +133,18 @@ local function ecoLine(n)
 	local _, _, _, eInc = Spring.GetTeamResources(myTeam, "energy")
 	out(string.format("eco minute=%d metalIncome=%.1f energyIncome=%.0f mex=%d generators=%d factories=%d builders=%d army=%.0f turrets=%.0f energyStalled=%d metalOverflow=%d",
 		n / 1800, mInc or 0, eInc or 0, m.mex, m.gen, m.factories, m.builders, m.army, m.turrets, stall.energy, stall.overflow))
+	-- the features' ledger so far (metal spent on each, metal raised by resurrection): "features minute=N
+	-- firebase=spent/count lrpc=... rez=raised/count"
+	local api = WG.SubCommanders
+	local F = api and api.features and api.features()
+	if F and next(F) then
+		local parts = {}
+		for k, v in pairs(F) do
+			parts[#parts + 1] = string.format("%s=%d/%d", k, k == "rez" and (v.raised or 0) or (v.spent or 0), v.count or 0)
+		end
+		table.sort(parts)
+		out(string.format("features minute=%d %s", n / 1800, table.concat(parts, " ")))
+	end
 end
 
 local function sampleStalls()
@@ -157,8 +169,14 @@ function widget:UnitDestroyed(unitID, unitDefID, unitTeam, attackerID, attackerD
 		return
 	end
 	local x, _, z = Spring.GetUnitPosition(unitID)
-	out(string.format("%s minute=%d kind=%s name=%s cost=%d x=%d z=%d", mine and "lost" or "killed",
-		(Spring.GetGameFrame() - startOffset) / 1800, ((d.kind or "?"):gsub(" ", "_")), UnitDefs[unitDefID].name, d.cost, x or -1, z or -1))
+	-- who: the killer's unit type (ours always known; theirs when seen), and which of our features the
+	-- unit (lost) or its killer (killed) belongs to (WG.SubCommanders.featureOf: firebase, lrpc, nuke...)
+	local by = attackerDefID and UnitDefs[attackerDefID] and UnitDefs[attackerDefID].name or "?"
+	local api = WG.SubCommanders
+	local feature = api and api.featureOf and (mine and api.featureOf(unitID) or (attackerID and attackerTeam == myTeam and api.featureOf(attackerID))) or nil
+	out(string.format("%s minute=%d kind=%s name=%s cost=%d x=%d z=%d by=%s%s", mine and "lost" or "killed",
+		(Spring.GetGameFrame() - startOffset) / 1800, ((d.kind or "?"):gsub(" ", "_")), UnitDefs[unitDefID].name, d.cost, x or -1, z or -1,
+		by, feature and (" feature=" .. feature) or ""))
 end
 
 function widget:UnitFinished(unitID, unitDefID, unitTeam)

@@ -336,6 +336,8 @@ func Report(w io.Writer, title string, games []*Game, b *Benchmark) {
 		}
 	}
 
+	FeatureTable(w, []Arm{{Label: "these games", Games: games}})
+
 	if ps := problems(games, 10); len(ps) > 0 {
 		fmt.Fprintln(w, "\n## Sub-commanders' recurring problems (per game)")
 		fmt.Fprintln(w)
@@ -421,4 +423,5 @@ func Compare(w io.Writer, arms []Arm) {
 		fmt.Fprintf(w, "| %s | %d | %s | %d | %s | %.0f / %.0f | %.2f | %.1f | %s | %s |\n", a.Label, len(a.Games), resultCounts(a.Games), lost25,
 			fmtNum(metal/n), killed/n, died/n, ratio, builders/n, cell(mex, haveMex)+" / "+cell(mex20, haveMex20), cell(army, haveArmy))
 	}
+	FeatureTable(w, arms)
 }

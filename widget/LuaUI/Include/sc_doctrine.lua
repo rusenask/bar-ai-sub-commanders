@@ -443,14 +443,16 @@ D.strategic = {
 	nuke = { on = true, minute = 30, income = 120, energy = 3000, surplus = 0.4, max = 1, stockpile = 1, minValue = 4000, every = 30 },
 	-- Juno (T1, missile with a 700 radius that kills radar, jammers and mines): Intelligence builds one
 	-- once `minTargets` of their intel structures are known, at `income`; fires at the biggest cluster
-	juno = { on = false, income = 20, minTargets = 2, aoe = 650, stockpile = 1 },
+	-- v2: radar / jammers near our operations (an air strike's target, the army's push, our cannons'
+	-- targets; within `opRadius`) count `opWeight` times: blind them where we're about to strike
+	juno = { on = true, income = 20, minTargets = 2, aoe = 650, stockpile = 1, opWeight = 3, opRadius = 1800 },
 	-- resurrection bots (Lazarus / Graverobber / Zagreus): `bots` kept, raising the most valuable wrecks
 	-- within `radius` of home or the army, out of known threat
-	resurrect = { on = false, bots = 2, radius = 2500 },
-	-- measured (Legion vs Armada medium): everything on timers -0.27 [-0.46, -0.08] (g54); anti-nuke and
-	-- shield reactive + Juno + resurrection -0.07 [-0.29, +0.16], late kills -28k (g58). The reactive
-	-- anti-nuke and shield only answer a seen threat (built in 1 and 0 games of 24): on. Juno,
-	-- resurrection and cannons off until one shows a gain alone
+	resurrect = { on = true, bots = 2, radius = 2500 },
+	-- all kept on (the player's call): versions change when and how each is used, measured against the
+	-- previous version and on its own (gamereport's feature table: spent, killed, lost, return).
+	-- History: everything on timers -0.27 (g54); reactive anti-nuke/shield + Juno v1 + resurrection
+	-- -0.07, late kills -28k (g58)
 }
 
 -- cloaking (Engine, Armada): keepOn: cloak-capable army units stay cloaked; raid: they join the raids on
