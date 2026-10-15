@@ -1025,3 +1025,12 @@ Counter matrix, flat sites (arm A of 20261015-0212-sbx-il-re-khold, 264 battles)
   after losing it, or several builders), and resurrection works: 49 wrecks raised (Karkinos, Fatboy,
   Archangel, Pluto...). No sign yet that a cannon finished or fired, or a Juno shot: logs for finished
   strategic structures and each cannon target added for smoke 6.
+
+## Strategic structures, smoke test 6 (force, Legion, 8 games, every feature on)
+
+- **7 win, 1 loss.** Everything works end to end: 7 Olympus finished and fired (on Sentries 138x,
+  extractors 54x, Beamers, Overwatch: whatever static of theirs they knew in range), a Juno fired on 2
+  radar/jammers, Aegis and Soteria built. "new Blindfold" 79x: Legion's Blindfold gunship has a Juno
+  weapon and was counted as our Juno (fixed: `junoSilo`). Note the status block reprints each
+  sub-commander's last log line every 30 s: count events by distinct frames, not lines.
+- Whole-game A/B started: force-g54-strategic (Legion, all off vs all on, 24 pairs).

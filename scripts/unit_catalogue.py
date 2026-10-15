@@ -131,6 +131,12 @@ USED = {
     "seismic detector": "Intelligence (structures)", "transport": "no (only excluded from the air force)",
     "manual fire (D-gun style)": "commander D-gun only", "energy converter": "economy (surplus energy)",
     "geothermal": "economy (if a constructor offers it)",
+    "anti-nuke / interceptor": "doctrine.strategic.antinuke (under test): built, interceptors stockpiled",
+    "shield": "doctrine.strategic.shield (under test): one over the labs",
+    "long-range artillery (2000+)": "doctrine.strategic.lrpc (under test): the cheapest cannon, fire control",
+    "juno (kills mines, radar, jammers)": "doctrine.strategic.juno (under test): silo, fired on clusters",
+    "resurrect": "doctrine.strategic.resurrect (under test): rez bots raise wrecks",
+    "stockpiled missile": "anti-nuke and Juno stockpiles (under test)",
 }
 
 rows = []
