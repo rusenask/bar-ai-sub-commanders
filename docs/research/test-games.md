@@ -1336,3 +1336,15 @@ Each feature on its own (arm B, per game it was used in):
   from behind" 360x, "waiting for the army" 93x). But army at 12 min **worse** -701 [-1.26k, -0.13k],
   mid kills leaning worse. Which part costs early army: the three-way seqtest (player-fixes: pre-fix /
   factory + anti-nuke / all) will separate the factory changes from the march and anti-air ones.
+
+## The factory fixes and anti-nuke v2 alone against hard (force, Cortex vs Armada hard, 24 pairs)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-1953-force-g74-factory-fix-hard-A (before) | 24 | 24 loss | 4 | 53.1k | 56 / 360 | 0.45 | 23.5 | 11.5 / 12 | 3.1k |
+| 20261015-1953-force-g74-factory-fix-hard-B (reserve, queue ahead, non-blocking model, anti-nuke v2) | 24 | 24 loss | 5 | 47.2k | 47 / 346 | 0.47 | 22.5 | 11.5 / 15 | 3.7k |
+
+- Army at 12 min +454 [-112, +1.1k] (leaning better): not the factory fixes that cost early army in
+  g73. Score -0.03 [-0.05, -0.01] worse (all lost; B lasted slightly less), late kills -2.0k worse (the
+  preemptive anti-nuke's 1500 metal in a losing game?). Noise against hard is large: the same "before"
+  arm had 4.0k army at 12 min in g73 and 3.1k here. The three-way seqtest against medium decides.
