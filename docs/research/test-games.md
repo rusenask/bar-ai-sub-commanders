@@ -916,3 +916,17 @@ Counter matrix, flat sites (arm A of 20261015-0212-sbx-il-re-khold, 264 battles)
   Off. Holding the army back for home's sake costs more than the raids.
 - With the expansion drive on, Cortex with pressing reaches 24 extractors at minute 20 (the regression
   was measured before it). Legion now: 7 / 4 / 1 against BARbarian medium.
+
+## Cortex again, ee612f3 vs now (with the expansion drive), both hosts, 36 pairs — no regression, still weak
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-0813-sbx-g45-cortex-old-vs-new-A (ee612f3) | 24 | 6 timeout, 18 loss | 6 | 99.7k | 122 / 579 | 0.59 | 22.9 | 12 / 10 | 2.5k |
+| 20261015-0813-sbx-g45-cortex-old-vs-new-B (now) | 24 | 3 win, 4 timeout, 17 loss | 7 | 128.4k | 147 / 580 | 0.58 | 29.1 | 12 / 13 | 1.8k |
+| 20261015-0813-force4-g45-cortex-old-vs-new-A (ee612f3) | 12 | 4 timeout, 8 loss | 0 | 144.0k | 156 / 804 | 0.69 | 23.5 | 12 / 14.5 | 3.1k |
+| 20261015-0813-force4-g45-cortex-old-vs-new-B (now) | 12 | 3 timeout, 9 loss | 1 | 146.0k | 132 / 828 | 0.51 | 39.0 | 12.5 / 13.5 | 2.3k |
+
+- Pooled: score +0.04 [-0.04, +0.13] can't tell, extractors at 20 min +2.2 [-1.4, +5.9], mid metal lost
+  +8.5k [+4.6k, +12.5k] worse (constructors lost 23 -> 29-39). The earlier "worse" (g40) doesn't hold.
+- Cortex wins 3 of 72 against Armada medium (Legion 13-16 of 24-36): Cortex needs its own work (its
+  constructors and expansions die in BARbarian's mid-game raids).
