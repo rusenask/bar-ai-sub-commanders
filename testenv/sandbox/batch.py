@@ -402,6 +402,9 @@ def main():
                             args.opponent, args.map, str(args.minutes)])
             if args.widgets_b:
                 split_arms(out, args)
+            # the experiment tracker (scripts/track.py, Lightning experiments; BAR_TRACK=0 skips it)
+            if os.environ.get("BAR_TRACK", "1") == "1" and not args.learn:
+                subprocess.run(["uv", "run", "--quiet", "--with", "litlogger", "python", "scripts/track.py", str(out)], cwd=ROOT)
             if args.learn:
                 subprocess.run(["go", "run", "./cmd/learn", "update", "-key", args.learn, "-batch", str(out), "-samples", str(overlays),
                                 "-minutes", str(args.minutes), "-score", args.learn_score], cwd=ROOT)

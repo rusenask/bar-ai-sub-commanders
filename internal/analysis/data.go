@@ -19,6 +19,7 @@ type ReportData struct {
 	Problems []ProblemCount     `json:"recurringProblemsPerGame"`
 	Findings []Finding          `json:"findings"`
 	Averages map[string]float64 `json:"averages"`
+	Features []FeatureStats     `json:"features,omitempty"` // each feature on its own (features.go)
 }
 
 // GameSummary is one game's headline numbers.
@@ -73,7 +74,7 @@ type ProblemCount struct {
 
 // BuildReport computes the report's numbers.
 func BuildReport(title string, games []*Game, b *Benchmark) ReportData {
-	r := ReportData{Title: title, Averages: map[string]float64{}}
+	r := ReportData{Title: title, Averages: map[string]float64{}, Features: Features(games)}
 	n := float64(len(games))
 	var dealt, taken float64
 	for _, g := range games {

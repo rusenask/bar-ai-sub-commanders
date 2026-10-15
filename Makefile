@@ -2,7 +2,7 @@ BAR_DIR ?= $(HOME)/Library/Application Support/Beyond-All-Reason-mac
 MODEL ?= lightning/deepseek-v4.1-flash
 BAR_REF ?= 8247b61
 
-.PHONY: build install run up down restart logs test-game test-batch test-bridge play-vs report compare timeline benchmarks test-lua decider-deploy decider-eval ref lint
+.PHONY: build install run up down restart logs test-game test-batch test-bridge play-vs report compare track timeline benchmarks test-lua decider-deploy decider-eval ref lint
 
 build:
 	go build -o bin/scbridge ./cmd/scbridge
@@ -64,6 +64,11 @@ timeline:
 # A/B arms side by side: make compare ARMS="testenv/batch/<A> testenv/batch/<B>"
 compare:
 	go run ./cmd/gamereport -compare $(ARMS)
+
+# log a batch (an A/B's arms found from it) to Lightning's experiment tracker (scripts/track.py); batches
+# do it themselves at the end
+track:
+	uv run --quiet --with litlogger python scripts/track.py $(BATCH)
 
 # rebuild the strong players' benchmark from logged replays (testenv/pro_replays.py, testenv/replays.sh)
 benchmarks:

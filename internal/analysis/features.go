@@ -11,13 +11,13 @@ import (
 // what it cost, what it killed, what of it was lost. From the harness's "features" ledger and the
 // feature= tags on "killed" / "lost" lines.
 type FeatureStats struct {
-	Name   string
-	Games  int     // games where we built it (or it raised something)
-	Spent  float64 // metal spent on it per game it was used in (rez: metal raised)
-	Count  float64 // structures / units per game it was used in
-	Killed float64 // enemy metal it killed per game it was used in
-	KillsN float64 // enemy units it killed per game
-	Lost   float64 // metal of it we lost per game it was used in
+	Name   string  `json:"name"`
+	Games  int     `json:"games"`  // games where we built it (or it raised something)
+	Spent  float64 `json:"spent"`  // metal spent on it per game it was used in (rez: metal raised)
+	Count  float64 `json:"count"`  // structures / units per game it was used in
+	Killed float64 `json:"killed"` // enemy metal it killed per game it was used in
+	KillsN float64 `json:"kills"`  // enemy units it killed per game
+	Lost   float64 `json:"lost"`   // metal of it we lost per game it was used in
 }
 
 // Return is enemy metal killed per metal spent (for rez: metal raised per metal of bots, see Raised).

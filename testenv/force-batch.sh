@@ -113,3 +113,7 @@ echo "$SCENARIO vs $AI_PROFILE ${MAP:-All That Simmers}: $ran/$N ran: $wins won,
 [ -n "$WIDGET_SRC_B" ] && "$T/split-arms.sh" "$DIR" "$SRC" "$WIDGET_SRC_B"
 echo "report: $DIR/report.md"
 sed -n '/^## Findings/,$p' "$DIR/report.md"
+# the experiment tracker (scripts/track.py, Lightning experiments; BAR_TRACK=0 skips it)
+if [ "${BAR_TRACK:-1}" = 1 ]; then
+	(cd "$T/.." && uv run --quiet --with litlogger python scripts/track.py "$DIR" 2>&1 | grep -E "^tracked:|Error|Traceback") || true
+fi

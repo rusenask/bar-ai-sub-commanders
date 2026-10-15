@@ -120,6 +120,14 @@ Look at, in order: games lost, damage dealt / taken, metal produced, constructor
 treat a 1-game difference in losses as noise. If unclear, run 8 more games of both arms rather than
 arguing from the numbers.
 
+## The experiment tracker
+
+Every batch logs itself at the end to Lightning's experiment tracker (`scripts/track.py`, teamspace
+lightning-ai/agents-teamspace, https://lightning.ai/lightning-ai/agents-teamspace/experiments): one
+experiment per A/B with the doctrine difference between the arms, each arm's results, every verdict
+with its interval, the feature table, and the reports and LLM reviews as files. `make track BATCH=<dir>`
+logs one by hand (e.g. after `--into` filled in games, or after an LLM review); `BAR_TRACK=0` skips it.
+
 ## Recording (always, also for failed ideas)
 
 1. Add the arm table (from `make compare`) and two or three lines on what was learned to
