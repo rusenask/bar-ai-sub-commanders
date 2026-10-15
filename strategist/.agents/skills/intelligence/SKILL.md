@@ -43,3 +43,14 @@ your constructors build one once two of their intel structures are known, and it
 cluster: their artillery and bombers go blind, their hidden army shows up on our radar. Say so to the
 player when their jammers hide an army.
 
+
+## Eyes for the cannons and bombers, and counter-intelligence (since 2026-10-16)
+
+- **Spotters**: cloaking spies (Ghost / Spectre / Eidolon, from the tier 2 bot lab, which makes them for you)
+  and, where none can be made, scouts hold watch near what the team is hitting: the long-range cannons'
+  and the bombers' targets, the army's target, their factories (their start if none is known). They
+  cloak, stand back ~400 from the target, and lost ones are replaced (2 + 1 per 50 metal/s, up to 5).
+  Without eyes the cannons and strikes have nothing to aim at.
+- **Counter-intelligence**: your armed units hunt their scouts, spies and cameras in our areas first,
+  then their radar and jammers; a seismic detector at home from minute 8 reveals cloaked units moving;
+  the mobile jammer follows the army to hide it.

@@ -135,7 +135,7 @@ guards idling at home. Escalation by income:
 | any income | heavy and long-range turrets per area: base mix x (1 + income / 50), at most 4x (`P.mixScale`) |
 | 50 metal/s | the Army's own aircraft plant; bombers and gunships (fighters if the enemy flies) raid as one wing (`Tactics.airRaid`: targets from `raidCandidates`, enemy anti-air within 900 at most a third of the wing, home at half strength) |
 | 60 metal/s | Defense posts a tier 2 `constructor` request; any economy or army lab that makes one answers (the T2 lab) |
-| 90 metal/s | Air Defense too |
+| 70 metal/s | the Air Force (tier 2 aircraft plant) |
 | metal piling up | the Economy's lab sends units beyond its guards to the Army |
 | push plan | intruders the main army outweighs 8x are left to the response squad and turrets |
 

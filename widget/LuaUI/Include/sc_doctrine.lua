@@ -320,7 +320,6 @@ D.escalation = {
 	mixPerIncome = 50, -- each area's heavy and long-range turret shares grow by one per this much income
 	mixMax = 4, -- at most this many times the base mix
 	t2DefenseIncome = 60, -- Defense asks for a tier 2 constructor (harder turrets) from this income
-	t2AirDefenseIncome = 90, -- Air Defense too (flak) from this income
 	airRaidIncome = 50, -- the Army gets an aircraft plant of its own (air raids) from this income
 	overkill = 8, -- in a push, the main army leaves intruders it outweighs this much to the response squad
 	t2VehicleIncome = 80, -- a tier 2 vehicle plant for the Army (heavy tanks, flak, artillery) from here;
@@ -338,6 +337,7 @@ D.airRaid = {
 
 -- the Air Force sub-commander (sc_air.lua): its mix and where its wings go
 D.air = {
+	aaTurretShare = 0.1, -- the Air Force builds anti-air turrets once their air is this share of what they field
 	bombRadius = 300, -- bombers strike with an area attack this wide around the target (a fight-move drops nothing on unarmed structures)
 	scouts = 1, -- scout (or radar) planes kept looking at the enemy's side
 	fighters = 0.25, -- share of the armed planes that are fighters (1.5x their air share when they fly)

@@ -3,7 +3,7 @@
 --   economy       around the base (it also expands to safe metal spots on our side)
 --   defense       the base's front toward the enemy, and the exposed extractor clusters
 --   army          around its rally point (the safe edge of our side, from the threat map)
---   airdefense    over the base
+--   air           over the base (the Air Force; its fighters also cover the army and areas it's asked to)
 --   intelligence  the approaches: a third of the way toward the enemy
 --
 -- usage: local AutoZones = VFS.Include("LuaUI/Include/sc_autozones.lua", nil, VFS.RAW_FIRST)
@@ -110,7 +110,7 @@ return function(ctx)
 		elseif role == "army" then
 			local r = info.rally or { hx + ux * len * 0.3, hz + uz * len * 0.3 }
 			return { circle(r[1], r[2], 1000) }
-		elseif role == "airdefense" then
+		elseif role == "air" or role == "airdefense" then
 			return { circle(hx, hz, 1200) }
 		elseif role == "intelligence" then
 			local d = min(len * 0.33, 2500)

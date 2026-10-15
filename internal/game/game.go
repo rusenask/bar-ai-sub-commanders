@@ -110,6 +110,8 @@ type State struct {
 	Economy Economy         `json:"economy"`
 	Subs    []Sub           `json:"subs"`
 	Enemy   json.RawMessage `json:"enemy,omitempty"`
+	// our allies' bases: [{ team, x, z }] (the Air Force can cover them: cover_ally)
+	Allies json.RawMessage `json:"allies,omitempty"`
 	// the rules engine's team view: tunable rule values, audit warnings, what got built lately
 	Team json.RawMessage `json:"team,omitempty"`
 }

@@ -447,6 +447,9 @@ func report(info *game.Info, state *game.State, sub game.Sub, ss *subState, reas
 	if len(others) > 0 {
 		writeJSON(&b, "Other sub-commanders", others)
 	}
+	if len(state.Allies) > 2 {
+		fmt.Fprintf(&b, "Our allies' bases: %s\n", state.Allies)
+	}
 	if len(state.Enemy) > 0 {
 		fmt.Fprintf(&b, "Enemy intel: %s\n", state.Enemy)
 	}

@@ -113,6 +113,7 @@ local function sendState()
 			economy = sc.economy(),
 			subs = compactSubs(sc.list()),
 			enemy = sc.enemyIntel and sc.enemyIntel() or nil,
+			allies = sc.allies and sc.allies() or nil, -- our allies' bases { team, x, z } (cover_ally)
 			team = sc.teamReport and sc.teamReport() or nil,
 		},
 	})
@@ -200,22 +201,31 @@ local function apply(msg)
 		end
 		sc.noteAI(sub.id, "commander: " .. tostring(args.set))
 	elseif op == "request_help" then
-		local kinds = { defend = true, constructor = true, production = true }
+		local kinds = { defend = true, constructor = true, production = true, cover = true }
 		if not sc.request or not kinds[args.kind] then
-			return nil, "kind is defend, constructor or production"
+			return nil, "kind is defend, constructor, production or cover (air cover from the Air Force)"
 		end
-		if args.kind == "defend" and not (tonumber(args.x) and tonumber(args.z)) then
-			return nil, "defend needs x and z"
+		if (args.kind == "defend" or args.kind == "cover") and not (tonumber(args.x) and tonumber(args.z)) then
+			return nil, args.kind .. " needs x and z"
 		end
 		sc.request({ kind = args.kind, from = sub.id, x = tonumber(args.x), z = tonumber(args.z), need = tonumber(args.need) or 0, note = args.note, ai = true })
 		sc.noteAI(sub.id, "asked the team for " .. args.kind)
+	elseif op == "cover_ally" then
+		-- the Air Force covers our nearest ally's base
+		if not (sc.coverAlly and sc.coverAlly(sub.id)) then
+			return nil, "no ally to cover"
+		end
+	elseif op == "cover_area" then
+		if not (sc.coverArea and tonumber(args.x) and tonumber(args.z) and sc.coverArea(sub.id, tonumber(args.x), tonumber(args.z), tonumber(args.radius))) then
+			return nil, "cover_area needs x and z"
+		end
 	elseif op == "set_autonomy" then
 		if not (sc.setAutonomy and sc.setAutonomy(sub.id, args.autonomy)) then
 			return nil, "autonomy must be light, balanced or full"
 		end
 	elseif op == "set_role" then
 		if not ROLE_OK[args.role] then
-			return nil, "role must be economy, defense, airdefense, army, intelligence or air"
+			return nil, "role must be economy, defense, army, intelligence or air (the Air Force: air attack and air defence)"
 		end
 		sc.setRole(sub.id, args.role)
 	elseif op == "set_focus" then

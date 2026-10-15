@@ -160,10 +160,11 @@ local function step(n)
 		SC.assign(ids.def, { cons[1] })
 		st.stage = 5
 	elseif st.stage == 5 and t >= 30 * 60 * 7 and #cons >= 3 then
-		ids.aa = newSub("airdefense", { cons[1] }, nil, "keep the base and the economy safe from air")
+		-- the Air Force: air defence and air attack in one
+		ids.air = newSub("air", { cons[1] }, nil, "keep the base and the economy safe from air, own the sky, hunt their raids, and bomb their economy where their anti-air is weak")
 		st.stage = 6
-	elseif st.stage == 6 and t >= 30 * 60 * 10 and #cons >= 3 then
-		ids.air = newSub("air", { cons[1] }, nil, "own the sky, hunt their raids, and bomb their economy where their anti-air is weak")
+	elseif st.stage == 6 and t >= 30 * 60 * 10 and #cons >= 3 and ids.air then
+		SC.assign(ids.air, { cons[1] })
 		st.stage = 7
 	end
 end

@@ -74,15 +74,20 @@ local Const = {}
 -- Roles and postures
 --------------------------------------------------------------------------------
 
-local ROLES = { "economy", "defense", "airdefense", "army", "intelligence", "air" }
+-- the Air Force does air attack and air defence both (anti-air turrets, mobile anti-air, fighters,
+-- gunships, bombers); "airdefense" (the old Air Defense role) is an alias of it
+local ROLES = { "economy", "defense", "army", "intelligence", "air" }
 local ROLE_INFO = {
 	economy = { label = "Economy", short = "ECO" },
 	defense = { label = "Defense", short = "DEF" },
-	airdefense = { label = "Air Defense", short = "AA" },
 	army = { label = "Army", short = "ARMY" },
 	intelligence = { label = "Intelligence", short = "INTEL" },
 	air = { label = "Air Force", short = "AIR" },
 }
+local ROLE_ALIASES = { airdefense = "air", aa = "air", ["air defense"] = "air", ["air force"] = "air", intel = "intelligence" }
+local function canonicalRole(role)
+	return ROLE_ALIASES[role] or role
+end
 
 -- minM/minE: don't start new spending below this fraction of storage
 -- capBase/capInc: most expensive single thing allowed = capBase + capInc * metal income
@@ -2435,6 +2440,76 @@ function Jobs.extractorCover(sub, unitID, d, ux, uz)
 	return false
 end
 
+-- their aircraft in this sub-commander's areas now
+function Engine.airThreatened(sub)
+	for _, t in ipairs(sub.threats or {}) do
+		if t.air then
+			return true
+		end
+	end
+	return false
+end
+
+-- the Air Force builds anti-air turrets once their air is a real part of what they field
+-- (doctrine.air.aaTurretShare) or their aircraft come into its areas
+function Engine.airDefenseNeeded(sub)
+	return Engine.airThreatened(sub) or Enemy.share("air") >= (Engine.D.air.aaTurretShare or 0.1)
+end
+
+-- our allies' bases: each allied team's start position, else the centre of its factories. { team, x, z }
+function Engine.allyBases()
+	local out = {}
+	for _, t in ipairs(Spring.GetTeamList(myAlly) or {}) do
+		if t ~= myTeam then
+			local x, _, z = Spring.GetTeamStartPosition(t)
+			if not x or x <= 0 then
+				local sx, sz, n = 0, 0, 0
+				for _, u in ipairs(Spring.GetTeamUnits(t) or {}) do
+					local ud = unitDef(u)
+					if ud and ud.factory then
+						local ux, _, uz = spGetUnitPosition(u)
+						if ux then
+							sx, sz, n = sx + ux, sz + uz, n + 1
+						end
+					end
+				end
+				if n > 0 then
+					x, z = sx / n, sz / n
+				end
+			end
+			if x and x > 0 then
+				out[#out + 1] = { team = t, x = x, z = z }
+			end
+		end
+	end
+	return out
+end
+
+-- cover an area (the Air Force's fighters, gunships and anti-air go there): a circle zone of its own
+function Engine.coverArea(sub, x, z, r)
+	Engine.manualZones(sub)
+	sub.zones[#sub.zones + 1] = { kind = "circle", x = x, z = z, r = r or 1300 }
+	log(sub, sformat("covering the area at %d,%d", x, z))
+end
+
+-- defend an ally: cover the nearest ally's base (nearest our home)
+function Engine.coverAlly(sub)
+	local best, bestD
+	for _, a in ipairs(Engine.allyBases()) do
+		local dd = dist2(a.x, a.z, Engine.homeX or a.x, Engine.homeZ or a.z)
+		if not bestD or dd < bestD then
+			best, bestD = a, dd
+		end
+	end
+	if not best then
+		log(sub, "no ally to cover")
+		return false
+	end
+	Engine.coverArea(sub, best.x, best.z, 1500)
+	log(sub, sformat("defending our ally's base (team %d)", best.team))
+	return true
+end
+
 function Jobs.airDefense(sub, unitID, d, ux, uz)
 	local zone = zoneFor(sub, ux, uz)
 	if not zone then
@@ -3067,15 +3142,6 @@ local BUILDER_PLANS = {
 			or Jobs.reclaim(sub, u, d, x, z)
 			or Jobs.goToZone(sub, u, d, x, z)
 	end,
-	airdefense = function(sub, u, d, x, z)
-		return Jobs.removeMarked(sub, u, d, x, z)
-			or Jobs.repair(sub, u, d, x, z)
-			or Jobs.airDefense(sub, u, d, x, z)
-			or Jobs.helpBuild(sub, u, d, x, z)
-			or Jobs.assistFactory(sub, u, d, x, z)
-			or Jobs.reclaim(sub, u, d, x, z)
-			or Jobs.goToZone(sub, u, d, x, z)
-	end,
 	intelligence = function(sub, u, d, x, z)
 		return Jobs.removeMarked(sub, u, d, x, z)
 			or Jobs.strategic(sub, u, d, x, z)
@@ -3089,11 +3155,14 @@ local BUILDER_PLANS = {
 			or Jobs.reclaim(sub, u, d, x, z)
 			or Jobs.goToZone(sub, u, d, x, z)
 	end,
-	-- the Air Force: its air plant (tier 2 later), then radar for its planes to see by
+	-- the Air Force: anti-air turrets first while their aircraft are in its areas, its air plant (tier 2
+	-- later), anti-air turrets once they field aircraft, then radar for its planes to see by
 	air = function(sub, u, d, x, z)
 		return Jobs.removeMarked(sub, u, d, x, z)
 			or Jobs.repair(sub, u, d, x, z)
+			or (Engine.airThreatened(sub) and Jobs.airDefense(sub, u, d, x, z))
 			or Jobs.airPlant(sub, u, d, x, z)
+			or (Engine.airDefenseNeeded(sub) and Jobs.airDefense(sub, u, d, x, z))
 			or Jobs.radarNet(sub, u, d, x, z)
 			or Jobs.helpBuild(sub, u, d, x, z)
 			or Jobs.assistFactory(sub, u, d, x, z)
@@ -3998,7 +4067,7 @@ local function pickProduction(sub, facID, fd)
 		-- a sub-commander that lost all its constructors gets a new one from us first
 		for _, other in ipairs(subs) do
 			if other ~= sub and other.counts.builders == 0 and #other.zones > 0 and not other.paused
-				and (other.role == "defense" or other.role == "airdefense" or other.role == "intelligence")
+				and (other.role == "defense" or other.role == "air" or other.role == "intelligence")
 				and frame - (other.builderSent or -99999) > 30 * 60 then
 				local options = buildableBy(fd, function(od)
 					return od.builder and not od.commander
@@ -4016,7 +4085,7 @@ local function pickProduction(sub, facID, fd)
 		return Engine.economyProduction(sub, facID, fd, cap)
 	elseif sub.role == "army" then
 		return Engine.armyProduction(sub, fd, cap)
-	elseif sub.role == "air" and counts.builders >= 1 then
+	elseif sub.role == "air" and counts.builders >= 1 and makesAircraft(fd) then
 		return Engine.airForceProduction(sub, fd, cap)
 	elseif counts.builders < 1 then
 		wantBuilder = true
@@ -4095,7 +4164,7 @@ local function pickProduction(sub, facID, fd)
 	if counts.combat >= armyCap then
 		return nil, "at unit cap"
 	end
-	local wantAA = sub.role == "airdefense"
+	local wantAA = sub.role == "air" -- a ground factory of the Air Force makes mobile anti-air
 	local options = buildableBy(fd, function(od)
 		return od.combat and od.aaOnly == wantAA and od.cost <= cap
 	end)
@@ -4392,7 +4461,7 @@ function Decider.production(sub, facID, fd, st)
 	end
 	local cap = costCap(sub, 1.2)
 	local options = buildableBy(fd, function(od)
-		return od.combat and od.cost <= cap and (sub.role ~= "airdefense" or od.aaOnly)
+		return od.combat and od.cost <= cap and (sub.role ~= "air" or od.aaOnly)
 	end)
 	if #options < 2 then
 		return false
@@ -4928,13 +4997,37 @@ function Tactics.air(sub)
 	if army and army.squad and army.squad.x then
 		ax, az = army.squad.x, army.squad.z
 	end
-	-- gunships: the biggest raiding party near home they beat, out of their anti-air
+	-- cover areas: zones the player (or strategist) drew for the Air Force, and open "cover" requests
+	-- (an ally's base, an area another sub-commander asked air cover for): fighters intercept their
+	-- aircraft there, gunships hunt raiders there, idle fighters patrol the first one
+	local covers = {}
+	if not sub.autoZones then
+		for _, zone in ipairs(sub.zones) do
+			local cx, cz = Zone.center(zone)
+			covers[#covers + 1] = { x = cx, z = cz, r = max(800, sqrt(Zone.area(zone) / pi)) }
+		end
+	end
+	for _, r in ipairs(Engine.team.open("cover")) do
+		if r.x then
+			covers[#covers + 1] = { x = r.x, z = r.z, r = r.radius or 1200 }
+		end
+	end
+	local function inCover(x, z, extra)
+		for _, c in ipairs(covers) do
+			if dist2(x, z, c.x, c.z) <= (c.r + (extra or 0)) ^ 2 then
+				return true
+			end
+		end
+		return false
+	end
+	sub.coverAreas = covers
+	-- gunships: the biggest raiding party near home or in a cover area they beat, out of their anti-air
 	local gw = wings.gunship
 	local hunt
 	if gw.n > 0 then
 		local groups = {}
 		for _, g in ipairs(tm.groups(frame, 10)) do
-			if g.static < g.power * 0.3 and (g.lastSeenSec or 0) < 20 and (sqrt(dist2(g.x, g.z, hx, hz)) < P.huntRange or Engine.inBase(g.x, g.z)) then
+			if g.static < g.power * 0.3 and (g.lastSeenSec or 0) < 20 and (sqrt(dist2(g.x, g.z, hx, hz)) < P.huntRange or Engine.inBase(g.x, g.z) or inCover(g.x, g.z)) then
 				groups[#groups + 1] = { x = g.x, z = g.z, power = g.power - g.static }
 			end
 		end
@@ -4991,6 +5084,9 @@ function Tactics.air(sub)
 			local ed = defs[e.defID]
 			if ed and ed.air and frame - e.last < 30 * 10 then
 				local dd = min(sqrt(dist2(e.x, e.z, hx, hz)), sqrt(dist2(e.x, e.z, ax, az)))
+				if inCover(e.x, e.z, P.coverRange * 0.5) then
+					dd = 0 -- over an area we were asked to cover: first
+				end
 				if dd < P.coverRange and (not bestD or dd < bestD) then
 					best, bestD = { id = u, x = e.x, z = e.z, name = ed.human }, dd
 				end
@@ -5000,6 +5096,8 @@ function Tactics.air(sub)
 			set("fighter", { action = "intercept", id = "air:" .. floor(best.x / 512) .. ":" .. floor(best.z / 512), x = best.x, z = best.z, text = "intercepting " .. best.name })
 		elseif strike then
 			set("fighter", { action = "escort", id = "escort:" .. tostring(strike.id), x = strike.x, z = strike.z, text = "escorting the strike" })
+		elseif covers[1] then
+			set("fighter", { action = "cover", id = "cover:area", x = covers[1].x, z = covers[1].z, text = "covering the area we were asked to" })
 		else
 			set("fighter", { action = "cover", id = "cover", x = (hx + ax) * 0.5, z = (hz + az) * 0.5, text = "covering the base and army" })
 		end
@@ -5255,15 +5353,19 @@ function Engine.refreshTeam()
 			local t = sub.threats[1]
 			local theirs = Engine.tm.enemyPower(t.x, t.z, 700, frame)
 			local ours = Engine.tm.influence(t.x, t.z)
+			-- their aircraft over a sub-commander's area: it asks the Air Force for cover there
+			if t.air and sub.role ~= "air" then
+				team.post({ kind = "cover", from = sub.id, x = t.x, z = t.z, radius = 1200, note = sub.name .. " has enemy aircraft overhead" }, frame)
+			end
 			if theirs > ours and not t.air then
 				team.post({ kind = "defend", from = sub.id, x = t.x, z = t.z, need = floor(theirs - ours), note = sub.name .. " is outgunned" }, frame)
 			end
 		end
 		-- a defending sub-commander without constructors asks for one (after the opening); with a big
 		-- economy for a tier 2 one (harder turrets, doctrine.escalation)
-		if (sub.role == "defense" or sub.role == "airdefense" or sub.role == "air") and not sub.paused then
+		if (sub.role == "defense" or sub.role == "air") and not sub.paused then
 			local X = Engine.D.escalation
-			local t2 = (sub.role == "defense" and X.t2DefenseIncome) or (sub.role == "air" and Engine.D.air.t2Income) or X.t2AirDefenseIncome
+			local t2 = (sub.role == "defense" and X.t2DefenseIncome) or Engine.D.air.t2Income
 			if sub.counts.builders == 0 and Engine.minute() >= 4 then
 				team.post({ kind = "constructor", from = sub.id, need = 1, note = sub.name .. " has no constructors" }, frame)
 			elseif income >= t2 and not Engine.hasT2Builder(sub) then
@@ -6250,6 +6352,7 @@ local function findSub(id)
 end
 
 local function createSub(role, name)
+	role = canonicalRole(role)
 	role = ROLE_INFO[role] and role or "economy"
 	local id = nextSubID
 	nextSubID = nextSubID + 1
@@ -6578,6 +6681,7 @@ function Engine.useAutoZones(sub)
 end
 
 local function setRole(sub, role)
+	role = canonicalRole(role)
 	if not ROLE_INFO[role] then
 		return
 	end
@@ -6888,8 +6992,10 @@ local function runSub(sub, budget, combatPass)
 					-- a radar post, never idle, in smoke test 4)
 				elseif d.combat or (d.mobile and not d.builder and not d.commander) then
 					if combatPass then
-						if sub.role == "air" then
+						if sub.role == "air" and d.air then
 							Tactics.airUnit(sub, unitID, d, st)
+						elseif sub.role == "air" then
+							thinkCombat(sub, unitID, d, st, sub.threats) -- its mobile anti-air
 						elseif sub.role == "intelligence" then
 							Intel.thinkUnit(sub, unitID, d, st, sub.threats)
 						elseif d.combat then
@@ -7422,6 +7528,21 @@ local function exportAPI()
 				log(sub, sub.paused and "paused" or "resumed")
 			end
 		end,
+		coverAlly = function(id)
+			local sub = findSub(id)
+			return sub and Engine.coverAlly(sub) or false
+		end,
+		coverArea = function(id, x, z, r)
+			local sub = findSub(id)
+			if sub and x and z then
+				Engine.coverArea(sub, x, z, r)
+				return true
+			end
+			return false
+		end,
+		allies = function()
+			return Engine.allyBases()
+		end,
 		addZone = function(id, zone)
 			local sub = findSub(id)
 			if sub and zone and (zone.kind == "rect" or zone.kind == "circle") then
@@ -7549,7 +7670,8 @@ end
 
 Const.HELP = {
 	"Sub-Commanders: /luaui sc <command>",
-	"  new [economy|defense|airdefense|army]   create one (becomes active)",
+	"  new [economy|defense|army|intelligence|air]   create one (becomes active)",
+	"  cover [id] ally|here|clear   the Air Force covers our ally's base / the point under the mouse / auto",
 	"  assign [id]      give selected units to the active (or given) sub-commander",
 	"  release          take selected units back",
 	"  zone [id]        drag on the map to add a zone (shift keeps drawing)",
@@ -7713,6 +7835,22 @@ local function textCommand(_, line, words)
 				text = text:gsub("^%d+%s*", "")
 			end
 			setDirective(sub, text)
+		elseif verb == "cover" then
+			-- cover [id] ally | here | clear: what the Air Force covers besides the base and army
+			local what = tonumber(words[2]) and words[3] or words[2]
+			if what == "ally" then
+				Engine.coverAlly(sub)
+			elseif what == "clear" then
+				sub.zones, sub.autoZones = {}, true
+				Engine.updateAutoZones(sub)
+				log(sub, "cover areas cleared")
+			else
+				local mx, my = Spring.GetMouseState()
+				local _, pos = Spring.TraceScreenRay(mx, my, true)
+				if pos then
+					Engine.coverArea(sub, pos[1], pos[3], 1300)
+				end
+			end
 		elseif verb == "ai" then
 			setAI(sub, words[2] ~= "off")
 		elseif verb == "select" then

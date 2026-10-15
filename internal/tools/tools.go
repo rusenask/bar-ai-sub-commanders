@@ -49,9 +49,9 @@ type commanderArgs struct {
 
 type requestArgs struct {
 	SubID int    `json:"sub_id" jsonschema:"your sub-commander id"`
-	Kind  string `json:"kind" jsonschema:"defend, constructor or production"`
-	X     *int   `json:"x,omitempty" jsonschema:"for defend: where (map x)"`
-	Z     *int   `json:"z,omitempty" jsonschema:"for defend: where (map z)"`
+	Kind  string `json:"kind" jsonschema:"defend, constructor, production or cover"`
+	X     *int   `json:"x,omitempty" jsonschema:"for defend and cover: where (map x)"`
+	Z     *int   `json:"z,omitempty" jsonschema:"for defend and cover: where (map z)"`
 	Need  int    `json:"need,omitempty" jsonschema:"how much (metal of enemy strength to answer, or of units)"`
 	Note  string `json:"note,omitempty" jsonschema:"one line: why"`
 }
@@ -62,9 +62,20 @@ type tuneArgs struct {
 	Value float64 `json:"value" jsonschema:"new value (clamped to the rule's bounds)"`
 }
 
+type allyArgs struct {
+	SubID int `json:"sub_id" jsonschema:"your sub-commander id (the Air Force)"`
+}
+
+type coverArgs struct {
+	SubID  int `json:"sub_id" jsonschema:"your sub-commander id (the Air Force)"`
+	X      int `json:"x" jsonschema:"map x of the area's centre"`
+	Z      int `json:"z" jsonschema:"map z of the area's centre"`
+	Radius int `json:"radius,omitempty" jsonschema:"its radius (default 1300)"`
+}
+
 type roleArgs struct {
 	SubID int    `json:"sub_id" jsonschema:"your sub-commander id"`
-	Role  string `json:"role" jsonschema:"economy | defense | airdefense | army | intelligence | air"`
+	Role  string `json:"role" jsonschema:"economy | defense | army | intelligence | air (the Air Force: air attack and air defence)"`
 }
 
 type focusArgs struct {
@@ -320,13 +331,27 @@ func Handler(g *game.Server, guard Guard) http.Handler {
 
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "request_help",
-		Description: "Ask the team (the plan and open requests are in the team report). defend (x, z): the Army sends its squad there when it's in the base; constructor: the Economy builds you one; production: the Economy's lab builds combat units for the Army. Requests expire after 45 s unless asked again; the rules engine posts its own when an area is outgunned or a known enemy army outweighs ours.",
+		Description: "Ask the team (the plan and open requests are in the team report). defend (x, z): the Army sends its squad there when it's in the base; cover (x, z): the Air Force covers it (fighters intercept aircraft there, gunships hunt raiders there); constructor: the Economy builds you one; production: the Economy's lab builds combat units for the Army. Requests expire after 45 s unless asked again; the rules engine posts its own when an area is outgunned or a known enemy army outweighs ours.",
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in requestArgs) (*mcp.CallToolResult, any, error) {
 		args := map[string]any{"kind": in.Kind, "need": in.Need, "note": in.Note}
 		if in.X != nil && in.Z != nil {
 			args["x"], args["z"] = *in.X, *in.Z
 		}
 		return act(ctx, in.SubID, "request_help", args, "asked the team for "+in.Kind), nil, nil
+	})
+
+	mcp.AddTool(s, &mcp.Tool{
+		Name:        "cover_area",
+		Description: "Air Force only: cover this area besides the base and the army (a circle zone of yours): fighters intercept enemy aircraft there first, gunships hunt raiding parties there, anti-air goes there, idle fighters patrol it. For the player's 'cover X' orders. clear_zones returns to automatic cover.",
+	}, func(ctx context.Context, _ *mcp.CallToolRequest, in coverArgs) (*mcp.CallToolResult, any, error) {
+		return act(ctx, in.SubID, "cover_area", map[string]any{"x": in.X, "z": in.Z, "radius": in.Radius}, "covering an area"), nil, nil
+	})
+
+	mcp.AddTool(s, &mcp.Tool{
+		Name:        "cover_ally",
+		Description: "Air Force only: defend our nearest ally's base (their bases are in 'Our allies' bases' of your report): covers it like cover_area. For the player's 'defend the ally' orders.",
+	}, func(ctx context.Context, _ *mcp.CallToolRequest, in allyArgs) (*mcp.CallToolResult, any, error) {
+		return act(ctx, in.SubID, "cover_ally", map[string]any{}, "covering our ally"), nil, nil
 	})
 
 	mcp.AddTool(s, &mcp.Tool{

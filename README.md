@@ -95,10 +95,9 @@ constructors asks for one).
 |---|---|---|---|
 | Economy | metal extractors (+ upgrades), energy, storage when full, converters on surplus, help build, assist factory, reclaim | constructors, up to the posture cap | — |
 | Defense | repair, a radar, turrets on the zone edge facing the enemy | 1 constructor, then combat units | fight intruders, patrol zone |
-| Air Defense | repair, AA turrets next to the least-covered valuable buildings | 1 constructor, then mobile AA | engage air in zone |
 | Army | repair, help build, assist its factory | combat units (without a factory: the economy's factory builds them) | one squad: engages only where its local power beats the threat (turrets count), regroups first, falls back when a fight turns, waits out of reach of known enemy weapons |
-| Intelligence | radar net on high ground, cameras at the front, a jammer over the base, sonar on water | scouts, a mobile radar/jammer, then raiders | scouts sweep the map; raiders hunt known enemy radar and jammers |
-| Air Force | its own aircraft plant (tier 2 with a big economy), radar net | a scout plane, fighters (more when the enemy flies), bombers and gunships | fighters hold the sky over base and army and escort strikes; gunships hunt raiding parties near the base; bombers strike their economy around anti-air, clearing anti-air they can destroy outright; hurt planes fly home to repair |
+| Intelligence | radar net on high ground, cameras at the front, a jammer over the base, sonar on water, a seismic detector | cloaking spies (from the tier 2 bot lab) and scouts as spotters, a mobile radar/jammer, then raiders | spotters hold watch near what the cannons, bombers and army are hitting and their factories, cloaked; raiders hunt their scouts, spies and cameras in our areas, then their radar and jammers; the mobile jammer follows the army |
+| Air Force (air defence and attack) | anti-air turrets when their air shows up (next to the least-covered valuable buildings), its own aircraft plant (tier 2 with a big economy), radar net | from an aircraft plant a scout plane, fighters (more when the enemy flies), bombers and gunships; from a ground factory mobile anti-air | fighters hold the sky over base, army and any area it's asked to cover and escort strikes; gunships hunt raiding parties near the base and in covered areas; bombers strike their economy around anti-air, clearing anti-air they can destroy outright; hurt planes fly home to repair. `sc cover [id] ally|here|clear`, or the strategist's `cover_area` / `cover_ally`, set what it covers |
 
 Economy also takes safe free metal spots just outside its zones and puts construction turrets next to busy
 factories when metal piles up. Its factory opens with constructors and raiders, then follows a unit mix by
@@ -131,7 +130,7 @@ Standing orders for the AI strategist can also be typed in chat: see [Orders fro
 
 The **Sub-Commanders Autopilot** widget (off by default; enable it in the widget list) plays the whole team
 through sub-commanders: it builds the first lab, then creates Economy, Defense, Army (with a second lab),
-Air Defense and Intelligence, gives each standing orders and adds labs when metal piles up. Enabled
+Intelligence and the Air Force, gives each standing orders and adds labs when metal piles up. Enabled
 mid-game it takes over what you have. `/luaui autopilot ai` turns the AI strategist on for its
 sub-commanders, `/luaui autopilot rules` off.
 
@@ -273,7 +272,7 @@ folder into the bridge (`BAR_FILES` overrides the path, default the macOS BAR da
 Each sub-commander only accepts tool calls while its own review is running, and only while the AI is on.
 
 The strategist also loads **skills** from [`strategist/.agents/skills`](strategist/.agents/skills): a playbook
-per role (economy, defense, airdefense, army, intelligence), reading the enemy intel, and working alongside
+per role (economy, defense, army, intelligence, air), reading the enemy intel, and working alongside
 the player. Each report carries the enemy's composition (kinds seen in the last 5 minutes and what's new),
 known enemy radar/jammers and defences, and what the player is building in its zones.
 
@@ -282,7 +281,7 @@ known enemy radar/jammers and defences, and what the player is building in its z
 A decision model answers small multiple-choice questions ("which unit next, given what the enemy fields?")
 with calibrated probabilities in tens of milliseconds, without generating text. The widget asks it through
 the bridge and falls back to its rules when it is slow or absent. Today it picks the next combat unit for
-Army and Air Defense factories (unless a focus is set).
+Army and Air Force ground factories (unless a focus is set).
 
 Any server speaking TypeSafe's `/v1/systemone` contract works. On BAR decisions
 (`make decider-eval DECIDER_URL=...`, 16 cases: counters, attack or hold, builder priorities, turret choice)
@@ -302,7 +301,7 @@ echo "DECIDER_URL=http://my-gpu-host:8010" >> .env && make up
 ```
 
 The panel's log shows `factory: <unit> (decision model)` and `turrets: <type> (decision model)` when it
-decides (it picks Army / Air Defense factory production and the Defense turret type).
+decides (it picks Army / Air Force anti-air factory production and the Defense turret type).
 
 In practice: in 6 + 6 fast rules-only games against BARbarian medium, with and without Clef-flash, results
 were the same within the (large) game-to-game variance. The model's picks are sensible, but the rules

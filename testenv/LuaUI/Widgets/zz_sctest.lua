@@ -500,25 +500,23 @@ local function duel(n)
 			out("player: second constructor to Defense")
 		end
 	elseif duelState.stage == 5 and n >= 30 * 60 * 7 then
+		-- the Air Force (air defence and air attack in one, since 2026-10-16): anti-air over the base, fighters
+		-- over the base and army, gunships on raids, bombers on their economy
 		local cons = ownedBy(ids.eco, U.ck)
 		if #cons >= 3 then
 			duelState.stage = 6
-			ids.aa = SC.create("airdefense")
-			SC.assign(ids.aa, { cons[1] })
-			SC.setAI(ids.aa, ai)
-			SC.setDirective(ids.aa, "keep the base and the economy safe from air")
-			out("player: Air Defense created")
-		end
-	elseif duelState.stage == 6 and n >= 30 * 60 * 10 then
-		-- the air force: fighters over the base and army, gunships on raids, bombers on their economy
-		local cons = ownedBy(ids.eco, U.ck)
-		if #cons >= 3 then
-			duelState.stage = 7
 			ids.air = SC.create("air")
 			SC.assign(ids.air, { cons[1] })
 			SC.setAI(ids.air, ai)
-			SC.setDirective(ids.air, "own the sky, hunt their raids, and bomb their economy where their anti-air is weak")
+			SC.setDirective(ids.air, "keep the base and the economy safe from air, own the sky, hunt their raids, and bomb their economy where their anti-air is weak")
 			out("player: Air Force created")
+		end
+	elseif duelState.stage == 6 and n >= 30 * 60 * 10 then
+		local cons = ownedBy(ids.eco, U.ck)
+		if #cons >= 3 and ids.air then
+			duelState.stage = 7
+			SC.assign(ids.air, { cons[1] })
+			out("player: second constructor to the Air Force")
 		end
 	end
 	-- like a real player answering "need a factory": another lab for the Army when metal keeps piling up
