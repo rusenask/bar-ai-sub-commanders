@@ -1304,3 +1304,12 @@ Each feature on its own (arm B, per game it was used in):
 - Strategic weapons against hard: long-range cannons destroyed with no kills (9.8-12.9k lost a game they
   were built), a nuke silo destroyed (9.1k), Juno nothing. Hard pushes into us: expensive structures in
   reach of the front die. Next: firebases v7 (creep scaled to how we stand), cannons placed by safety.
+
+## Strategic v2 vs v3 (sequential, sandboxes, Legion vs Armada medium, 32 pairs)
+
+- Score +0.11 [-0.07, +0.28] (95%), can't tell, leaning better. On their own (v3 arm): nukes return
+  1.06 (v2 0.86, 13.7 kills a game they fire), resurrection raises 5.9k metal a game for ~600 of bots,
+  firebases 1.24, Juno 0.58, cannons still built in only 9 of 32 games (return 0.13). The cannons' main
+  blocker now: no tier 2 constructor ("no constructor here can build it" 99x in 22 games; partly noise,
+  logged by tier 1 builders while a T2 one existed). Fixed: the T2 lab makes one more constructor when a
+  strategic structure is due and nobody on the team can build it; the log says which case.
