@@ -34,6 +34,9 @@ D.engage = {
 	-- holding with our turrets within radius of the rally point (minValue metal of them): the line stands
 	-- `ahead` elmos in front of them, toward the threat (false: off)
 	turretLine = false,
+	-- an army this many times the enemy's known mobile army goes for their side instead of chasing
+	-- intruders at home (false: intruders first)
+	dominance = false,
 	-- a squad that would hold against a threat within `dist` of its centre, at under `below` of its
 	-- strength, falls back instead (false: holds; at any ratio it threw away mirror fights, -0.47)
 	contactFallback = false,

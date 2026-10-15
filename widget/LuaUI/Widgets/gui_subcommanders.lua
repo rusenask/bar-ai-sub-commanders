@@ -4497,7 +4497,36 @@ function Tactics.squad(sub)
 	-- our turrets and guards can't handle there
 	-- intruders in our own area: always (v4 let an attacking army ignore them: raids wrecked the wind farms
 	-- and energy collapsed); helping elsewhere is filtered (consider's second argument)
-	consider(sub.threats)
+	-- pressing the advantage (doctrine.engage.dominance): an army this many times their known mobile army
+	-- leaves intruders to the response squad and turrets (unless they threaten a factory or the
+	-- commander) and goes for their side. Our army was 3-4x BARbarian's from minute 20 to 50 and spent it
+	-- chasing their raiders at home while they took twice our extractors (fight samples v9, full view)
+	local dom = Engine.D.engage.dominance
+	local dominant = false
+	if dom and (auto.attack or auto.push) and S.canAttack(sq) then
+		local theirs = 0
+		for _, g in ipairs(Engine.tm.groups(frame, 20)) do
+			theirs = theirs + max(0, g.power - g.static)
+		end
+		dominant = sq.power >= dom * max(theirs, 1)
+	end
+	if dominant then
+		for _, t in ipairs(sub.threats) do
+			if not t.air and Engine.nearVital(t.x, t.z) then
+				target = { id = t.id, x = t.x, z = t.z, name = "intruders at a factory or the commander" }
+				break
+			end
+		end
+		if not target then
+			target = Tactics.attackTarget(sub, sq)
+			if target then
+				target.name = target.name .. " (pressing our advantage)"
+			end
+		end
+	end
+	if not target then
+		consider(sub.threats)
+	end
 	if not target and auto.help then
 		consider(baseThreats, true)
 	end
