@@ -1358,3 +1358,14 @@ Each feature on its own (arm B, per game it was used in):
 
 - v7 -0.13 [-0.31, +0.06], leaning worse; extractors at 20 min **worse** -4.0 [-7.9, -0.1]. With no gain
   against hard either, **v7's strength scaling is off** (firebases back to v6; the knobs stay).
+
+## The player's-game fixes, Armada vs Cortex medium (force, 24 pairs)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-2024-force-g75-player-fixes-armada-A (before) | 24 | 11 win, 5 timeout, 8 loss | 1 | 124.9k | 170 / 512 | 0.89 | 20.2 | 11.5 / 14 | 4.4k |
+| 20261015-2024-force-g75-player-fixes-armada-B (all fixes) | 24 | 17 win, 5 timeout, 2 loss | 0 | 194.5k | 243 / 465 | 0.84 | 12.5 | 13 / 21 | 4.5k |
+
+- Score +0.21 [-0.01, +0.41] (just short of better); wins 11 -> 17, losses 8 -> 2; constructors lost
+  20.2 -> 12.5; extractors at 20 min +4.4; metal 125k -> 194k. Mobile anti-air lost 389 -> 167 ("waiting
+  for the army" 295x). Cannons with T2 constructors on demand: return 0.03 -> 0.33, lost 7.4k -> 2.0k.
