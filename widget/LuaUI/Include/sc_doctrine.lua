@@ -395,6 +395,9 @@ D.factions = {
 		-- plant earlier, and the Tzar first among heavies
 		{ "escalation.t2VehicleIncome", 50 },
 		{ "production.prefer", { corgol = 3 } },
+		-- the T2 vehicle plant needs a construction vehicle (bot constructors can't build it, and the
+		-- vehicle plant's cheapest constructor is the Trapper mine layer): keep one
+		{ "production.quota", { corcv = 1 } },
 	},
 	legion = {},
 }
