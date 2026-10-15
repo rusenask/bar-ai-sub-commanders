@@ -1129,3 +1129,10 @@ Counter matrix, flat sites (arm A of 20261015-0212-sbx-il-re-khold, 264 battles)
 
 - **Worse**: -0.27 [-0.47, -0.05], wins 13 -> 4; extractors at 20 min **worse** -6.4 [-9.2, -3.5],
   late enemy metal killed -39k. Same as Armada: the early plant starves expansion. Cortex only.
+
+## Forward firebases, smoke test (sandboxes, Legion vs Armada **hard**, 8 games, firebases on)
+
+- 8 losses (hard beat us in 24 of 24 recent games: g39, g41). Mechanics work: 2-4 firebases a game,
+  layers built in order (light, radar, heavy, long-range; no anti-air: hard's air stayed under 10%),
+  the first founded at minute 4-8 and usually holding most of the game, later ones overrun when hard
+  pushes (minute 14-36). A/B started: sbx-g61-firebase-hard (24 pairs).
