@@ -98,6 +98,19 @@ func (s *Strategist) Run(ctx context.Context) {
 	defer wg.Wait()
 	tick := time.NewTicker(time.Second)
 	defer tick.Stop()
+	// idle for long with AI sub-commanders to serve: say why, once a minute (a bridge sat idle for two
+	// hours with AI on and logged nothing; a restart fixed it and the cause was lost)
+	lastActive, lastIdleLog := time.Now(), time.Time{}
+	idle := func(why string) {
+		if why == "" {
+			lastActive = time.Now()
+			return
+		}
+		if time.Since(lastActive) > 2*time.Minute && time.Since(lastIdleLog) > time.Minute {
+			lastIdleLog = time.Now()
+			s.log.Info("strategist idle", "why", why, "for", time.Since(lastActive).Round(time.Second))
+		}
+	}
 	for {
 		select {
 		case <-ctx.Done():
@@ -106,19 +119,56 @@ func (s *Strategist) Run(ctx context.Context) {
 		}
 		info, state, ok := s.game.Snapshot()
 		if !ok || info == nil || state == nil || state.Paused {
+			why := s.game.Why()
+			if why == "" {
+				why = "no game info or state"
+			}
+			idle(why)
 			continue
 		}
 		s.trackGame(info, state)
 		s.pace.observe(state.Frame, time.Now())
+		ai, started := 0, 0
 		for _, sub := range state.Subs {
 			if !sub.AI {
 				continue
 			}
+			ai++
 			if reason := s.due(sub, state.Frame); reason != "" {
+				started++
 				wg.Go(func() { s.review(ctx, info, state, sub, reason) })
 			}
 		}
+		switch {
+		case ai == 0:
+			idle("no sub-commander has AI on")
+		case started > 0:
+			idle("")
+		default:
+			idle(s.waitingWhy(state.Frame))
+		}
 	}
+}
+
+// waitingWhy: what every AI sub-commander is waiting on (a review in flight, a retry after failures,
+// the next routine check), for the idle log.
+func (s *Strategist) waitingWhy(frame int) string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	busy, retry := 0, 0
+	for _, ss := range s.subs {
+		if ss.busy {
+			busy++
+		}
+		if frame < ss.retryFrame {
+			retry++
+		}
+	}
+	s.pace.mu.Lock()
+	inFlight := s.pace.inFlight
+	s.pace.mu.Unlock()
+	return fmt.Sprintf("no review due: %d busy, %d waiting to retry after failures, %d reviews in flight (max %d)",
+		busy, retry, inFlight, s.cfg.MaxInFlight)
 }
 
 func gameKey(info *game.Info) string {

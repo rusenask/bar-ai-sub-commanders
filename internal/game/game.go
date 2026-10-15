@@ -269,6 +269,25 @@ func (s *Server) handle(msg message) {
 
 // Snapshot returns the latest game info and state (nil until received) and
 // whether a game is connected and still running.
+// Why says why there is no live game to act on ("" when there is): the strategist logs it when idle.
+func (s *Server) Why() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	switch {
+	case s.conn == nil:
+		return "no game connected"
+	case s.over:
+		return "the game is marked over (gameover received; a new game's hello clears it)"
+	case s.info == nil:
+		return "the game connected but sent no hello yet"
+	case s.state == nil:
+		return "no state from the game yet"
+	case s.state.Paused:
+		return "the game is paused"
+	}
+	return ""
+}
+
 func (s *Server) Snapshot() (*Info, *State, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
