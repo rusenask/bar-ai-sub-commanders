@@ -4475,7 +4475,7 @@ end
 Const.ATTACK_PREFER = { artillery = 4, factory = 3, extractor = 1.5, generator = 1.2, constructor = 1, radar = 1, structure = 1, army = 0.6 }
 
 function Tactics.attackTarget(sub, sq)
-	local cands = Engine.raidCandidates()
+	local cands = Engine.raidCandidates(true)
 	for _, g in ipairs(Engine.tm.groups(frame, 8)) do
 		cands[#cands + 1] = { id = "group:" .. floor(g.x / 512) .. ":" .. floor(g.z / 512), x = g.x, z = g.z, value = g.power, kind = "army", name = sformat("%d metal", g.power) }
 	end
@@ -4499,14 +4499,19 @@ function Engine.raiding(sub)
 end
 
 -- what a raid can go for: enemy structures we know (not their defences) and constructors seen lately
-function Engine.raidCandidates()
+-- withBase: the army's attack (not raids or air strikes) also gets their start as "their base" when no
+-- factory of theirs is known
+function Engine.raidCandidates(withBase)
 	local list = {}
 	for u, e in pairs(Enemy.units) do
 		local d = defs[e.defID]
 		local age = frame - e.last
 		local kind
 		if not d.mobile then
-			if age < 30 * 600 and not d.staticDef then
+			-- factories stay targets until seen gone (doctrine.engage.finish): late in a game we often hadn't
+			-- seen their base in 10 minutes, and a 115k army had nothing there to go for (timed out vs medium)
+			local F = Engine.D.engage.finish
+			if (age < 30 * 600 or (F and d.factory)) and not d.staticDef then
 				-- their long-range cannons and nuke silos: what the army and the strikes go for first
 				kind = ((d.lrpc or d.nukeSilo) and "artillery") or (d.mex > 0 and "extractor") or (d.energy > 0 and "generator") or (d.factory and "factory") or (d.intelStructure and "radar") or "structure"
 			end
@@ -4515,6 +4520,17 @@ function Engine.raidCandidates()
 		end
 		if kind then
 			list[#list + 1] = { id = u, x = e.x, z = e.z, value = max(d.cost, 30), kind = kind, name = d.human }
+		end
+	end
+	-- no factory of theirs known: their start position stands for their base (doctrine.engage.finish)
+	local F = Engine.D.engage.finish
+	if withBase and F and Engine.enemyX then
+		local haveFactory = false
+		for _, c in ipairs(list) do
+			haveFactory = haveFactory or c.kind == "factory"
+		end
+		if not haveFactory then
+			list[#list + 1] = { id = "theirbase", x = Engine.enemyX, z = Engine.enemyZ, value = F.baseValue, kind = "factory", name = "their base" }
 		end
 	end
 	return list
