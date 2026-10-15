@@ -17,6 +17,9 @@ out wrong.
   (engine-v2/v3 hard)
 - Offline model accuracy isn't game strength: the fight model (AUC 0.81) gave more kills and more lost
   games. (decision model arm F)
+- Measure with every faction before calling a change done: this round's changes, each kept on Legion
+  games, made Cortex worse together (score -0.14, extractors at 20 min 15 -> 11). Check the other
+  factions with an old-vs-new pair batch after each round. (g40)
 - The biggest gain came from looking at the whole game with full view, not at fights: our army was 3-4x
   BARbarian's for 30 minutes and never attacked, because any intruder at home took priority. One rule
   (2.5x their mobile army: go for their side) moved wins from 6 to 16 of 36. Before tuning micro, check

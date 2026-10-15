@@ -857,3 +857,14 @@ Counter matrix, flat sites (arm A of 20261015-0212-sbx-il-re-khold, 264 battles)
   BARbarian medium. On.
 - BARbarian hard beats both old and new in all 24 games; new loses less in the opening (-1.3k better).
   Next: what hard does that medium doesn't (full-view replays).
+
+## force, interleaved: Cortex vs Armada medium, before this round's changes (ee612f3) vs now — worse
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-0633-force4-g40-cortex-old-vs-new-A (ee612f3) | 12 | 2 win, 4 timeout, 6 loss | 3 | 184.1k | 130 / 813 | 0.56 | 27.5 | 14 / 15 | 3.5k |
+| 20261015-0633-force4-g40-cortex-old-vs-new-B (now) | 12 | 4 timeout, 8 loss | 3 | 169.1k | 129 / 1006 | 0.52 | 25.9 | 13 / 11 | 3.0k |
+
+- Score -0.14 [-0.29, -0.01] **worse**; extractors at 20 min 15 -> 11. Everything this round was measured
+  with Legion; one of the changes costs Cortex. Bisecting (sandboxes): now vs now without each of
+  pressing, energy first, overflow spending, the concave.
