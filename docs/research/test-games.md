@@ -1348,3 +1348,13 @@ Each feature on its own (arm B, per game it was used in):
   g73. Score -0.03 [-0.05, -0.01] worse (all lost; B lasted slightly less), late kills -2.0k worse (the
   preemptive anti-nuke's 1500 metal in a losing game?). Noise against hard is large: the same "before"
   arm had 4.0k army at 12 min in g73 and 3.1k here. The three-way seqtest against medium decides.
+
+## Firebases v6 vs v7 against medium (sequential, sandboxes, Legion vs Armada, 32 pairs)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-1924-seq-fb-v6-v7-b-A (v6) | 32 | 23 win, 5 timeout, 4 loss | 2 | 160.7k | 225 / 628 | 0.91 | 14.4 | 12.5 / 22 | 3.8k |
+| 20261015-1924-seq-fb-v6-v7-b-B (v7) | 32 | 19 win, 3 timeout, 10 loss | 2 | 155.6k | 214 / 675 | 0.82 | 15.8 | 11 / 17 | 3.6k |
+
+- v7 -0.13 [-0.31, +0.06], leaning worse; extractors at 20 min **worse** -4.0 [-7.9, -0.1]. With no gain
+  against hard either, **v7's strength scaling is off** (firebases back to v6; the knobs stay).
