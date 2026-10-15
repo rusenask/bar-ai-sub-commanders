@@ -2649,6 +2649,21 @@ function Engine.economyProduction(sub, facID, fd, cap)
 	elseif sub.posture == "spend" then
 		target = target + 2
 	end
+	-- army parity (doctrine.economy.armyParity): our army under `below` x their known mobile army: no
+	-- new constructors, the factory builds army until it catches up (Cortex had 12 constructors and a
+	-- third of BARbarian's army at minutes 10-14; the constructors couldn't hold any expansion)
+	local AP = Engine.D.economy.armyParity
+	if AP then
+		local army = Engine.anyArmy()
+		local ours = army and army.counts and army.counts.power or 0
+		local theirs = 0
+		for _, g in ipairs(Engine.tm.groups(frame, 20)) do
+			theirs = theirs + max(0, g.power - g.static)
+		end
+		if theirs > AP.minEnemy and ours < AP.below * theirs then
+			target = min(target, counts.builders)
+		end
+	end
 	local feed = Engine.D.production.feedArmy and Engine.armyToFeed()
 	local have = {}
 	for k, v in pairs(counts.cats or {}) do
