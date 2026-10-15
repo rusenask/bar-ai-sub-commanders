@@ -1369,3 +1369,17 @@ Each feature on its own (arm B, per game it was used in):
 - Score +0.21 [-0.01, +0.41] (just short of better); wins 11 -> 17, losses 8 -> 2; constructors lost
   20.2 -> 12.5; extractors at 20 min +4.4; metal 125k -> 194k. Mobile anti-air lost 389 -> 167 ("waiting
   for the army" 295x). Cannons with T2 constructors on demand: return 0.03 -> 0.33, lost 7.4k -> 2.0k.
+
+## The player's-game fixes, Legion (force) and Cortex (three-way seqtest), medium
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-2108-force-g76-player-fixes-legion-A (before) | 24 | 14 win, 1 timeout, 9 loss | 0 | 137.9k | 201 / 532 | 0.83 | 14.7 | 13 / 19 | 3.3k |
+| 20261015-2108-force-g76-player-fixes-legion-B (all fixes) | 24 | 16 win, 2 timeout, 6 loss | 2 | 181.0k | 239 / 744 | 0.82 | 17.5 | 11 / 17.5 | 3.3k |
+
+- Legion: +0.07 [-0.18, +0.32], can't tell; late enemy metal killed **better** +39.6k [+13k, +66k];
+  mobile anti-air lost 229 -> 137.
+- Cortex, seqtest player-fixes (32 pairs each): factory fixes + anti-nuke v2 -0.06 [-0.24, +0.13],
+  everything -0.03 [-0.23, +0.16]: can't tell.
+- Across the factions (Armada +0.21, Legion +0.07, Cortex -0.03; against hard the early-army drop did
+  not hold up as the factory fixes alone, g74): **kept**.
