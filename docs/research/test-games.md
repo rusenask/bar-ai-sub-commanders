@@ -1260,3 +1260,33 @@ Counter matrix, flat sites (arm A of 20261015-0212-sbx-il-re-khold, 264 battles)
   fixed (nothing of ours worth over max(300, a tenth of the target) under 1.2x the blast).
 - g66 completed with `batch.py --only 17-32 --into` (the 8 pairs the dead host lost): 24 pairs, v3
   +0.08 [-0.15, +0.30], can't tell (15 -> 17 wins, army at 12 min 3.1k -> 4.2k).
+
+## Firebases v4 vs v6, the first sequential test (sandboxes, Legion vs Armada medium; scripts/seqtest.py)
+
+| Challenger vs v4 | Pairs | Score difference | Verdict |
+|---|---|---|---|
+| v6 without the local-cover check (core established, heavy second, 2 unfinished, 6 standing, army ratio 0.75) | 8 | +0.54 [+0.17, +0.87] (99%) | **better**, stopped after round 1 |
+| v6 with the local-cover check (500 metal of our combat units within 900) | 32 | -0.00 [-0.24, +0.23] (95%) | can't tell after 4 rounds |
+
+- The local-cover requirement cancels v6's gains: **v6 ships without it** (coverValue = false).
+  Batches 20261015-1658-seq-fb-v4-v6-b / -c, tracked as bar-seq-fb-v4-v6-b / -c.
+
+## Strategic v1 vs v2 (force, Legion vs Armada medium, 24 pairs): cannons v2, nukes v1 (no friendly fire), Juno v2, resurrection
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-1647-force-g70-strategic-v1-v2-A (off) | 24 | 17 win, 3 timeout, 4 loss | 0 | 160.5k | 233 / 569 | 0.88 | 11.2 | 12 / 20.5 | 3.6k |
+| 20261015-1647-force-g70-strategic-v1-v2-B (on) | 24 | 16 win, 3 timeout, 5 loss | 0 | 166.8k | 242 / 713 | 0.90 | 14.3 | 11 / 17.5 | 3.6k |
+
+Each feature on its own (arm B, per game it was used in):
+
+| Feature | Games | Spent | Killed | Lost | Return |
+|---|---|---|---|---|---|
+| resurrection | 13-14 | bots 492 | raised **4.3k** metal | 262 | ~9x the bots |
+| nuke | 6 | 7.6k | 5.2k | 1.5k | 0.69 |
+| long-range cannon | 4 | 8.1k | 3.3k | **5.2k** | 0.41 |
+| Juno | 18 | 926 | 333 | 206 | 0.36 |
+| firebase | 23 | 3.0k | 4.9k | 1.5k | 1.62 (A, no strategic weapons: 0.52) |
+
+- Score -0.04 [-0.26, +0.18], can't tell. Resurrection pays clearly; the cannons lose most of their
+  cost (destroyed). Anti-nuke and shield never triggered (medium rarely builds nukes or cannons).
