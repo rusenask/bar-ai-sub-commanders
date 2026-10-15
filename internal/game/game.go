@@ -269,6 +269,9 @@ func (s *Server) handle(msg message) {
 
 // Snapshot returns the latest game info and state (nil until received) and
 // whether a game is connected and still running.
+// AnswerTimeout is how long a request to the widget (map view, build options...) waits for its answer.
+var AnswerTimeout = 30 * time.Second
+
 // Why says why there is no live game to act on ("" when there is): the strategist logs it when idle.
 func (s *Server) Why() string {
 	s.mu.Lock()
@@ -329,7 +332,9 @@ func (s *Server) Do(ctx context.Context, sub int, op string, args map[string]any
 	if err := s.write(message{Type: "action", ID: id, Sub: sub, Op: op, Args: args}); err != nil {
 		return nil, err
 	}
-	ctx, cancel := context.WithTimeoutCause(ctx, 10*time.Second, errors.New("game did not answer in time (paused or minimised?)"))
+	// 30 s: over the file transport (Docker Desktop's mount, polled) a widget's answer arrived after the
+	// old 10 s even when the game answered at once (every map view and build options request failed)
+	ctx, cancel := context.WithTimeoutCause(ctx, AnswerTimeout, errors.New("game did not answer in time (paused or minimised?)"))
 	defer cancel()
 	select {
 	case r := <-ch:
