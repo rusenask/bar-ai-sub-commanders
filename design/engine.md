@@ -243,3 +243,21 @@ Open problems (from the reports): raid groups hit wind farms and labs while the 
 (answered in v2 by turret cover and factory-first army priority); metal overflows with one lab (v2: an
 overflow factory at balanced); late fights against hard still trade ~1:5 (v3: fewer cheap raiders, more
 varied mid-weight units).
+
+## Factions
+
+The doctrine is one set of numbers for every faction; `D.factions` overlays a few of them per faction,
+applied once at game start from our team's side (or the commander's unit name), before learned rules
+(`Engine.applyFaction`). Each entry is `{ "path.below.D", value }`. Overlays play to a faction's strengths
+and are kept only when that faction's own interleaved games say so:
+
+- Cortex: the Tzar (corgol: 1650 metal, 7800 health) is the decisive unit: T2 vehicle plant from 50
+  metal income (others 80), and `production.prefer` makes it win the heavy category when affordable.
+- Armada: the clandestine faction: cloak-capable units (Gremlin, Sharpshooter) stay cloaked
+  (`D.cloak.keepOn`, BAR's WANT_CLOAK) and join raids (`D.cloak.raid`); `production.quota` keeps six
+  Gremlins alive.
+- Legion: none yet.
+
+Unit kinds come from the game's own data (`testenv/LuaUI/Widgets/zz_defsdump.lua` dumps every unit's
+cost, tech, cloak, stealth, health, range): an armoured long-range unit (4000+ health, 3.5+ per metal) is a
+heavy, not a kiting skirmisher.
