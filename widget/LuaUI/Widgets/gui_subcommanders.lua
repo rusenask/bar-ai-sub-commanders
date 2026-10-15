@@ -2992,7 +2992,7 @@ function Jobs.strategic(sub, unitID, d, ux, uz)
 	local hx, hz = Engine.homeX, Engine.homeZ
 	if defenseRole then
 		local A = G.antinuke
-		if A.on and have("antinuke") < A.max and (#Engine.enemyHas("nukeSilo") > 0 or (minute >= A.minute and income >= A.income)) then
+		if A.on and have("antinuke") < A.max and (#Engine.enemyHas("nukeSilo") > 0 or (A.minute and minute >= A.minute and income >= A.income)) then
 			if buildCheapestUseful(sub, unitID, d, hx, hz, function(od)
 				return od.antinuke
 			end, function(od)
@@ -3004,7 +3004,7 @@ function Jobs.strategic(sub, unitID, d, ux, uz)
 		end
 		local Sh = G.shield
 		local threat = #Engine.enemyHas("lrpc") > 0 or Enemy.share("air") > 0.15
-		if Sh.on and have("shieldGen") < Sh.max and income >= Sh.income and (threat or minute >= Sh.minute) then
+		if Sh.on and have("shieldGen") < Sh.max and income >= Sh.income and (threat or (Sh.minute and minute >= Sh.minute)) then
 			local fx, fz = Engine.labsCentre and Engine.labsCentre() or hx, nil
 			fx, fz = fx or hx, fz or hz
 			if buildCheapestUseful(sub, unitID, d, fx, fz, function(od)
