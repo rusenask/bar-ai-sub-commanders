@@ -986,3 +986,24 @@ Counter matrix, flat sites (arm A of 20261015-0212-sbx-il-re-khold, 264 battles)
   only a construction vehicle builds; our games go the bot route), only Sharpshooters were kept cloaked.
   Overlay now keeps one armcv and the plant from 50 metal/s; re-testing.
 - Armada vs Cortex medium now: 21 wins, 6 alive, 9 lost of 36 (no overlay).
+
+## Cortex overlay re-test with a construction vehicle (sandboxes, 24 pairs) — still no Tzar
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-1102-sbx-g50-cortex-tzar-A (no overlay) | 24 | 3 win, 7 timeout, 14 loss | 3 | 204.0k | 142 / 889 | 0.52 | 27.6 | 12 / 19 | 2.6k |
+| 20261015-1102-sbx-g50-cortex-tzar-B (overlay + corcv) | 24 | 6 win, 6 timeout, 12 loss | 3 | 218.5k | 161 / 959 | 0.59 | 27.0 | 12 / 25 | 2.2k |
+
+- Score +0.12 [-0.06, +0.31], can't tell, and **0 Tzars, 0 T2 vehicle plants**: the corcv was built
+  but belonged to the Army, whose plan only repairs; and `Jobs.techVehicles` asked `canSpend`, whose
+  cap (220 + 18 x income: 1120 at 50 metal/s) is under the plant's 2600, so no faction got the plant
+  below 132 metal/s. Fixed (no cap, like the T2 lab; the Army's constructor builds it); re-tests
+  g52 (Armada) and g53 (Cortex) queued with the fix in both arms.
+
+## Strategic structures, smoke tests 4-5 (force, Legion, every feature on)
+
+- Smoke 4: after letting strategic builds past the cost cap, Legion's T2 constructor started a
+  **Starfall** (63000 metal) as its "long-range cannon" 26 times (the lrpc flag covers range 3000-20000;
+  the pick sorted by range). Now the cheapest gun under `lrpc.maxCost` 8000 (the Olympus). Resurrection
+  bots never resurrected: they have a radar, so Intel.thinkUnit kept them on radar posts. Now left to
+  `Engine.strategicControl`. Juno: "can't place" 6x at the crowded base centre: now placed behind it.

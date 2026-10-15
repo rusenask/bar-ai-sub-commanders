@@ -163,6 +163,13 @@ out wrong.
 - Spring buffers its log (testenv/run.log) until it exits; the infolog stops after loading. Lua errors
   only show up in run.log after the game, which the next game overwrites.
 
+- **A big build behind `canSpend` can be silently impossible.** Its posture cap (balanced: 220 + 18 x
+  metal income) keeps routine builds in proportion, but a 2600-metal T2 vehicle plant needed 132
+  metal/s and a 5000-metal long-range cannon 265 before the cap let them through: the plant was never
+  built in any test, and a faction overlay built around it (Cortex's Tzar) measured nothing. Deliberate
+  big builds (labs, strategic structures) check metal in hand instead; count the unit the change is for
+  (`grep -c "Tzar"`) before reading the score.
+
 ## Process traps
 
 - The widget's main chunk is at BAR Lua's 200-local limit: one more `local` at the top level and BAR
