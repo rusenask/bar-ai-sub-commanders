@@ -201,6 +201,26 @@ local function towardEnemy(f, r)
 	return { kind = "circle", x = cx + dx * f, z = cz + dz * f, r = r }, dx / d, dz / d
 end
 
+-- clearance like a player leaves: no structure (finished or being built) within 100 of the footprint and
+-- no metal spot under it (so the lab doesn't take a spot or squeeze between generators)
+local function clearAround(defID, x, z)
+	local ud = UnitDefs[defID]
+	local r = math.max(ud.xsize or 6, ud.zsize or 6) * 4 + 100
+	for _, u in ipairs(Spring.GetUnitsInRectangle(x - r, z - r, x + r, z + r) or {}) do
+		local d = UnitDefs[Spring.GetUnitDefID(u)]
+		if d and (d.speed or 0) == 0 then
+			return false
+		end
+	end
+	local finder = WG.resource_spot_finder
+	for _, s in ipairs(finder and finder.metalSpotsList or {}) do
+		if math.abs(s.x - x) < r and math.abs(s.z - z) < r then
+			return false
+		end
+	end
+	return true
+end
+
 -- a spot for a building near (x, z), searching outward
 local function findSpot(defName, x, z, facing)
 	local defID = UnitDefNames[defName].id
@@ -209,7 +229,7 @@ local function findSpot(defName, x, z, facing)
 			local a = k / math.max(ring * 6, 1) * 2 * math.pi
 			local px, pz = x + math.cos(a) * ring * 64, z + math.sin(a) * ring * 64
 			local bx, by, bz = Spring.Pos2BuildPos(defID, px, Spring.GetGroundHeight(px, pz), pz, facing)
-			if Spring.TestBuildOrder(defID, bx, by, bz, facing) > 0 then
+			if Spring.TestBuildOrder(defID, bx, by, bz, facing) > 0 and clearAround(defID, bx, bz) then
 				return bx, bz
 			end
 		end
@@ -354,7 +374,9 @@ local function duel(n)
 		local lab = (byName[U.lab] or {})[1]
 		-- like a player who notices the lab never started: order it again, a bit elsewhere
 		duelState.lab1Since = duelState.lab1Since or n
-		if not lab and n - duelState.lab1Since > 30 * 60 then
+		-- (20 s: it only re-orders when the order is gone from the commander's queue. The first order used to
+		-- be lost in every game: the widget's wind turbine order, sent before it saw ours, arrived after it)
+		if not lab and n - duelState.lab1Since > 30 * 20 then
 			local started = false
 			for _, u in ipairs(Spring.GetTeamUnits(myTeam)) do
 				started = started or (UnitDefs[Spring.GetUnitDefID(u)].name == U.lab)
@@ -367,8 +389,13 @@ local function duel(n)
 				duelState.lab1Tries = (duelState.lab1Tries or 0) + 1
 				local _, dx, dz = towardEnemy(0.1, 0)
 				local a = duelState.lab1Tries * 2.1
+				local cmds = Spring.GetUnitCommands(ids.com, 3) or {}
+				local doing = {}
+				for _, c in ipairs(cmds) do
+					doing[#doing + 1] = c.id < 0 and ("build " .. (UnitDefs[-c.id] and UnitDefs[-c.id].name or "?")) or tostring(c.id)
+				end
 				playerBuild(ids.com, U.lab, cx + dx * 150 + math.cos(a) * 300, cz + dz * 150 + math.sin(a) * 300, dx, dz)
-				out("player: first lab never started, ordered again")
+				out("player: first lab never started, ordered again (commander was doing: " .. (#doing > 0 and table.concat(doing, ", ") or "nothing") .. ")")
 			end
 			duelState.lab1Since = n
 		end

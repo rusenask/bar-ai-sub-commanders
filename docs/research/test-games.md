@@ -1186,3 +1186,16 @@ Counter matrix, flat sites (arm A of 20261015-0212-sbx-il-re-khold, 264 battles)
 
 - Score -0.07 [-0.21, +0.05], can't tell; late enemy metal killed **worse** -17k [-29k, -6k]. Not
   kept (5). First wins against hard: Armada 3 of 48 (with the old, slow harness opening).
+
+## The first lab in every test game: found and fixed (diagnostic runs sbx-labdiag1-5)
+
+- Tracing the commander's commands: the player's lab order arrived, and 15 frames later our Economy's
+  wind turbine order (sent before it had seen the player's) arrived and replaced it. The widget's guard
+  for that race only recognised its own orders within 45 frames of sending; at test speed the network
+  delay was longer, so our order passed for the player's and the lab was lost (re-ordered at 60 s by
+  the harness's buggy clock, or after 20 s+ with it fixed). Widget fix: our build orders are recognised
+  by what and where, however late, and one landing after a player's order puts theirs back. 4 of 4
+  games then built the first lab on the first order, done at 1:00-1:07 (was ~1:30, ~2:10 at worst).
+  Real games are exposed to the same race at lower latency.
+- Batches from here on open ~30 s faster: compare only arms run together. g63 (firebases v2 vs medium,
+  run with the half-fixed harness: lab at ~2:10) is not comparable to earlier baselines.

@@ -517,6 +517,11 @@ local function order(unitID, cmdID, params, opts)
 	end
 	local st = getState(unitID)
 	st.expect[cmdID] = frame
+	-- a build order is recognised by what and where too, however late it arrives (network latency; at
+	-- test speed it outlasted the time window and our order passed for the player's)
+	if cmdID < 0 and params and params[3] then
+		st.expectBuild = { id = cmdID, x = params[1], z = params[3], frame = frame }
+	end
 	Spring.GiveOrderToUnit(unitID, cmdID, params or {}, opts or {})
 	return true
 end
@@ -7858,7 +7863,20 @@ function widget:UnitCommand(unitID, unitDefID, unitTeam, cmdID, cmdParams, cmdOp
 	end
 	local st = getState(unitID)
 	local ours = st.expect[cmdID]
-	if ours and frame - ours <= 45 then
+	local eb = st.expectBuild
+	local mine = ours and frame - ours <= 45
+	if cmdID < 0 and eb and eb.id == cmdID and type(cmdParams) == "table" and cmdParams[3] and frame - eb.frame <= 300
+		and abs(cmdParams[1] - eb.x) < 8 and abs(cmdParams[3] - eb.z) < 8 then
+		mine = true
+	end
+	if mine then
+		-- ours landed after a player's order (sent before we saw theirs) and replaced it: put theirs back
+		-- (the test player's first lab was lost this way: our wind turbine order arrived 15 frames later)
+		local pc = st.playerCmd
+		local shift = type(cmdOpts) == "table" and cmdOpts.shift
+		if st.manual and pc and frame - pc.frame <= 150 and not shift then
+			Spring.GiveOrderToUnit(unitID, pc.id, pc.params or {}, pc.opts or 0)
+		end
 		return
 	end
 	-- fresh units get move-out orders from their factory
