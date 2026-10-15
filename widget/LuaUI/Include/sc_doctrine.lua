@@ -228,9 +228,10 @@ D.turrets = {
 
 -- forward firebases (sc_firebase.lua): Defense grows layered turret groups just past our frontier
 -- toward the enemy, and once one is complete founds the next further out (the territory follows our
--- structures, so the line creeps forward). BARbarian hard grows every radar into one.
+-- structures, so the line creeps forward). BARbarian hard grows every radar into one. Kept on (the
+-- player's call: a strategy to master); versions are measured against the previous one
 D.firebase = {
-	on = false,
+	on = true,
 	minute = 4, -- the first from here
 	max = 3, -- firebases at once
 	step = 450, -- past the frontier picket toward the enemy
