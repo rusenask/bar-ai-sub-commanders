@@ -2866,6 +2866,9 @@ local BUILDER_PLANS = {
 		return Jobs.removeMarked(sub, u, d, x, z)
 			or Jobs.strategic(sub, u, d, x, z)
 			or Jobs.repair(sub, u, d, x, z)
+			-- intruders in its zone: a cheap turret by the structure nearest them (Defense's constructors stood
+			-- "nothing to do" through raids)
+			or (Engine.D.turrets.defenseGuard and Jobs.guardTurret(sub, u, d, x, z))
 			or Jobs.firebase(sub, u, d, x, z)
 			or Jobs.extractorCover(sub, u, d, x, z)
 			or Jobs.radar(sub, u, d, x, z)

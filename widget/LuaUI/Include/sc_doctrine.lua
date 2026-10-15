@@ -229,6 +229,9 @@ D.turrets = {
 	-- heavy one) before the economy rebuilds there (false: one cheap turret, rebuild at once). Against hard we
 	-- lost ~42 extractors a game in minutes 10-25 to Blitz / Stumpy / Jeffy raids (g73)
 	harden = { memory = 300, turrets = 2 },
+	-- Defense's constructors answer intruders in its zone with a cheap turret by the structure nearest them
+	-- (Jobs.guardTurret, as the economy does; false: they stood "nothing to do" through raids)
+	defenseGuard = true,
 	scale = 1, -- multiplies the budget (tunable by the strategist)
 	-- per area (each defense zone), a mix of turret roles instead of one count for everything:
 	-- light (cheap, fast-firing: raiders), heavy (damage: assault and heavy units), long (range >= 700:
