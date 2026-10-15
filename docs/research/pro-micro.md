@@ -168,3 +168,17 @@ Our fights by strength ratio (share of each side's units able to shoot):
   after minute 50 and wins late (29 of 42 losses at minutes 40-59, all "no units left").
 - Rules under test: press the advantage (2.5x their mobile army: go for their side), spend overflowing
   metal (more turrets and labs).
+
+## Against BARbarian hard (24 games, full view: 20261015-0622-sbx-hard-full)
+
+| Minutes | Our extractors | Hard's | Our metal income | Hard's | Our constructors | Hard's | Our army | Hard's |
+|---|---|---|---|---|---|---|---|---|
+| 5-9 | 10 | 13 | 21 | 26 | 6 | 9 | 1.5k | 1.7k |
+| 10-14 | 15 | 33 | 30 | 64 | 9 | 14 | 3.7k | 6.2k |
+| 20-24 | 13 | 64 | 43 | 187 | 10 | 23 | 7.1k | 16.0k |
+| 30-34 | 12 | 85 | 65 | 331 | 9 | 42 | 8.8k | 50.8k |
+
+- All 24 lost, at minutes 21-48. Hard expands across the map with ever more constructors; we stall at
+  12-15 extractors and ~10 constructors from minute 10 (the constructor target follows income: 3 +
+  income/10, at most 12). Our trade against hard: log2 -0.63 (against medium about -0.2).
+- Under test: the expansion drive (constructors for free metal spots, up to 20).
