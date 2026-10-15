@@ -1509,3 +1509,14 @@ Each feature on its own (arm B, per game it was used in):
   mid kills +2.5k (leaning better); extractors lost in minutes 10-25 1035 -> 941; anti-air lost 199 ->
   150. Opening enemy metal killed **worse** -203 [-378, -38]: the third test in a row with fewer opening
   kills (g77, g80): one of the day's changes touches the opening (factory queue ahead?). Next to look at.
+
+## The march leash exempts raiders, against hard (force, Legion vs Armada hard, 24 pairs)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261016-0136-force-g83-leash-raiders-hard-A (leash on everyone) | 24 | 24 loss | 5 | 53.5k | 60 / 364 | 0.49 | 24.6 | 11.5 / 15.5 | 3.9k |
+| 20261016-0136-force-g83-leash-raiders-hard-B (raiders exempt) | 24 | 24 loss | 5 | 72.5k | 62 / 465 | 0.47 | 30.1 | 12 / 18 | 3.9k |
+
+- Income at 20 min **better** +9.2 [+0.4, +18.6], extractors at 20 min **better** +4.1 [+0.1, +8.6], late
+  kills **better** +3.8k; late metal lost worse +37.8k (more metal to lose: 53.5k -> 72.5k). Opening kills
+  not restored (-65, can't tell): the leash wasn't the cause of the opening drop. **Kept.**
