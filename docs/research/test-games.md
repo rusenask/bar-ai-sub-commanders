@@ -1176,3 +1176,13 @@ Counter matrix, flat sites (arm A of 20261015-0212-sbx-il-re-khold, 264 battles)
   (lab done ~1:30, first combat units ~2:30; at minute 3 we had 3 extractors and 74 army value against
   strong players' 4-6 and 250-500). Fixed in zz_sctest.lua: batches from here on open faster, so
   compare only arms run together.
+
+## Construction turrets per lab 5 -> 8, Armada vs Cortex **hard** (force, 24 pairs)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-1430-force-g60-armada-nanos8-hard-A (5) | 24 | 2 win, 22 loss | 1 | 140.3k | 161 / 749 | 0.58 | 31.4 | 13 / 19 | 3.8k |
+| 20261015-1430-force-g60-armada-nanos8-hard-B (8, as BARbarian hard) | 24 | 1 win, 23 loss | 3 | 95.4k | 89 / 586 | 0.50 | 30.1 | 13 / 19 | 4.5k |
+
+- Score -0.07 [-0.21, +0.05], can't tell; late enemy metal killed **worse** -17k [-29k, -6k]. Not
+  kept (5). First wins against hard: Armada 3 of 48 (with the old, slow harness opening).
