@@ -183,6 +183,10 @@ out wrong.
 
 ## Process traps
 
+- **Read the first three minutes of a test game when the economy table says we're behind from the start.**
+  The scripted player's lab retry fired at 60 s in every game (its clock ran from frame 0) and moved the
+  first lab while the commander was walking to it: every test since it was written opened 20-50 s late.
+
 - The widget's main chunk is at BAR Lua's 200-local limit: one more `local` at the top level and BAR
   refuses to load it ("main function has more than 200 local variables"); the Lua here allows more, so
   luac didn't see it. `scripts/lua-locals.sh` (make lint) now counts them; new ones go in a table

@@ -1682,23 +1682,41 @@ function Jobs.firebase(sub, unitID, d, ux, uz)
 		end
 	end
 	local air, minute, income = Enemy.share("air"), Engine.minute(), max(econ.mInc, 0)
+	-- the army covers a place when its squad is within doctrine.firebase.cover of it or further forward
+	-- (constructors building ahead of the army died: 14.7 lost a game against 10.6, g62)
+	local army = Engine.anyArmy()
+	local sq = army and army.squad
+	local hx, hz, ex0, ez0 = Engine.homeX, Engine.homeZ, Engine.enemyX, Engine.enemyZ
+	local function covered(x, z)
+		if not C.cover then
+			return true
+		end
+		if Engine.inBase(x, z) then
+			return true
+		end
+		if not (sq and sq.x) then
+			return false
+		end
+		local ax, az = ex0 - hx, ez0 - hz
+		return dist2(x, z, sq.x, sq.z) <= C.cover * C.cover or (sq.x - hx) * ax + (sq.z - hz) * az >= (x - hx) * ax + (z - hz) * az
+	end
 	-- the nearest unfinished one that isn't under fire; else found the next
 	local todo, role, bestD
 	for _, b in ipairs(bases) do
 		local r = FB.nextLayer((Engine.firebaseHave(b)), air, minute, income)
 		local dd = dist2(ux, uz, b.x, b.z)
-		if r and Engine.tm.threat(b.x, b.z) <= 0 and (not bestD or dd < bestD) then
+		if r and Engine.tm.threat(b.x, b.z) <= 0 and covered(b.x, b.z) and (not bestD or dd < bestD) then
 			todo, role, bestD = b, r, dd
 		end
 	end
 	if not todo then
-		if #bases >= C.max then
+		if #bases >= C.max or (C.cover and Engine.team.plan.phase == "defend") then
 			return false
 		end
 		local A = Engine.approach
 		local pickets = Engine.terr.pickets(5, { Engine.homeX, Engine.homeZ }, { Engine.enemyX, Engine.enemyZ }, A and A.sectors)
 		local site = FB.site(pickets, { x = Engine.homeX, z = Engine.homeZ }, { x = Engine.enemyX, z = Engine.enemyZ }, bases, function(x, z)
-			return Engine.tm.threat(x, z)
+			return covered(x, z) and Engine.tm.threat(x, z) or 1
 		end)
 		if not site then
 			return false

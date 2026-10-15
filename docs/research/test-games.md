@@ -1159,3 +1159,20 @@ Counter matrix, flat sites (arm A of 20261015-0212-sbx-il-re-khold, 264 battles)
 
 - Score +0.00 [-0.02, +0.02]: every game lost either way; mid trades 0.44 vs 0.33, extractors at 20
   min -2.2 (can't tell). Against hard the score is saturated. Re-testing against medium (g62).
+
+## Forward firebases v1 vs medium (sandboxes, Legion vs Armada medium, 24 pairs)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-1442-sbx-g62-firebase-medium-A (off) | 24 | 14 win, 4 timeout, 6 loss | 1 | 208.8k | 241 / 781 | 0.72 | 10.6 | 13 / 21 | 3.7k |
+| 20261015-1442-sbx-g62-firebase-medium-B (on) | 24 | 13 win, 2 timeout, 9 loss | 1 | 175.2k | 227 / 780 | 0.77 | 14.7 | 11.5 / 18 | 3.5k |
+
+- Score -0.05 [-0.32, +0.22], can't tell. Constructors lost 10.6 -> 14.7 (minutes 15-19: 71 vs 46;
+  30-39: 100 vs 37), total metal -16%: Defense's constructors built firebases where the army wasn't.
+  v2: only where the army covers the site (its squad within 1000 or further forward), none founded
+  while the team defends.
+- Harness bug found: the scripted player's "first lab never started" clock ran from frame 0, so at 60 s
+  it re-ordered the lab elsewhere while the commander was still walking to it, in every test game
+  (lab done ~1:30, first combat units ~2:30; at minute 3 we had 3 extractors and 74 army value against
+  strong players' 4-6 and 250-500). Fixed in zz_sctest.lua: batches from here on open faster, so
+  compare only arms run together.

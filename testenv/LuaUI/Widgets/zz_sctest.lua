@@ -343,6 +343,9 @@ local function duel(n)
 		end
 		if (mex >= 2 and gen >= 2) or n > 30 * 75 then
 			duelState.stage = 0
+			-- the "never started" clock runs from this order (it ran from frame 0: at 60 s it re-ordered the
+			-- lab elsewhere while the commander was still walking to the first spot, in every test game)
+			duelState.lab1Since = n
 			local _, dx, dz = towardEnemy(0.1, 0)
 			playerBuild(ids.com, U.lab, cx + dx * 220, cz + dz * 220, dx, dz)
 			out(string.format("player: opener done (%d extractors, %d generators), commander builds the lab", mex, gen))
@@ -355,6 +358,10 @@ local function duel(n)
 			local started = false
 			for _, u in ipairs(Spring.GetTeamUnits(myTeam)) do
 				started = started or (UnitDefs[Spring.GetUnitDefID(u)].name == U.lab)
+			end
+			-- still on its way to build it: not "never started"
+			for _, c in ipairs(Spring.GetUnitCommands(ids.com, 20) or {}) do
+				started = started or c.id == -UnitDefNames[U.lab].id
 			end
 			if not started then
 				duelState.lab1Tries = (duelState.lab1Tries or 0) + 1

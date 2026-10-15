@@ -238,6 +238,9 @@ D.firebase = {
 	reach = 0.55, -- no further than this share of the way to their base
 	radius = 300, -- what stands within this belongs to the firebase
 	budget = 1.5, -- firebase turrets may take the turret budget up to this multiple
+	-- only where the army covers it (its squad within this, or further forward), and none founded while the
+	-- team defends; false: anywhere safe (v1: constructors lost 10.6 -> 14.7 a game, g62)
+	cover = 1000,
 	-- layers in order: { role, count (cumulative), air = their air share, minute =, income = }
 	layers = {
 		{ "light", 1 },
