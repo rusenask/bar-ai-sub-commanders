@@ -135,6 +135,12 @@ out wrong.
   matchup), measure the mean on many more games, and confirm what it found with a plain A/B before
   shipping it.
 
+- **Strategic structures on timers lose games.** Anti-nuke at minute 30, shield at 35, two long-range
+  cannons from 25 and a Juno cost Legion -0.27 [-0.46, -0.08] over 24 pairs (wins 18 -> 10) though every
+  piece worked: BARbarian medium rarely builds nukes, and the late army that decides these games was
+  ~15k metal smaller. Build them in answer to something seen (their silo, their artillery, their
+  jammers), not because the clock says so. (g54)
+
 ## Engine and widget traps
 
 - Widgets get no attacker in `UnitDamaged` (they do in `UnitDestroyed`); use `Spring.GetUnitExperience`

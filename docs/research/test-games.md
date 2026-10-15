@@ -1068,3 +1068,17 @@ Counter matrix, flat sites (arm A of 20261015-0212-sbx-il-re-khold, 264 battles)
   (legvcarry), the Cleaver (legamcluster) preferred. Score +0.08 [-0.18, +0.33], can't tell; late
   enemy metal killed +17.8k [-4.9k, +39k], mid metal lost +3.1k [-0.3k, +6.5k]. Mantis in 11 games,
   Cleavers in 9, the plant in 9. 24 more pairs queued on force (force-g57) to pool.
+
+## Strategic structures, whole-game A/B (force, Legion vs Armada medium, 24 pairs): all off vs all on
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-1157-force-g54-strategic-A (off) | 24 | 18 win, 5 timeout, 1 loss | 1 | 259.1k | 271 / 874 | 0.72 | 11.5 | 12 / 24 | 4.2k |
+| 20261015-1157-force-g54-strategic-B (all on) | 24 | 10 win, 7 timeout, 7 loss | 1 | 221.8k | 251 / 691 | 0.78 | 14.1 | 11 / 22 | 3.4k |
+
+- **Worse**: score -0.27 [-0.46, -0.08]; late enemy metal killed -30k [-54k, -5k]. Everything worked
+  (Olympus finished in 11 games and fired in 16, Juno fired in 10, resurrection in 17) and was bought
+  late (median minute: Juno 23, Olympus 28, Aegis 30, Soteria 36): ~15k metal and the T2
+  constructors' time out of the late army. BARbarian medium showed a nuke silo in 3 games of 24, yet
+  the anti-nuke and shield came on timers. Next: a reactive package (anti-nuke only on a seen silo,
+  shield only on their cannons or air, no long-range cannons, Juno and resurrection on).
