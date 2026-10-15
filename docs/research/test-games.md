@@ -1421,3 +1421,12 @@ Each feature on its own (arm B, per game it was used in):
 - Minutes survived 32.4 -> 31.9, income at 20 min 46.5 -> 46.9: no difference. Dealt/taken 0.46 -> 0.57,
   late enemy metal killed +9.9k [-1.9k, +30.5k] (leaning better). Neutral against hard; medium seqtest
   next (more caution may cost wins there).
+
+## First Optuna study: firebase geometry (sandboxes, Legion vs Armada medium, 72 games, 3 generations)
+
+- `scripts/tune.py --key fb-legion-medium --params firebase_step,firebase_spacing,firebase_reach,
+  firebase_metal_weight` (TPE, one rule set per game). Generation means 0.82, 0.62, 0.75 (exploring).
+- Top trials cluster around the defaults: step 480-625, spacing 960-1110, reach 0.49-0.54; the doctrine's
+  own set (450 / 900 / 0.55 / 0.5) scored 1.093, in the top five. Importance: step 0.36, spacing 0.28,
+  reach 0.21, metal weight 0.15. The creep's geometry isn't the bottleneck; a nudge (step 550, spacing
+  1000, reach 0.52) is a candidate for a seqtest, not a change on this evidence.

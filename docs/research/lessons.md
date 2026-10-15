@@ -189,6 +189,10 @@ out wrong.
 
 ## Process traps
 
+- **One game per Optuna trial is too noisy for four settings at once** (72 games: the "best" trials are
+  just won games, and the defaults sat among them). Tune one or two settings, or several games per trial,
+  and only settings whose range plausibly matters; confirm a candidate with a seqtest.
+
 - **Against an opponent that wins every game, the score is saturated: rank by minutes survived and
   income at 20 minutes** (gamereport verdicts), and don't read the economy pace past the median loss
   time: it's a median over the games still alive (hardening looked like 16 -> 30 income at minute 25
