@@ -868,3 +868,15 @@ Counter matrix, flat sites (arm A of 20261015-0212-sbx-il-re-khold, 264 battles)
 - Score -0.14 [-0.29, -0.01] **worse**; extractors at 20 min 15 -> 11. Everything this round was measured
   with Legion; one of the changes costs Cortex. Bisecting (sandboxes): now vs now without each of
   pressing, energy first, overflow spending, the concave.
+
+## Whole games, interleaved: expansion drive (constructors for free metal spots, up to 20) — kept
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-0646-sbx-g41-expand-A (base, medium) | 24 | 6 win, 5 timeout, 13 loss | 1 | 162.8k | 174 / 746 | 0.72 | 20.8 | 11 / 14 | 3.9k |
+| 20261015-0646-sbx-g41-expand-B (expansion drive) | 24 | 8 win, 8 timeout, 8 loss | 3 | 231.7k | 212 / 838 | 0.67 | 19.7 | 12 / 20 | 3.6k |
+| 20261015-0701-force4-g41-expand-hard-A (base, hard) | 12 | 12 loss | 2 | 75.0k | 103 / 494 | 0.53 | 25.4 | 11 / 21 | 3.7k |
+| 20261015-0701-force4-g41-expand-hard-B (expansion drive, hard) | 12 | 12 loss | 0 | 100.1k | 75 / 561 | 0.52 | 34.3 | 12 / 21 | 3.7k |
+
+- Medium: extractors at 20 min +7.5 [+2.6, +13.2] **better**, losses 13 -> 8, score +0.08 [-0.15, +0.30].
+  On. Hard: no change (it kills the expansions; constructors lost 25 -> 34). 72/72 ran.

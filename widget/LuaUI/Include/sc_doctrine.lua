@@ -184,7 +184,7 @@ D.economy = {
 	builderBonus = 0, -- added to the constructor target (tunable by the strategist)
 	-- the constructor target is at least 3 + one per perSpots free metal spots out of known threat, up to
 	-- cap (false: income only)
-	expandDrive = false,
+	expandDrive = { perSpots = 3, cap = 20 },
 	maxStorage = 4000, -- metal storage beyond this hides waste instead of fixing it: spend instead
 	airPlantIncome = 35, -- full autonomy: past this income (and a saturated lab) the next factory is aircraft
 	-- tier 2: BARbarian techs around minute 25 and wins long games with T2 units; T2 constructors also
