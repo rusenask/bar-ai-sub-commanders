@@ -36,6 +36,12 @@ return {
 		local s = FB.site({ { x = 2000, z = 2000, score = 1 }, { x = 2000, z = -2000, score = 3 } }, home, enemy, {}, safe)
 		T.ok(s.z < 0, "the higher-scored picket")
 	end,
+	established_once_the_core_stands = function()
+		local FB = firebase()
+		T.ok(not FB.established({ light = 1, heavy = 1, radar = 1 }, 0, 5, 20), "core not yet")
+		T.ok(FB.established({ light = 2, heavy = 1, radar = 1 }, 0, 9, 40), "core stands, long-range still to come")
+		T.eq(FB.nextLayer({ light = 2, heavy = 1, radar = 1 }, 0, 9, 40), "heavy", "the rest goes on")
+	end,
 	site_prefers_free_metal = function()
 		local FB = firebase()
 		local pickets = { { x = 2000, z = 2000, score = 1 }, { x = 2000, z = -2000, score = 1 } }
@@ -47,7 +53,8 @@ return {
 	layers_in_order_with_air_and_late_conditions = function()
 		local FB = firebase()
 		T.eq(FB.nextLayer({}, 0, 5, 20), "light")
-		T.eq(FB.nextLayer({ light = 1 }, 0, 5, 20), "radar")
+		T.eq(FB.nextLayer({ light = 1 }, 0, 5, 20), "heavy", "v6: the heavy second")
+		T.eq(FB.nextLayer({ light = 1, heavy = 1 }, 0, 5, 20), "radar")
 		T.eq(FB.nextLayer({ light = 2, radar = 1, heavy = 1 }, 0, 5, 20), "heavy", "no air: no anti-air")
 		T.eq(FB.nextLayer({ light = 2, radar = 1, heavy = 1 }, 0.3, 5, 20), "aa")
 		T.eq(FB.nextLayer({ light = 2, radar = 1, heavy = 2 }, 0, 5, 20), nil, "complete before minute 8")

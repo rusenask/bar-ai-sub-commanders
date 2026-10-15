@@ -5,6 +5,7 @@
 -- the army has a strong point to fall back on and push from. BARbarian hard grows every radar into one.
 --   site(pickets, home, enemy, bases, threatAt, metalAt)  where the next firebase goes ({ x, z } or nil)
 --   nextLayer(have, airShare, minute, income)    the role a firebase builds next, or nil (complete)
+--   established(have, airShare, minute, income)  its core (the first `core` layers) stands: the next may go
 --   offset(role)                                  where in the base a role stands (forward, back)
 --
 -- usage: local F = VFS.Include("LuaUI/Include/sc_firebase.lua", nil, VFS.RAW_FIRST)({ doctrine = D })
@@ -66,6 +67,26 @@ return function(ctx)
 			end
 		end
 		return nil
+	end
+
+	-- the first doctrine.firebase.core layers met (those whose conditions hold): established, the next one
+	-- may be founded while the rest is built (v1-v5 waited for every layer: one site short of its long-range
+	-- turret froze the line)
+	function F.established(have, airShare, minute, income)
+		local core = D.firebase.core
+		if not core then
+			return F.nextLayer(have, airShare, minute, income) == nil
+		end
+		for i, L in ipairs(D.firebase.layers) do
+			if i > core then
+				break
+			end
+			local due = (not L.air or (airShare or 0) >= L.air) and (not L.minute or minute >= L.minute) and (not L.income or income >= L.income)
+			if due and (have[L[1]] or 0) < L[2] then
+				return false
+			end
+		end
+		return true
 	end
 
 	-- how far toward the enemy (+) or back (-) a role stands from the firebase's centre

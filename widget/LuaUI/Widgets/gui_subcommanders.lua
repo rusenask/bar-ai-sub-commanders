@@ -1842,6 +1842,17 @@ function Jobs.firebase(sub, unitID, d, ux, uz)
 		if Engine.inBase(x, z) then
 			return true
 		end
+		-- v6: our combat units right there, not a squad somewhere further forward
+		if C.coverValue then
+			local v = 0
+			for _, u in ipairs(spGetUnitsInCylinder(x, z, C.coverRadius or 900)) do
+				local ud = spGetUnitTeam(u) == myTeam and unitDef(u)
+				if ud and ud.mobile and ud.armed and not ud.builder and not ud.commander and not ud.air then
+					v = v + ud.cost
+				end
+			end
+			return v >= C.coverValue
+		end
 		if not (sq and sq.x) then
 			return false
 		end
@@ -1863,7 +1874,7 @@ function Jobs.firebase(sub, unitID, d, ux, uz)
 		-- stall after 1-3 sites in 6 of 6 games); and the army keeps up: none while our turrets outweigh it
 		local unfinished = 0
 		for _, b in ipairs(bases) do
-			if FB.nextLayer((Engine.firebaseHave(b)), air, minute, income) then
+			if not FB.established((Engine.firebaseHave(b)), air, minute, income) then
 				unfinished = unfinished + 1
 			end
 		end

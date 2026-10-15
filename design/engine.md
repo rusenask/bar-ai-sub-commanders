@@ -315,5 +315,10 @@ radar) hold ground: they defend what's behind them and are where the army pushes
   v5: `max` (1) caps firebases unfinished at once and `maxTotal` (8) the ones standing (v1-v4 capped the
   standing ones at 3: the creep stalled after 1-3 sites in every game the LLM review read); a new one
   only while our army value is at least our turret value (`armyRatio`).
+  v6: covered means our combat units worth `coverValue` (500) within `coverRadius` (900) of the site, not
+  a squad somewhere further forward (sites died to single raiders); a site is established once its first
+  `core` (4) layers stand (light, heavy, radar, light; the heavy moved to second) and the next may be
+  founded while the rest is built (v5 waited for every layer: one site short of its long-range turret
+  froze the line); 2 not yet established at once, 6 standing, army ratio 0.75.
 - **Army**: rallies 200 behind the furthest firebase with two turrets standing (it falls back onto
   turrets on contact anyway, doctrine.engage.retreatToTurrets).

@@ -1237,3 +1237,24 @@ Counter matrix, flat sites (arm A of 20261015-0212-sbx-il-re-khold, 264 battles)
   line (v4, v5 build on it).
 - LLM review of v1's games (g62-B, 6 games, 11 s): the creep stalled after 1-3 sites in 6 of 6: the cap
   of 3 standing firebases. Fixed in v5 (one unfinished at a time, 8 standing).
+
+## Firebases v3 vs v4 (force, Armada vs Cortex medium, 24 pairs) and v4 vs v5 (sandboxes, Legion vs Armada medium, 24 pairs)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-1549-force-g67-armada-firebase-v3-v4-A (v3) | 24 | 16 win, 5 timeout, 3 loss | 1 | 203.8k | 238 / 540 | 0.83 | 12.1 | 12 / 20 | 3.9k |
+| 20261015-1549-force-g67-armada-firebase-v3-v4-B (v4: replace the front line) | 24 | 12 win, 6 timeout, 6 loss | 0 | 166.0k | 206 / 501 | 0.76 | 14.8 | 12 / 20 | 4.0k |
+| 20261015-1615-sbx-g69-firebase-v4-v5-A (v4) | 24 | 16 win, 1 timeout, 7 loss | 3 | 135.2k | 210 / 548 | 0.84 | 12.5 | 11.5 / 23 | 3.1k |
+| 20261015-1615-sbx-g69-firebase-v4-v5-B (v5: 1 unfinished, 8 standing, army ratio) | 24 | 9 win, 8 timeout, 7 loss | 3 | 174.2k | 207 / 799 | 0.79 | 16.8 | 11 / 15 | 3.0k |
+
+- v4: -0.12 [-0.28, +0.03], can't tell; late enemy metal killed **worse** -44k. v5: **worse** -0.19
+  [-0.38, -0.00], mid kills and late losses worse. Feature table: firebases 2.5k spent, ~850 lost a
+  game; kills 0 because kill attribution was broken (widgets aren't told an enemy unit's killer; now the
+  widget credits its own operations).
+- LLM review of both arms (24 games each, ~40 s): the creep stalls in 20+ of 24 (a site counts as done
+  only with every layer, the last needing minute 8 and 30 metal/s; v5's one-unfinished cap let one stuck
+  site freeze the line: why v5 lost); sites die to single raiders (the cover check took a squad anywhere
+  further forward as cover). Its "1 standing = one unit of cover" reading was wrong (that's the count of
+  firebases): checked against the code. -> v6.
+- The new kill attribution also showed **our nukes killing our own units** (57 in g69: by=legsilo);
+  fixed (nothing of ours worth over max(300, a tenth of the target) under 1.2x the blast).

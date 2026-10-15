@@ -233,9 +233,16 @@ D.turrets = {
 D.firebase = {
 	on = true,
 	minute = 4, -- the first from here
-	max = 1, -- firebases unfinished at once (v1-v4: 3 standing in all, which stalled the creep)
-	maxTotal = 8, -- firebases standing (v5)
-	armyRatio = 1, -- v5: a new one only while army value >= turret value x this (false: no check)
+	max = 2, -- firebases not yet established at once (v5: 1, and one stuck site froze the line)
+	maxTotal = 6, -- firebases standing
+	armyRatio = 0.75, -- a new one only while army value >= turret value x this (false: no check; v5: 1)
+	-- v6: established once its first `core` layers stand (light, heavy, radar, light): the next may be
+	-- founded while the rest is built (false: every layer, v1-v5)
+	core = 4,
+	-- v6: covered = our combat units worth coverValue within coverRadius of the site (or in our base); v2-v5
+	-- took a squad anywhere further forward as cover and sites died to single raiders (LLM review of g69)
+	coverValue = 500,
+	coverRadius = 900,
 	step = 450, -- past the frontier picket toward the enemy
 	spacing = 900, -- between firebases
 	reach = 0.55, -- no further than this share of the way to their base
@@ -254,9 +261,9 @@ D.firebase = {
 	-- layers in order: { role, count (cumulative), air = their air share, minute =, income = }
 	layers = {
 		{ "light", 1 },
+		{ "heavy", 1 }, -- v6: second (v1-v5: fourth, a lone light turret died to the first raider)
 		{ "radar", 1 },
 		{ "light", 2 },
-		{ "heavy", 1 },
 		{ "aa", 1, air = 0.1 },
 		{ "heavy", 2 },
 		{ "long", 1, minute = 8, income = 30 },
