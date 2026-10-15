@@ -3176,6 +3176,10 @@ function Engine.strategicControl()
 				if t and (st.lrpcTarget ~= t.id or not isAlive(t.id)) then
 					order(u, CMD.ATTACK, { t.id })
 					st.lrpcTarget = t.id
+					local td = Enemy.units[t.id] and defs[Enemy.units[t.id].defID]
+					if owner[u] then
+						log(owner[u], sformat("%s fires on their %s (%s, %d metal)", ud.human, td and td.human or "structure", t.role, t.cost or 0))
+					end
 				end
 			end
 		end
@@ -7616,7 +7620,7 @@ function widget:UnitFinished(unitID, unitDefID, unitTeam)
 		applyPriority(sub, unitID)
 	end
 	local d = defs[unitDefID]
-	if d and (d.factory or d.builder) then
+	if d and (d.factory or d.builder or d.antinuke or d.shieldGen or d.lrpc or d.juno) then
 		log(sub, "new " .. d.human)
 	end
 end

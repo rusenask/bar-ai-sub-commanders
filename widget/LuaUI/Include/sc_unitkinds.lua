@@ -158,11 +158,9 @@ for defID, ud in pairs(UnitDefs) do
 		d.kind = "artillery"
 	elseif d.scout then
 		d.kind = "scout"
-	elseif d.health >= 4000 and d.health >= 3.5 * d.cost then
-		-- long-ranged but armoured to the front line: the Tzar (7800 health for 1650 metal, range 650),
-		-- Fatboy, Shiva, Karganeth, the experimentals. By range alone they were skirmishers that kite
-		d.kind = "heavy"
 	elseif d.range >= 500 then
+		-- armoured long-range units too (Tzar, Fatboy, Legion's Incinerator and Javelin): calling them heavies
+		-- (health 4000+ and 3.5 x cost) cost Legion -0.15 [-0.31, +0.02] over 36 pairs, wins 21 -> 16
 		d.kind = "skirmisher"
 	elseif d.speed >= 70 and d.cost <= 120 then
 		d.kind = "raider"

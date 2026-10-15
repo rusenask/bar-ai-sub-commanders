@@ -1007,3 +1007,21 @@ Counter matrix, flat sites (arm A of 20261015-0212-sbx-il-re-khold, 264 battles)
   the pick sorted by range). Now the cheapest gun under `lrpc.maxCost` 8000 (the Olympus). Resurrection
   bots never resurrected: they have a radar, so Intel.thinkUnit kept them on radar posts. Now left to
   `Engine.strategicControl`. Juno: "can't place" 6x at the crowded base centre: now placed behind it.
+
+## Classifier "armoured long-range units are heavies", Legion re-test (pooled force 12 + sandboxes 24)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| pool-lcls-A (before) | 36 | 21 win, 8 timeout, 7 loss | 0 | 210.5k | 258 / 766 | 0.74 | 14.2 | 12 / 21.5 | 4.0k |
+| pool-lcls-B (heavy rule) | 36 | 16 win, 6 timeout, 14 loss | 3 | 184.0k | 207 / 675 | 0.70 | 16.2 | 11 / 16 | 3.6k |
+
+- Score -0.15 [-0.31, +0.02] (sandboxes alone -0.11, force -0.21): both leaning worse. The rule made
+  Legion's Incinerator (2300 metal, range 725) and Javelin heavies, so they stopped kiting. **Reverted**;
+  the Tzar stays a skirmisher (the Cortex overlay's preference works within any category).
+
+## Strategic structures, smoke test 5 (force, Legion, 8 games, every feature on)
+
+- 3 win, 3 alive, 2 lost. Started: Olympus 7 (5 games), Juno 6, Aegis 8, Soteria 19 (max 1: re-started
+  after losing it, or several builders), and resurrection works: 49 wrecks raised (Karkinos, Fatboy,
+  Archangel, Pluto...). No sign yet that a cannon finished or fired, or a Juno shot: logs for finished
+  strategic structures and each cannon target added for smoke 6.
