@@ -1223,3 +1223,17 @@ Counter matrix, flat sites (arm A of 20261015-0212-sbx-il-re-khold, 264 battles)
   the zone-front turrets (up to 1.5x the budget) and out of expansion and army. v3 (running) lets the
   economy expand under firebases; v4 candidate: firebases replace the front-line turrets instead of
   adding to them.
+
+## Firebases v2 vs v3 (sandboxes, Legion vs Armada medium; 16 of 24 pairs)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-1551-sbx-g66-firebase-v2-v3-A (v2) | 16 | 10 win, 1 timeout, 5 loss | 1 | 203.0k | 255 / 641 | 0.82 | 9.9 | 12.5 / 23 | 3.1k |
+| 20261015-1551-sbx-g66-firebase-v2-v3-B (v3: metal sites, covered expansion) | 16 | 11 win, 1 timeout, 4 loss | 1 | 187.2k | 233 / 760 | 0.78 | 12.4 | 11.5 / 22.5 | 4.1k |
+
+- 32 of 48 ran: sandboxes 4-7 became unreachable together ("connection refused" at one host address:
+  a sandbox host went down), losing games 17-32 as whole pairs; the 16 pairs left are intact. Score
+  +0.07 [-0.24, +0.38], can't tell; army at 12 min +775 [-35, +1.6k] (leaning better). v3 stays in the
+  line (v4, v5 build on it).
+- LLM review of v1's games (g62-B, 6 games, 11 s): the creep stalled after 1-3 sites in 6 of 6: the cap
+  of 3 standing firebases. Fixed in v5 (one unfinished at a time, 8 standing).
