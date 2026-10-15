@@ -2918,6 +2918,23 @@ end
 -- our strategic structures and units (unitkinds flags: antinuke, shieldGen, lrpc, juno, rezBot), with
 -- planned builds, counted once a second
 Engine.stratCache = { frame = -9999 }
+-- the cost-weighted centre of our finished factories (where a shield covers the most), or nil
+function Engine.labsCentre()
+	local sx, sz, w = 0, 0, 0
+	for _, u in ipairs(Spring.GetTeamUnits(myTeam) or {}) do
+		local ud = unitDef(u)
+		if ud and ud.factory and not spGetUnitIsBeingBuilt(u) then
+			local x, _, z = spGetUnitPosition(u)
+			if x then
+				sx, sz, w = sx + x * ud.cost, sz + z * ud.cost, w + ud.cost
+			end
+		end
+	end
+	if w > 0 then
+		return sx / w, sz / w
+	end
+end
+
 function Engine.ourStrategic()
 	local C = Engine.stratCache
 	if frame - C.frame < 30 then
@@ -3005,7 +3022,7 @@ function Jobs.strategic(sub, unitID, d, ux, uz)
 		local Sh = G.shield
 		local threat = #Engine.enemyHas("lrpc") > 0 or Enemy.share("air") > 0.15
 		if Sh.on and have("shieldGen") < Sh.max and income >= Sh.income and (threat or (Sh.minute and minute >= Sh.minute)) then
-			local fx, fz = Engine.labsCentre and Engine.labsCentre() or hx, nil
+			local fx, fz = Engine.labsCentre()
 			fx, fz = fx or hx, fz or hz
 			if buildCheapestUseful(sub, unitID, d, fx, fz, function(od)
 				return od.shieldGen
