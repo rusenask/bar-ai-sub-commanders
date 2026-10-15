@@ -267,10 +267,10 @@ heavy, not a kiting skirmisher.
 Built from the game's own unit data (unitkinds flags: antinuke, shieldGen, lrpc, juno, nukeSilo, rezBot),
 each switched on by doctrine once its games say so:
 
-- **Anti-nuke** (Defense, Economy without one): as soon as a nuke silo of theirs is known, or from minute
-  30 at 60 metal/s; interceptors kept stockpiled (2).
-- **Shield** over the labs (Defense): once their long-range cannons or a real air force are seen, or from
-  minute 35, at 80 metal/s.
+- **Anti-nuke** (Defense, Economy without one, on): as soon as a nuke silo of theirs is known (a timer
+  is optional, `minute`; timed, the whole package lost -0.27); interceptors kept stockpiled (2).
+- **Shield** over the labs (cost-weighted centre of our factories; Defense, on): once their long-range
+  cannons or a real air force (15%+) are seen, at 80 metal/s.
 - **Long-range plasma cannons** (Basilica / Basilisk / Olympus, range ~4800; Defense): from minute 25 at
   100 metal/s, at the first place on the way to their base that reaches it and that no known enemy weapon
   covers. Fire control every 2 s: their cannons and nuke silos first, then labs, big power, shields,
@@ -280,3 +280,22 @@ each switched on by doctrine once its games say so:
   at the densest cluster within its 700 radius every 20 s at most.
 - **Resurrection** (Lazarus / Graverobber / Zagreus): two kept (production quota), raising the most metal
   for the walk among the wrecks near home or the army, out of known threat.
+- Long-range cannons, Juno and resurrection work but are off: they cost more than they won (g54, g58).
+
+## Forward firebases (sc_firebase.lua, doctrine.firebase)
+
+Turret groups that creep into territory, the way strong players (and BARbarian hard, around every
+radar) hold ground: they defend what's behind them and are where the army pushes from.
+
+- **Where** (`site`): from the territory's frontier pickets, a point `step` (450) further toward the
+  enemy, else half that, else the picket itself, that no known enemy weapon covers, `spacing` (900)
+  from other firebases, at most `reach` (0.55) of the way to their base. Best: the picket's score
+  (facing them, raids seen there, what it protects) times how far forward it is.
+- **Layers** (`nextLayer`), Defense's job before extractor cover: light turret, radar, light, heavy,
+  anti-air once their air is 10%+, heavy, a long-range turret from minute 8 at 30 metal/s. Light toward
+  the enemy, long and radar at the back. Firebase turrets may use 1.5x the turret budget.
+- **Creep**: once one is complete (or under fire) the next is founded; our structures make the
+  territory, so the frontier and the next site move out. Up to `max` (3); one with nothing left for two
+  minutes is given up.
+- **Army**: rallies 200 behind the furthest firebase with two turrets standing (it falls back onto
+  turrets on contact anyway, doctrine.engage.retreatToTurrets).
