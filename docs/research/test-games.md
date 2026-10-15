@@ -1324,3 +1324,15 @@ Each feature on its own (arm B, per game it was used in):
 - Score +0.01, can't tell (saturated). Opening metal lost **better** -403 [-766, -19]; firebases spent
   more (1.6k vs 1.0k) at a lower return (0.67 vs 0.95). The strength gate rarely bites (their known army
   is often unknown or small early). Waiting for the medium seqtest (fb-v6-v7) before deciding.
+
+## The player's-game fixes against hard (force, Cortex vs Armada hard, 24 pairs)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-1922-force-g73-player-fixes-hard-A (before: b8a7b41) | 24 | 24 loss | 5 | 51.8k | 61 / 365 | 0.48 | 20.5 | 12 / 12 | 4.0k |
+| 20261015-1922-force-g73-player-fixes-hard-B (factories, anti-nuke v2, march leash, anti-air behind, T2 constructor on demand) | 24 | 24 loss | 7 | 51.2k | 45 / 382 | 0.43 | 24.8 | 11 / 13 | 3.1k |
+
+- Score -0.00 (saturated). Mobile anti-air lost **308 -> 185** (the anti-air fix works; "covering the army
+  from behind" 360x, "waiting for the army" 93x). But army at 12 min **worse** -701 [-1.26k, -0.13k],
+  mid kills leaning worse. Which part costs early army: the three-way seqtest (player-fixes: pre-fix /
+  factory + anti-nuke / all) will separate the factory changes from the march and anti-air ones.
