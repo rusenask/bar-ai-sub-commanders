@@ -529,6 +529,32 @@ end
 -- Build placement
 --------------------------------------------------------------------------------
 
+-- metal spots with no extractor of anyone's on them (as far as we know) and out of known threat,
+-- counted every 10 s
+Engine.freeSpotsCache = { frame = -9999, n = 0 }
+function Engine.freeSpots()
+	local C = Engine.freeSpotsCache
+	if frame - C.frame < 300 then
+		return C.n
+	end
+	local spots, n = WG.resource_spot_finder and WG.resource_spot_finder.metalSpotsList, 0
+	for _, sp in ipairs(spots or {}) do
+		local taken = false
+		for _, u in ipairs(spGetUnitsInCylinder(sp.x, sp.z, 60)) do
+			local ud = unitDef(u)
+			if ud and ud.mex > 0 then
+				taken = true
+				break
+			end
+		end
+		if not taken and Engine.tm.threat(sp.x, sp.z) <= 0 then
+			n = n + 1
+		end
+	end
+	C.frame, C.n = frame, n
+	return n
+end
+
 local function metalSpots()
 	local finder = WG.resource_spot_finder
 	if finder and not finder.isMetalMap and finder.metalSpotsList then
@@ -2608,6 +2634,13 @@ function Engine.economyProduction(sub, facID, fd, cap)
 	local counts = sub.counts
 	local income = max(econ.mInc, 0)
 	local target = Engine.D.economy.builders(income) + (Engine.D.economy.builderBonus or 0)
+	-- expansion drive (doctrine.economy.expandDrive): free metal spots out of known threat call for
+	-- constructors too, not only income (low income -> few constructors -> slow expansion: we stalled
+	-- at 12-15 extractors while BARbarian hard reached 85)
+	local XD = Engine.D.economy.expandDrive
+	if XD then
+		target = max(target, min(XD.cap, 3 + floor(Engine.freeSpots() / XD.perSpots)))
+	end
 	if (sub.autonomy or "balanced") == "light" then
 		target = min(target, 3)
 	end
