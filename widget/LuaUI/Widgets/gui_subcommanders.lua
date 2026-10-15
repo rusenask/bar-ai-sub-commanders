@@ -2684,6 +2684,11 @@ function Engine.economyProduction(sub, facID, fd, cap)
 		defID, cat = Engine.prod.pick(fd.options, have, income, kinds, { category = step, cap = cap })
 		st.openingPending = defID ~= nil
 	end
+	if not defID and counts.builders >= target then
+		-- the faction's quota units (Armada's Gremlins) once the economy has its constructors
+		defID = Engine.quotaPick(fd, cap)
+		cat = defID and Engine.prod.category(defs[defID]) or nil
+	end
 	if not defID then
 		-- raiders for the Army only once the economy has its constructors (v21b: the Army's production
 		-- request made it feed raiders from 2 constructors on; the economy never grew past 3)
@@ -2867,9 +2872,30 @@ function Engine.airForceProduction(sub, fd, cap)
 end
 
 -- an Army's own labs: the income tier's mix, moved toward what counters the enemy (sc_production.lua)
+-- a faction's unit quotas (doctrine.production.quota: name -> how many to keep alive), first from a
+-- factory that can build them (Armada's cloaked Gremlins for clandestine raids)
+function Engine.quotaPick(fd, cap)
+	local Q = Engine.D.production.quota
+	if not Q or not next(Q) then
+		return nil
+	end
+	for _, o in ipairs(fd.options or {}) do
+		local od = defs[o]
+		local want = od and Q[od.name or ""]
+		if want and od.cost <= (cap or math.huge) and (Spring.GetTeamUnitDefCount(myTeam, o) or 0) < want then
+			return o
+		end
+	end
+	return nil
+end
+
 function Engine.armyProduction(sub, fd, cap)
 	if makesAircraft(fd) then
 		return Engine.airProduction(sub, fd, cap)
+	end
+	local q = Engine.quotaPick(fd, cap)
+	if q then
+		return q, "army (" .. (defs[q].human or "quota") .. ", faction quota)"
 	end
 	-- no unit-count cap: metal limits production (a count cap only idled the lab while metal piled up)
 	local defID = Engine.prod.pick(fd.options, sub.counts.cats or {}, max(econ.mInc, 0), Enemy.mix().kinds,
@@ -3667,7 +3693,8 @@ function Tactics.raid(sub)
 		if st then
 			st.raid = nil
 		end
-		if d and Engine.micro.raids(Engine.prod.category(d), Engine.armyStyleNow) and not spGetUnitIsBeingBuilt(u) and not (st and (st.retreating or st.manual)) then
+		local cloaker = Engine.D.cloak and Engine.D.cloak.raid and d and d.canCloak and d.armed and d.mobile and not d.builder and not d.commander
+		if d and (cloaker or Engine.micro.raids(Engine.prod.category(d), Engine.armyStyleNow)) and not spGetUnitIsBeingBuilt(u) and not (st and (st.retreating or st.manual)) then
 			local x, _, z = spGetUnitPosition(u)
 			if x then
 				raiders[#raiders + 1] = { id = u, x = x, z = z, cost = d.cost }
@@ -4280,6 +4307,7 @@ end
 -- a priority target with BAR's set-target command (unit_target_on_the_move: used when in range, kept
 -- through move orders), so units keep fighting, rallying, kiting or falling back while they shoot it.
 Engine.CMD_SET_TARGET = (GameCMD and GameCMD.UNIT_SET_TARGET) or 34923
+Engine.CMD_WANT_CLOAK = (GameCMD and GameCMD.WANT_CLOAK) or 37382
 Engine.CMD_CANCEL_TARGET = (GameCMD and GameCMD.UNIT_CANCEL_TARGET) or 34924
 
 function Engine.fireControl(sub)
@@ -4865,6 +4893,12 @@ local function thinkCombat(sub, unitID, d, st, threats)
 			setTask(unitID, "respond", "response squad: waiting in the base", true)
 		end
 		return
+	end
+	-- cloaking units stay cloaked (doctrine.cloak, Armada): hidden until they fire or come close
+	local CL = Engine.D.cloak
+	if CL and CL.keepOn and d.canCloak and not st.cloakSet and canControl then
+		order(unitID, Engine.CMD_WANT_CLOAK, { 1 })
+		st.cloakSet = true
 	end
 	-- the army acts as one squad (Tactics.squad)
 	if sub.role == "army" and not d.aaOnly and not d.air then
