@@ -7484,6 +7484,7 @@ function Engine.refreshHome()
 				else
 					cx, cz = x, z
 					Engine.commanderID = u
+					Engine.applyFaction(d and d.name)
 				end
 			end
 		end
@@ -7555,6 +7556,35 @@ end
 -- learned rules (internal/learn): at game start the widget reads LuaUI/Config/sc_learned.json (written by
 -- the bridge for real games, by the test runners for exploration games) and applies each rule within its
 -- doctrine bounds. Under the BAR 31614+ widget sandbox only LuaUI/ is readable: that's why it lives there.
+-- our faction's doctrine overlay (sc_doctrine.lua D.factions), once: from the team's side at start, or
+-- from the commander's unit name when the side was random. Before learned rules (they tune on top).
+function Engine.applyFaction(name)
+	if Engine.faction or not name or name == "" then
+		return
+	end
+	local key = ({ arm = "armada", cor = "cortex", leg = "legion" })[name:lower():sub(1, 3)]
+	if not key then
+		return
+	end
+	Engine.faction = key
+	local n = 0
+	for _, o in ipairs(Engine.D.factions[key] or {}) do
+		local path, value = o[1], o[2]
+		local t, last = Engine.D, nil
+		for part in path:gmatch("[^%.]+") do
+			if last then
+				t = t and t[last]
+			end
+			last = part
+		end
+		if type(t) == "table" and last then
+			t[last] = value
+			n = n + 1
+		end
+	end
+	spEcho(sformat("Sub-Commanders: %s doctrine (%d changes)", key, n))
+end
+
 function Engine.applyLearned(data)
 	if not data then
 		local text = VFS.LoadFile("LuaUI/Config/sc_learned.json", VFS.RAW)
@@ -8120,6 +8150,8 @@ function widget:Initialize()
 	frame = spGetGameFrame()
 	widgetHandler:AddAction("sc", textCommand, nil, "t")
 	exportAPI()
+	local _, _, _, _, side = Spring.GetTeamInfo(myTeam)
+	Engine.applyFaction(side)
 	Engine.applyLearned()
 	if savedConfig then
 		restore(savedConfig.game)

@@ -69,6 +69,7 @@ for defID, ud in pairs(UnitDefs) do
 	d.camera = not mobile and not d.armed and (ud.cloakCost or 0) > 0 and d.cost < 100
 	d.scout = mobile and not d.builder and not d.air and d.cost < 45 and (ud.speed or 0) >= 120 and d.sight >= 550
 	d.spy = mobile and (ud.cloakCost or 0) > 0 and ud.stealth and d.builder and not d.commander
+	d.canCloak = ud.canCloak or false
 	d.intelStructure = not mobile and (d.radarRange >= 1000 or d.jammer > 0 or d.sonar > 0 or d.seismic > 0 or d.camera)
 	-- what a weapon loadout says about a unit
 	local bomb, arty = false, false
@@ -134,6 +135,10 @@ for defID, ud in pairs(UnitDefs) do
 		d.kind = "artillery"
 	elseif d.scout then
 		d.kind = "scout"
+	elseif d.health >= 4000 and d.health >= 3.5 * d.cost then
+		-- long-ranged but armoured to the front line: the Tzar (7800 health for 1650 metal, range 650),
+		-- Fatboy, Shiva, Karganeth, the experimentals. By range alone they were skirmishers that kite
+		d.kind = "heavy"
 	elseif d.range >= 500 then
 		d.kind = "skirmisher"
 	elseif d.speed >= 70 and d.cost <= 120 then

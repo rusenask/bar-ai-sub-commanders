@@ -18,6 +18,18 @@ local function prod()
 end
 
 return {
+	signature_unit_wins_its_category = function()
+		local P = prod()
+		local old = F.doctrine.production.prefer
+		F.doctrine.production.prefer = { tzar = 3 }
+		local d = { [1] = defs[6], [2] = { name = "tzar", mobile = true, combat = true, armed = true, cost = 350, speed = 39, kind = "heavy" } }
+		local P2 = T.load("sc_production")({ defs = { [6] = defs[6], [10] = d[2] }, doctrine = F.doctrine })
+		local id = P2.pick({ 6, 10 }, {}, 100, {}, { category = "heavy" })
+		T.eq(id, 10, "the preferred heavy, though cheaper")
+		F.doctrine.production.prefer = old
+		local id2 = P.pick({ 6 }, {}, 100, {}, { category = "heavy" })
+		T.eq(id2, 6)
+	end,
 	categories = function()
 		local P = prod()
 		T.eq(P.category(defs[1]), "constructor")

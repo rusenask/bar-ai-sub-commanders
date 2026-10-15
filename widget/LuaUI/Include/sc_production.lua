@@ -138,6 +138,19 @@ return function(ctx)
 			return nil
 		end
 		local list = byCat[cat]
+		-- a faction's signature unit (doctrine.production.prefer: name -> weight > 1) wins its category
+		-- when affordable (the Tzar for Cortex)
+		local prefer = D.production.prefer or {}
+		local best, bestW
+		for _, o in ipairs(list) do
+			local w = prefer[defs[o].name or ""]
+			if w and w > 1 and (not bestW or w > bestW) then
+				best, bestW = o, w
+			end
+		end
+		if best then
+			return best, cat
+		end
 		table.sort(list, function(a, b)
 			local da, db = defs[a], defs[b]
 			if cat == "raider" or cat == "constructor" then

@@ -130,6 +130,7 @@ D.threat = {
 -- production by income tier: shares of what a factory makes (BARb hard factory.json tiers, adapted to
 -- unit kinds). `income` is the lower bound of the tier's metal income.
 D.production = {
+	prefer = {}, -- signature units: name -> weight > 1 wins its category when affordable (faction overlays)
 	tiers = {
 		{ income = 0, constructor = 0.25, raider = 0.45, assault = 0.30 },
 		-- past the opening raiders are a small share: cheap ones feed the enemy kills (engine-v1 vs hard:
@@ -374,5 +375,18 @@ D.tunable = {
 }
 D.tuneEvery = 30 * 120 -- one change per rule per this many frames
 D.tuneStep = 0.5 -- a change moves a rule at most this fraction of its current value (or of its range near 0)
+
+-- per-faction overlays (Engine.applyFaction): doctrine values set at game start from our commander's
+-- faction, before learned rules. Each: { "path.to.field", value } (paths below D).
+D.factions = {
+	armada = {},
+	cortex = {
+		-- the Tzar (corgol: 1650 metal, 7800 health, T2 vehicles) is Cortex's decisive unit: its T2 vehicle
+		-- plant earlier, and the Tzar first among heavies
+		{ "escalation.t2VehicleIncome", 50 },
+		{ "production.prefer", { corgol = 3 } },
+	},
+	legion = {},
+}
 
 return D

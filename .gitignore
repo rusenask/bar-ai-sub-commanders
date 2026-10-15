@@ -10,6 +10,7 @@ testenv/LuaUI/*
 testenv/LuaUI/Widgets/*
 !testenv/LuaUI/Widgets/zz_sctest.lua
 !testenv/LuaUI/Widgets/zz_datalog.lua
+!testenv/LuaUI/Widgets/zz_defsdump.lua
 !testenv/collect.sh
 !testenv/replays.sh
 !testenv/pro_replays.py
