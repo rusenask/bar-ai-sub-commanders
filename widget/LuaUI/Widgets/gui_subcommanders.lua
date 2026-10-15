@@ -1622,6 +1622,16 @@ function Jobs.defense(sub, unitID, d, ux, uz)
 	local cx, cz = Zone.center(zone)
 	local ex, ez = enemyDirectionRef(cx, cz)
 	local fx, fz = Zone.edgeToward(zone, ex, ez, 160)
+	-- a firebase holds this front (doctrine.firebase.replaceFront): its turrets instead of a second line
+	-- (v2 added firebases on top of the line: extractors at 20 min -5.6, army at 12 min -0.56k, g64)
+	local FC = Engine.D.firebase
+	if FC.on and FC.replaceFront then
+		for _, b in ipairs(Engine.firebases) do
+			if dist2(fx, fz, b.x, b.z) <= FC.replaceFront * FC.replaceFront then
+				return false
+			end
+		end
+	end
 	-- long-range turrets stand back, behind the front line, where they still reach past it
 	local longRange = Engine.prod.turretRole(defs[o]) == "long"
 	if longRange then

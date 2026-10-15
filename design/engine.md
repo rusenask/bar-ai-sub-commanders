@@ -302,5 +302,8 @@ radar) hold ground: they defend what's behind them and are where the army pushes
   further forward), none founded while the team defends; v3 sites near free metal score higher
   (`metalWeight`), and a metal spot within `expandRadius` (700) of a firebase with two turrets is safe
   for the economy to take even forward of the usual expansion rule (creeping is for territory's metal).
+  v4: firebases replace the Defense zone's front-line turrets within `replaceFront` (1200) instead of
+  adding to them, and stay inside the normal turret budget (v2 on top of the line cost extractors and
+  army against hard).
 - **Army**: rallies 200 behind the furthest firebase with two turrets standing (it falls back onto
   turrets on contact anyway, doctrine.engage.retreatToTurrets).
