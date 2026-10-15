@@ -1136,3 +1136,16 @@ Counter matrix, flat sites (arm A of 20261015-0212-sbx-il-re-khold, 264 battles)
   layers built in order (light, radar, heavy, long-range; no anti-air: hard's air stayed under 10%),
   the first founded at minute 4-8 and usually holding most of the game, later ones overrun when hard
   pushes (minute 14-36). A/B started: sbx-g61-firebase-hard (24 pairs).
+
+## Legion overlay, second round (force, 24 pairs) and pooled (48 pairs)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-1343-force-g57-legion-overlay-A | 24 | 7 win, 8 timeout, 9 loss | 2 | 200.0k | 232 / 678 | 0.67 | 16.4 | 12 / 18 | 3.5k |
+| 20261015-1343-force-g57-legion-overlay-B | 24 | 18 win, 3 timeout, 3 loss | 1 | 187.7k | 209 / 713 | 0.82 | 8.6 | 13 / 24.5 | 3.8k |
+| pool-legov-A (no overlay) | 48 | 16 win, 18 timeout, 14 loss | 2 | 221.9k | 238 / 726 | 0.67 | 15.1 | 12 / 18 | 3.7k |
+| pool-legov-B (overlay) | 48 | 30 win, 10 timeout, 8 loss | 2 | 206.1k | 229 / 841 | 0.80 | 10.4 | 12.5 / 21.5 | 3.9k |
+
+- Force alone **better** +0.38 [+0.18, +0.56]. Pooled **better** +0.23 [+0.07, +0.39], wins 16 -> 30;
+  late enemy metal killed **better** +20k [+4k, +37k]. **Shipped** (Mantis drone carriers, Cleavers,
+  T2 vehicle plant from 50 metal/s with a construction vehicle).

@@ -455,7 +455,14 @@ D.factions = {
 	cortex = {
 		{ "economy.secondLabIncome", 18 },
 	},
-	legion = {},
+	legion = {
+		-- the swarm and siege faction: Mantis drone carriers (450, T2 vehicles) and Cleaver cluster
+		-- skirmishers (460, range 930) from the T2 vehicle plant; one construction vehicle for it (the bot
+		-- route never builds the plant). Better: +0.23 [+0.07, +0.39] over 48 pairs, wins 16 -> 30 (g55, g57)
+		{ "escalation.t2VehicleIncome", 50 },
+		{ "production.quota", { legcv = 1, legvcarry = 4 } },
+		{ "production.prefer", { legamcluster = 2 } },
+	},
 }
 
 return D
