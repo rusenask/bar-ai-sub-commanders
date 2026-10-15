@@ -231,7 +231,7 @@ D.turrets = {
 	harden = { memory = 300, turrets = 2 },
 	-- Defense's constructors answer intruders in its zone with a cheap turret by the structure nearest them
 	-- (Jobs.guardTurret, as the economy does; false: they stood "nothing to do" through raids)
-	defenseGuard = true,
+	defenseGuard = false, -- off: opening metal lost +750 against hard, and Defense idled as often (g80)
 	scale = 1, -- multiplies the budget (tunable by the strategist)
 	-- per area (each defense zone), a mix of turret roles instead of one count for everything:
 	-- light (cheap, fast-firing: raiders), heavy (damage: assault and heavy units), long (range >= 700:

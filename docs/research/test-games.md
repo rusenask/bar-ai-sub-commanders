@@ -1444,3 +1444,14 @@ Each feature on its own (arm B, per game it was used in):
   a medium seqtest decides. Context (game 2, minute 17): the response squad and the economy's guards
   answered the raid; the plan flips push / defend about once a minute because entering defend for the
   base skips the hold; Defense's constructors sometimes stand "nothing to do" with threats in its zone.
+
+## Defense answers intruders with a turret, against hard (force, Legion vs Armada hard, 24 pairs)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-2336-force-g80-defenseguard-hard-A (off) | 24 | 1 timeout, 23 loss | 2 | 89.3k | 76 / 507 | 0.62 | 30.0 | 12.5 / 15 | 3.6k |
+| 20261015-2336-force-g80-defenseguard-hard-B (Jobs.guardTurret in Defense's plan) | 24 | 24 loss | 2 | 57.4k | 92 / 402 | 0.54 | 28.6 | 10.5 / 16 | 3.5k |
+
+- Opening metal lost **worse** +750 [+423, +1.1k]; the rest can't tell; Defense "nothing to do" with
+  threats 33 -> 49 (not fixed: the idling has another cause, likely the builders' safety or a spent
+  turret budget). **Off** (doctrine.turrets.defenseGuard = false).
