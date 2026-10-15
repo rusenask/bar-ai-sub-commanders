@@ -3,6 +3,10 @@
 ## Before you start
 
 - Read [docs/research/lessons.md](docs/research/lessons.md): causes found, fixes that failed, process traps.
+- Know what the game offers: [docs/research/units.md](docs/research/units.md) is every unit of every
+  faction with its abilities (cloak, EMP, shields, anti-nuke, resurrection, mines, drones...) from the game's
+  own data, and which ones we use (`testenv/unit-catalogue.sh` + `scripts/unit_catalogue.py` after a BAR
+  update).
 - Skills for the recurring work are in `.claude/skills/`: `improve` (the improvement loop), `analyze-games`
   (`make report`, reading the logs), `ab-test` (measuring a change), `pro-replays` (strong players' games),
   `decision-models` (training and serving our models).

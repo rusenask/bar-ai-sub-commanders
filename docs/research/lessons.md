@@ -17,6 +17,10 @@ out wrong.
   (engine-v2/v3 hard)
 - Offline model accuracy isn't game strength: the fight model (AUC 0.81) gave more kills and more lost
   games. (decision model arm F)
+- Read the game's data, not just the code's view of it: our unit tables only had what our behaviours
+  needed, so cloaking, EMP, shields, anti-nukes, resurrection, mines, decoys and drones (26 of 34
+  abilities) went unused for months, and the Tzar was a "skirmisher" because kinds came from weapon range.
+  The catalogue (docs/research/units.md) comes from every unit definition. (2026-10-15)
 - Measure with every faction before calling a change done: this round's changes, each kept on Legion
   games, made Cortex worse together (score -0.14, extractors at 20 min 15 -> 11). Check the other
   factions with an old-vs-new pair batch after each round. (g40)
