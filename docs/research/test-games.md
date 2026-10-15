@@ -958,3 +958,17 @@ Counter matrix, flat sites (arm A of 20261015-0212-sbx-il-re-khold, 264 battles)
   losses 22 -> 28, constructors lost ~24 -> 35. The turret metal didn't become army; the turrets were
   what kept Cortex's constructors alive. Cortex's early army gap is elsewhere (unit choice or
   production), for a per-faction look.
+
+## Faction overlays, first tests
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-1013-sbx-g48-cortex-overlay-A (Cortex, classifier fix) | 24 | 3 win, 3 timeout, 18 loss | 11 | 121.3k | 106 / 581 | 0.61 | 21.7 | 11.5 / 14.5 | 2.2k |
+| 20261015-1013-sbx-g48-cortex-overlay-B (+ Cortex overlay) | 24 | 3 win, 5 timeout, 16 loss | 8 | 134.8k | 111 / 659 | 0.60 | 23.5 | 12 / 17.5 | 1.9k |
+| 20261015-1013-force4-g48-legion-classifier-A (Legion, before) | 12 | 8 win, 1 timeout, 3 loss | 0 | 166.0k | 214 / 553 | 0.79 | 13.2 | 13 / 21 | 3.6k |
+| 20261015-1013-force4-g48-legion-classifier-B (Legion, classifier fix) | 12 | 5 win, 3 timeout, 4 loss | 0 | 221.9k | 235 / 770 | 0.72 | 15.7 | 10.5 / 16 | 3.4k |
+
+- Cortex overlay: score +0.02 [-0.11, +0.16], but **no Tzar was built in either arm**: Cortex goes the
+  bot route, and only a construction vehicle (corcv) can build the T2 vehicle plant (corvp's cheapest
+  constructor is the Trapper mine layer). Overlay now keeps one corcv; re-testing, counting Tzars.
+- Classifier fix on Legion: score -0.21 [-0.50, +0.06] (wins 8 -> 5); re-testing with 24 pairs.
