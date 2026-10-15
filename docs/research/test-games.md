@@ -1455,3 +1455,14 @@ Each feature on its own (arm B, per game it was used in):
 - Opening metal lost **worse** +750 [+423, +1.1k]; the rest can't tell; Defense "nothing to do" with
   threats 33 -> 49 (not fixed: the idling has another cause, likely the builders' safety or a spent
   turret budget). **Off** (doctrine.turrets.defenseGuard = false).
+
+## Why rich games time out against medium (g75, g76, seq player-fixes)
+
+- 2-5 timeouts per 24-32 games. Two kinds: barely alive (no factories, no army: the enemy can't finish
+  us either) and rich but not finishing: e.g. 251 metal/s and a 115k army at minute 60 against medium,
+  or 227 metal/s with metal storage full 1842 s. Attack and raid targets were only structures seen in the
+  last 10 minutes: their base, unscouted that long late in a game, dropped out, and the army spent itself
+  on extractors and raids at home. Finisher v1 (their factories stay targets until seen gone, their start
+  as "their base" for the army's attack when none is known): testing (force-g81).
+- The Cortex review (24 games) misread holds ("too strong here, 0.4x") as engagements and single-intruder
+  odds (660-8141x) as charges again; its "never converts mass into a decisive push" checked out.
