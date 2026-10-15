@@ -1486,3 +1486,14 @@ Each feature on its own (arm B, per game it was used in):
 
 - +0.09 [-0.07, +0.25], can't tell; mid enemy metal killed **better** +4.9k [+0.3k, +9.5k], late +31.5k
   (leaning better); "engaging enemy factory" 37 -> 189; timeouts 5 -> 4. **Kept on.**
+
+## A higher bar for "the base is under attack" against medium (sequential, sandboxes, Legion vs Armada, 32 pairs)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261016-0027-seq-defendbase-b-A (max(600, 8%)) | 32 | 21 win, 3 timeout, 8 loss | 3 | 182.2k | 231 / 666 | 0.84 | 15.2 | 12 / 21 | 3.6k |
+| 20261016-0027-seq-defendbase-b-B (max(1000, 15%)) | 32 | 19 win, 6 timeout, 7 loss | 2 | 205.3k | 249 / 810 | 0.82 | 16.0 | 12 / 15 | 3.3k |
+
+- -0.02 [-0.20, +0.16], can't tell; extractors at 20 min -4.3 [-8.7, +0.2] (leaning worse, as against
+  hard: -2.4); lost games lasted longer (+10 min, 7-8 games). Raids cost the economy more with the army
+  away: **not adopted** (the bar stays max(600, 8%)).
