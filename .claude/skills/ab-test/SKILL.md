@@ -53,7 +53,10 @@ each pair the same spec on the same sandbox (separate batches drift +-0.2 log2 o
 `uvx --with lightning-sdk python testenv/sandbox/batch.py 144 --scenario battle --minutes 4 --sandboxes 3
 --instance cpu-16 --parallel 6 --widgets /tmp/arm-base/Widgets --widgets-b /tmp/arm-mine/Widgets --label
 sbx-il-mine` (keep all bar-* sandboxes under 12), then `make compare ARMS="<batch>-A <batch>-B"`: the
-verdict rows say "(paired)". Works for whole games too (12+ pairs).
+verdict rows say "(paired)". Works for whole games too (12+ pairs), on force as well
+(`WIDGET_SRC_B=... testenv/force-batch.sh 24`). The same A/B on both hosts pools into one paired verdict:
+`testenv/pool-pairs.sh <name> <sandbox batch> <force batch>`, then `make compare ARMS="/tmp/pool-<name>-A
+/tmp/pool-<name>-B"`.
 
 Battle verdicts compare within each spec (`(within specs)` rows): pooled, the gap between specs drowns
 the change. Also read the per-spec table: a gain in one mirror can hide a loss in another.
