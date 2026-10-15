@@ -1082,3 +1082,14 @@ Counter matrix, flat sites (arm A of 20261015-0212-sbx-il-re-khold, 264 battles)
   constructors' time out of the late army. BARbarian medium showed a nuke silo in 3 games of 24, yet
   the anti-nuke and shield came on timers. Next: a reactive package (anti-nuke only on a seen silo,
   shield only on their cannons or air, no long-range cannons, Juno and resurrection on).
+
+## Second factory from 18 metal/s at balanced autonomy, Cortex (sandboxes, 24 pairs, vs Armada medium)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-1243-sbx-g56-cortex-secondlab-A (overflow only) | 24 | 1 win, 7 timeout, 16 loss | 2 | 209.8k | 135 / 1175 | 0.48 | 44.7 | 12 / 20.5 | 2.8k |
+| 20261015-1243-sbx-g56-cortex-secondlab-B (from 18 metal/s) | 24 | 3 win, 9 timeout, 12 loss | 0 | 215.5k | 169 / 1057 | 0.56 | 28.0 | 12 / 17 | 3.5k |
+
+- **Better**: score +0.10 [+0.00, +0.21]; army at 12 min +1.4k [+0.7k, +2.2k]; mid metal lost -9.4k
+  [-14.7k, -3.7k]. Vehicle plant by minute 12 in 24 of 24 games (8 in A). On in the Cortex overlay;
+  the Armada test (force-g56) decides the default.

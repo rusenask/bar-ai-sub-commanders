@@ -420,8 +420,11 @@ D.factions = {
 	-- the Tzar overlay (T2 vehicle plant from 50 metal/s, a construction vehicle for it, the Tzar preferred)
 	-- measured neutral twice (g50 +0.12 without a Tzar, g53 -0.04 [-0.17, +0.10] with Tzars in 3 of 24
 	-- games): Cortex rarely reaches 50 metal/s before it is losing, and the vehicle cost its army at
-	-- 12 min. Its gap is the early game; off until that is fixed
-	cortex = {},
+	-- 12 min. Its gap was the early game: a second factory (vehicle plant) from 18 metal/s, as strong
+	-- Cortex players do, was better: +0.10 [+0.00, +0.21], army at 12 min +1.4k (g56)
+	cortex = {
+		{ "economy.secondLabIncome", 18 },
+	},
 	legion = {},
 }
 
