@@ -1530,3 +1530,14 @@ Each feature on its own (arm B, per game it was used in):
 
 - -0.07 [-0.27, +0.12], can't tell; mid enemy metal killed **worse** -2.1k [-4.3k, -0.2k] (Armada: +4.9k
   better); factory engagements 30 -> 158. Finisher v2: only from minute 25 (the late timeouts it's for).
+
+## Intelligence v1 vs v2: spotters and counter-intelligence (force, Armada vs Cortex medium, 24 pairs)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261016-0211-force-g84-intel-v2-A (v1) | 24 | 14 win, 5 timeout, 5 loss | 0 | 186.5k | 253 / 517 | 0.77 | 14.8 | 12 / 23 | 4.4k |
+| 20261016-0211-force-g84-intel-v2-B (v2) | 24 | 15 win, 4 timeout, 5 loss | 0 | 202.3k | 248 / 500 | 0.75 | 15.8 | 11.5 / 22.5 | 4.9k |
+
+- +0.01 [-0.15, +0.19], can't tell, nothing worse. Spies made for Intelligence and "watching our target /
+  their factory" 180x; seismic detectors in 9 games. The weapons they spot for, on their own: cannons
+  return 0.22 -> 0.37, Juno 0.40 -> 0.56, nuke kills 4.2 -> 6.2 a game they fire. **Kept.**
