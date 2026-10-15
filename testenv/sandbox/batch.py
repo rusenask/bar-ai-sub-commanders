@@ -215,6 +215,10 @@ def main():
     ap.add_argument("--generations", type=int, default=1, help="with --learn: generations to run on the same sandboxes")
     ap.add_argument("--learn-only", default="", help="with --learn: search only these rules (comma-separated)")
     ap.add_argument("--mean-every", type=int, default=0, help="with --learn: every this many games play the mean")
+    ap.add_argument("--stagger", type=float, default=float(os.environ.get("BAR_SBX_STAGGER", "45")),
+                    help="seconds between sandbox k and k+1, for the create and for starting its games: the pool's host "
+                    "is shared, and 12 cpu-16 sandboxes created and loaded at once filled it (192 cores) and turned "
+                    "everyone else's creates away")
     ap.add_argument("--learn-score", default="result", help="with --learn: score games on the result or a stage "
                     "(opening, mid, late: enemy metal killed minus lost in it); use the stage the searched rules are for")
     args = ap.parse_args()
@@ -271,6 +275,7 @@ def main():
 
     def setup(k):
         first, last = per[k]
+        time.sleep(k * args.stagger)
         try:
             sb = create(k, first, last)
             boxes[k] = sb
@@ -335,6 +340,8 @@ def main():
                 sb, (first, last) = boxes[k], per[k]
                 if sb is None:
                     return
+                # games ramp up one sandbox at a time too (setup ends together for sandboxes that were warm)
+                time.sleep(sum(1 for b in boxes[:k] if b is not None) * args.stagger)
                 try:
                     if overlays is not None:
                         put_bytes(sb, otgz, "/opt/bar/overlays.tgz")

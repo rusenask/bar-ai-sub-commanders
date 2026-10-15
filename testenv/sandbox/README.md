@@ -33,3 +33,8 @@ uvx --with lightning-sdk python testenv/sandbox/sbx.py run <id> 'ls /opt/bar'   
 - Be a good neighbour: other teams' jobs fail with 503 when the pool is full. All our `bar-*` sandboxes
   together stay under `BAR_MAX_SANDBOXES` (default 12; batch.py shrinks a run to fit). Prefer fewer
   sandboxes for longer: the cost is the same.
+- The pool's production host is shared (one 192-core host at times): 12 cpu-16 sandboxes created and
+  loaded together filled it, and everyone else's creates were turned away ("host under pressure",
+  shown to them as 503 no capacity). batch.py staggers: sandbox k is created, and starts its games,
+  k x `--stagger` seconds after the first (default 45, `BAR_SBX_STAGGER`), so a 12-sandbox run ramps up
+  over ~8 minutes.
