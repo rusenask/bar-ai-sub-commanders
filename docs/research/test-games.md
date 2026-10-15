@@ -1410,3 +1410,14 @@ Each feature on its own (arm B, per game it was used in):
   was a misreading (those are our odds against single intruders).
 - Next: fog-aware odds (count their groups seen near the target lately, not just what's visible now),
   and no calling off a winning push unless our structures are falling.
+
+## Fog-aware odds against hard (force, Legion vs Armada hard, 24 pairs)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-2227-force-g78-reinforce-hard-A (off) | 24 | 24 loss | 1 | 67.6k | 73 / 444 | 0.46 | 28.4 | 11.5 / 16.5 | 3.9k |
+| 20261015-2227-force-g78-reinforce-hard-B (their forces within 1600 count 0.6) | 24 | 24 loss | 4 | 70.0k | 76 / 497 | 0.57 | 28.8 | 11 / 15 | 3.2k |
+
+- Minutes survived 32.4 -> 31.9, income at 20 min 46.5 -> 46.9: no difference. Dealt/taken 0.46 -> 0.57,
+  late enemy metal killed +9.9k [-1.9k, +30.5k] (leaning better). Neutral against hard; medium seqtest
+  next (more caution may cost wins there).
