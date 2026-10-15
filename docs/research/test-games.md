@@ -1107,3 +1107,15 @@ Counter matrix, flat sites (arm A of 20261015-0212-sbx-il-re-khold, 264 battles)
   starves (constructors alive at minute 20: 5.6 vs 11.2). Kept for Cortex only; for Armada (which
   already wins most of these) the trade is a wash. A second lab that leaves the economy its share is
   the follow-up.
+
+## Strategic, reactive package (sandboxes, Legion vs Armada medium, 24 pairs)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-1311-sbx-g58-strategic-reactive-A (off) | 24 | 10 win, 9 timeout, 5 loss | 2 | 230.3k | 219 / 903 | 0.72 | 20.5 | 11.5 / 18 | 3.6k |
+| 20261015-1311-sbx-g58-strategic-reactive-B (anti-nuke/shield on a seen threat, Juno, resurrection) | 24 | 9 win, 6 timeout, 9 loss | 1 | 217.6k | 215 / 785 | 0.65 | 20.5 | 11 / 17 | 3.3k |
+
+- Score -0.07 [-0.29, +0.16], can't tell; late enemy metal killed -28k [-62k, +6k] (leaning worse, as
+  in g54). Juno built in 10 games, fired in 7; resurrection in 17; anti-nuke 1, shield 0. **Default:**
+  the reactive anti-nuke and shield on (they only answer a seen silo / cannons / air); Juno,
+  resurrection and long-range cannons off until one shows a gain alone.

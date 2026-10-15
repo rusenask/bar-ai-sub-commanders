@@ -387,10 +387,10 @@ D.tuneStep = 0.5 -- a change moves a rule at most this fraction of its current v
 D.strategic = {
 	-- anti-nuke (Citadel / Prevailer / Aegis): when they have a nuke silo, or from `minute` (false: only
 	-- on a seen silo) at `income`; interceptors kept stockpiled. On timers the whole package cost -0.27 (g54)
-	antinuke = { on = false, minute = false, income = 60, max = 1, stockpile = 2 },
+	antinuke = { on = true, minute = false, income = 60, max = 1, stockpile = 2 },
 	-- shield generator (Keeper / Overseer / Soteria, radius 550) over the labs: once their long-range
 	-- cannons or their air (15%+) are seen, or from `minute` (false: only then), at `income`
-	shield = { on = false, minute = false, income = 80, max = 1 },
+	shield = { on = true, minute = false, income = 80, max = 1 },
 	-- long-range plasma cannon (Basilica / Basilisk / Olympus, range ~4800): from `minute` at `income`, at
 	-- the first safe place that reaches their base (reach x range); fire control every 2 s
 	lrpc = { on = false, minute = 25, income = 100, max = 2, reach = 0.9, maxCost = 8000, minValue = 300,
@@ -401,6 +401,10 @@ D.strategic = {
 	-- resurrection bots (Lazarus / Graverobber / Zagreus): `bots` kept, raising the most valuable wrecks
 	-- within `radius` of home or the army, out of known threat
 	resurrect = { on = false, bots = 2, radius = 2500 },
+	-- measured (Legion vs Armada medium): everything on timers -0.27 [-0.46, -0.08] (g54); anti-nuke and
+	-- shield reactive + Juno + resurrection -0.07 [-0.29, +0.16], late kills -28k (g58). The reactive
+	-- anti-nuke and shield only answer a seen threat (built in 1 and 0 games of 24): on. Juno,
+	-- resurrection and cannons off until one shows a gain alone
 }
 
 -- cloaking (Engine, Armada): keepOn: cloak-capable army units stay cloaked; raid: they join the raids on
