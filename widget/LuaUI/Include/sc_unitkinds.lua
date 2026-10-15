@@ -78,7 +78,7 @@ for defID, ud in pairs(UnitDefs) do
 	d.mine = ucp.mine ~= nil
 	d.decoy = ucp.decoyfor ~= nil
 	d.kamikaze = ud.canKamikaze or ucp.instantselfd ~= nil
-	d.paralyzer, d.interceptor, d.stockpile, d.shield, d.flame = false, false, false, false, false
+	d.paralyzer, d.interceptor, d.stockpile, d.shield, d.flame, d.juno = false, false, false, false, false, false
 	d.intelStructure = not mobile and (d.radarRange >= 1000 or d.jammer > 0 or d.sonar > 0 or d.seismic > 0 or d.camera)
 	-- what a weapon loadout says about a unit
 	local bomb, arty = false, false
@@ -98,6 +98,8 @@ for defID, ud in pairs(UnitDefs) do
 			d.stockpile = d.stockpile or wd.stockpile or false
 			d.shield = d.shield or wd.type == "Shield" or ((wd.shieldPower or 0) > 0)
 			d.flame = d.flame or wd.type == "Flame"
+			d.juno = d.juno or ((wd.name or ""):lower():find("juno") ~= nil)
+			d.weaponAoe = max(d.weaponAoe or 0, wd.damageAreaOfEffect or 0)
 			arty = arty or (wd.highTrajectory == 1 and (wd.range or 0) >= 600)
 			local per = (wd.salvoSize or 1) * (wd.projectiles or 1) / max(wd.reload or 1, 0.1)
 			local dmg = wd.damages and wd.damages[0] or 0
@@ -116,6 +118,12 @@ for defID, ud in pairs(UnitDefs) do
 	-- (treating mostly-anti-air units as anti-air for production was tried in v28 and reverted: Cortex
 	-- can't tell, Legion's opening worse. The numbers stay for analysis.)
 	d.aaPrimary = mobile and d.armed and d.groundDps > 0 and d.airDps > 1.5 * d.groundDps
+	-- strategic roles (docs/research/units.md): what the Intelligence, Defense and Army jobs look for
+	d.antinuke = not mobile and d.interceptor
+	d.nukeSilo = not mobile and d.stockpile and not d.interceptor and not d.juno and (d.weaponAoe or 0) >= 500
+	d.lrpc = not mobile and d.armed and not d.stockpile and not d.interceptor and d.range >= 3000 and d.range < 20000
+	d.shieldGen = not mobile and d.shield
+	d.rezBot = mobile and d.resurrect and not d.commander
 	local move = ud.moveDef and ud.moveDef.name or ""
 	d.naval = mobile and not d.air and (move:find("boat") ~= nil or (ud.minWaterDepth or 0) > 0)
 	d.hover = mobile and move:find("hover") ~= nil

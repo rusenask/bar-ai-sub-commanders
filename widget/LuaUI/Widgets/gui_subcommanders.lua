@@ -136,6 +136,7 @@ do
 	Engine.com = include("sc_commander")({ doctrine = Engine.D })
 	Engine.air = include("sc_air")({ doctrine = Engine.D })
 	Engine.micro = include("sc_micro")({ doctrine = Engine.D })
+	Engine.strategic = include("sc_strategic")({ doctrine = Engine.D })
 	Engine.armyStyle, Engine.armyStyleNow, Engine.armyStyleSince = "auto", "balanced", 0
 	Engine.comMode, Engine.comPersonality = "auto", "careful"
 end
@@ -2499,6 +2500,7 @@ local BUILDER_PLANS = {
 			or (econ.mFrac > 0.7 and econ.eFrac > 0.3 and not energyBehind() and Jobs.buildPower(sub, u, d, x, z))
 			or Jobs.rebuildFactory(sub, u, d, x, z)
 			or Jobs.newFactory(sub, u, d, x, z)
+			or ((not Engine.subOfRole("defense") or not Engine.subOfRole("intelligence")) and Jobs.strategic(sub, u, d, x, z))
 			or Jobs.earlyRadar(sub, u, d, x, z)
 			or Jobs.basicEconomy(sub, u, d, x, z)
 			or (energyWanted() and Jobs.energy(sub, u, d, x, z, false))
@@ -2515,6 +2517,7 @@ local BUILDER_PLANS = {
 	defense = function(sub, u, d, x, z)
 		return Jobs.removeMarked(sub, u, d, x, z)
 			or Jobs.repair(sub, u, d, x, z)
+			or Jobs.strategic(sub, u, d, x, z)
 			or Jobs.extractorCover(sub, u, d, x, z)
 			or Jobs.radar(sub, u, d, x, z)
 			-- enemy aircraft are a real part of what they field: anti-air on our line too
@@ -2536,6 +2539,7 @@ local BUILDER_PLANS = {
 	end,
 	intelligence = function(sub, u, d, x, z)
 		return Jobs.removeMarked(sub, u, d, x, z)
+			or Jobs.strategic(sub, u, d, x, z)
 			or Jobs.radarNet(sub, u, d, x, z)
 			or Jobs.cameras(sub, u, d, x, z)
 			or Jobs.sonar(sub, u, d, x, z)
@@ -2875,6 +2879,15 @@ end
 -- a faction's unit quotas (doctrine.production.quota: name -> how many to keep alive), first from a
 -- factory that can build them (Armada's cloaked Gremlins for clandestine raids)
 function Engine.quotaPick(fd, cap)
+	-- resurrection bots (doctrine.strategic.resurrect)
+	local R = Engine.D.strategic and Engine.D.strategic.resurrect
+	if R and R.on and #Engine.ourStrategic().rezBot < R.bots then
+		for _, o in ipairs(fd.options or {}) do
+			if defs[o] and defs[o].rezBot and defs[o].cost <= (cap or math.huge) then
+				return o
+			end
+		end
+	end
 	local Q = Engine.D.production.quota
 	if not Q or not next(Q) then
 		return nil
@@ -2887,6 +2900,262 @@ function Engine.quotaPick(fd, cap)
 		end
 	end
 	return nil
+end
+
+-- our strategic structures and units (unitkinds flags: antinuke, shieldGen, lrpc, juno, rezBot), with
+-- planned builds, counted once a second
+Engine.stratCache = { frame = -9999 }
+function Engine.ourStrategic()
+	local C = Engine.stratCache
+	if frame - C.frame < 30 then
+		return C
+	end
+	C.frame = frame
+	for _, k in ipairs({ "antinuke", "shieldGen", "lrpc", "juno", "rezBot" }) do
+		C[k] = {}
+	end
+	for _, u in ipairs(Spring.GetTeamUnits(myTeam) or {}) do
+		local ud = unitDef(u)
+		if ud then
+			for _, k in ipairs({ "antinuke", "shieldGen", "lrpc", "juno", "rezBot" }) do
+				if ud[k] then
+					C[k][#C[k] + 1] = u
+				end
+			end
+		end
+	end
+	C.planned = {}
+	for _, p in pairs(planned) do
+		local pd = defs[p.defID]
+		for _, k in ipairs({ "antinuke", "shieldGen", "lrpc", "juno" }) do
+			if pd and pd[k] then
+				C.planned[k] = (C.planned[k] or 0) + 1
+			end
+		end
+	end
+	return C
+end
+
+-- what we know of theirs, by strategic role (Enemy.units)
+function Engine.enemyHas(flag)
+	local list = {}
+	for u, e in pairs(Enemy.units) do
+		local ed = defs[e.defID]
+		if ed and ed[flag] then
+			list[#list + 1] = { id = u, x = e.x, z = e.z, def = ed }
+		end
+	end
+	return list
+end
+
+-- Defense's and Intelligence's strategic builds (doctrine.strategic): anti-nuke, shield and long-range
+-- cannons (Defense; Economy when there is no Defense), Juno (Intelligence). One at a time.
+function Jobs.strategic(sub, unitID, d, ux, uz)
+	local G = Engine.D.strategic
+	if not G or not Engine.homeX then
+		return false
+	end
+	local C = Engine.ourStrategic()
+	local minute, income = frame / 1800, max(econ.mInc, 0)
+	local function have(k)
+		return #C[k] + (C.planned[k] or 0)
+	end
+	local defenseRole = sub.role == "defense" or (sub.role == "economy" and not Engine.subOfRole("defense"))
+	local intelRole = sub.role == "intelligence" or (sub.role == "economy" and not Engine.subOfRole("intelligence"))
+	local hx, hz = Engine.homeX, Engine.homeZ
+	if defenseRole then
+		local A = G.antinuke
+		if A.on and have("antinuke") < A.max and (#Engine.enemyHas("nukeSilo") > 0 or (minute >= A.minute and income >= A.income)) then
+			if buildCheapestUseful(sub, unitID, d, hx, hz, function(od)
+				return od.antinuke
+			end, function(od)
+				return -od.cost
+			end, "anti-nuke", "essential") then
+				return true
+			end
+		end
+		local Sh = G.shield
+		local threat = #Engine.enemyHas("lrpc") > 0 or Enemy.share("air") > 0.15
+		if Sh.on and have("shieldGen") < Sh.max and income >= Sh.income and (threat or minute >= Sh.minute) then
+			local fx, fz = Engine.labsCentre and Engine.labsCentre() or hx, nil
+			fx, fz = fx or hx, fz or hz
+			if buildCheapestUseful(sub, unitID, d, fx, fz, function(od)
+				return od.shieldGen
+			end, function(od)
+				return -od.cost
+			end, "shield over the labs") then
+				return true
+			end
+		end
+		local L = G.lrpc
+		if L.on and have("lrpc") < L.max and minute >= L.minute and income >= L.income and Engine.enemyX then
+			local opts = buildableBy(d, function(od)
+				return od.lrpc
+			end)
+			if #opts > 0 then
+				local x, z = Engine.strategic.lrpcSite({ x = hx, z = hz }, { x = Engine.enemyX, z = Engine.enemyZ }, defs[opts[1]].range, function(px, pz)
+					return Engine.tm.threat(px, pz)
+				end)
+				if x and buildCheapestUseful(sub, unitID, d, x, z, function(od)
+					return od.lrpc
+				end, function(od)
+					return od.range
+				end, "long-range cannon on their base") then
+					return true
+				end
+			end
+		end
+	end
+	if intelRole then
+		local J = G.juno
+		if J.on and have("juno") < 1 and income >= J.income and #Engine.junoTargets() >= J.minTargets then
+			if buildCheapestUseful(sub, unitID, d, hx, hz, function(od)
+				return od.juno
+			end, function(od)
+				return -od.cost
+			end, "Juno (their radar and jammers)") then
+				return true
+			end
+		end
+	end
+	return false
+end
+
+-- their radar, jammers, cameras and mines we know of (Juno's targets)
+function Engine.junoTargets()
+	local list = {}
+	for _, e in pairs(Enemy.units) do
+		local ed = defs[e.defID]
+		if ed and not ed.mobile and (ed.intelStructure or ed.mine or ed.kind == "radar" or ed.kind == "jammer" or ed.kind == "camera") then
+			list[#list + 1] = { x = e.x, z = e.z, cost = ed.cost }
+		end
+	end
+	return list
+end
+
+-- a target's role for the long-range cannons (sc_strategic.lua lrpcTarget)
+function Engine.strategicRole(ed)
+	if ed.lrpc then
+		return "lrpc"
+	elseif ed.nukeSilo then
+		return "nuke"
+	elseif ed.antinuke then
+		return "antinuke"
+	elseif ed.factory then
+		return "factory"
+	elseif ed.shieldGen then
+		return "shield"
+	elseif (ed.energy or 0) > 0 and ed.cost >= 500 then
+		return "energy"
+	elseif (ed.mex or 0) > 0 then
+		return "extractor"
+	elseif ed.staticDef then
+		return "turret"
+	end
+	return "other"
+end
+
+-- every 2 s: interceptors and Juno missiles stockpiled, Juno fired at their densest intel, the long-range
+-- cannons on their best target, resurrection bots on the best wreck
+function Engine.strategicControl()
+	local G = Engine.D.strategic
+	if not G or not canControl then
+		return
+	end
+	local C = Engine.ourStrategic()
+	local function stock(u, want)
+		local have, queued = Spring.GetUnitStockpile(u)
+		for _ = 1, want - (have or 0) - (queued or 0) do
+			order(u, CMD.STOCKPILE, {})
+		end
+		return have or 0
+	end
+	if G.antinuke.on then
+		for _, u in ipairs(C.antinuke) do
+			if not spGetUnitIsBeingBuilt(u) then
+				stock(u, G.antinuke.stockpile)
+			end
+		end
+	end
+	if G.juno.on then
+		for _, u in ipairs(C.juno) do
+			if not spGetUnitIsBeingBuilt(u) and stock(u, G.juno.stockpile) > 0 then
+				local st = getState(u)
+				if frame >= (st.junoNext or 0) then
+					local x, z, n = Engine.strategic.junoTarget(Engine.junoTargets(), G.juno.aoe, G.juno.minTargets)
+					if x then
+						order(u, CMD.ATTACK, { x, spGetGroundHeight(x, z), z })
+						st.junoNext = frame + 30 * 20
+						local sub = owner[u]
+						if sub then
+							log(sub, sformat("Juno on %d of their radar / jammers / mines at %d,%d", n, x, z))
+						end
+					end
+				end
+			end
+		end
+	end
+	if G.lrpc.on and #C.lrpc > 0 then
+		local targets, shields = {}, {}
+		for u, e in pairs(Enemy.units) do
+			local ed = defs[e.defID]
+			if ed and not ed.mobile and frame - e.last < 30 * 600 then
+				targets[#targets + 1] = { id = u, x = e.x, z = e.z, cost = ed.cost, role = Engine.strategicRole(ed) }
+				if ed.shieldGen then
+					shields[#shields + 1] = { x = e.x, z = e.z, r = 550 }
+				end
+			end
+		end
+		for _, u in ipairs(C.lrpc) do
+			local ud = unitDef(u)
+			local x, _, z = spGetUnitPosition(u)
+			if x and ud and not spGetUnitIsBeingBuilt(u) then
+				local st = getState(u)
+				local t = Engine.strategic.lrpcTarget({ x = x, z = z, range = ud.range }, targets, shields)
+				if t and (st.lrpcTarget ~= t.id or not isAlive(t.id)) then
+					order(u, CMD.ATTACK, { t.id })
+					st.lrpcTarget = t.id
+				end
+			end
+		end
+	end
+	if G.resurrect.on and #C.rezBot > 0 and Spring.GetFeatureResurrect then
+		local army = Engine.anyArmy()
+		local centres = { { Engine.homeX, Engine.homeZ } }
+		if army and army.squad and army.squad.x then
+			centres[#centres + 1] = { army.squad.x, army.squad.z }
+		end
+		local wrecks, seen = {}, {}
+		for _, c in ipairs(centres) do
+			if c[1] then
+				for _, f in ipairs(Spring.GetFeaturesInCylinder(c[1], c[2], G.resurrect.radius) or {}) do
+					local name = not seen[f] and Spring.GetFeatureResurrect(f)
+					seen[f] = true
+					local rd = name and name ~= "" and UnitDefNames[name]
+					local fx, _, fz = Spring.GetFeaturePosition(f)
+					if rd and fx and Engine.tm.threat(fx, fz) <= 0 then
+						wrecks[#wrecks + 1] = { id = f, x = fx, z = fz, value = rd.metalCost or 0 }
+					end
+				end
+			end
+		end
+		for _, u in ipairs(C.rezBot) do
+			local st = getState(u)
+			if not st.manual and (spGetUnitCommandCount(u) or 0) == 0 then
+				local x, _, z = spGetUnitPosition(u)
+				local w = x and Engine.strategic.rezTarget({ x = x, z = z }, wrecks)
+				if w then
+					order(u, CMD.RESURRECT, { w.id + Game.maxUnits })
+					for i, o in ipairs(wrecks) do
+						if o.id == w.id then
+							table.remove(wrecks, i)
+							break
+						end
+					end
+				end
+			end
+		end
+	end
 end
 
 function Engine.armyProduction(sub, fd, cap)
@@ -3590,7 +3859,7 @@ end
 
 -- full autonomy: what the army goes for on its own, among what it beats (doctrine.engage.attack):
 -- their factories and economy (what wins games) and their armed groups (threat map memory)
-Const.ATTACK_PREFER = { factory = 3, extractor = 1.5, generator = 1.2, constructor = 1, radar = 1, structure = 1, army = 0.6 }
+Const.ATTACK_PREFER = { artillery = 4, factory = 3, extractor = 1.5, generator = 1.2, constructor = 1, radar = 1, structure = 1, army = 0.6 }
 
 function Tactics.attackTarget(sub, sq)
 	local cands = Engine.raidCandidates()
@@ -3625,7 +3894,8 @@ function Engine.raidCandidates()
 		local kind
 		if not d.mobile then
 			if age < 30 * 600 and not d.staticDef then
-				kind = (d.mex > 0 and "extractor") or (d.energy > 0 and "generator") or (d.factory and "factory") or (d.intelStructure and "radar") or "structure"
+				-- their long-range cannons and nuke silos: what the army and the strikes go for first
+				kind = ((d.lrpc or d.nukeSilo) and "artillery") or (d.mex > 0 and "extractor") or (d.energy > 0 and "generator") or (d.factory and "factory") or (d.intelStructure and "radar") or "structure"
 			end
 		elseif d.builder and not d.commander and age < 30 * 20 then
 			kind = "constructor"
@@ -8038,6 +8308,9 @@ function widget:GameFrame(n)
 		for _, sub in ipairs(subs) do
 			Engine.fireControl(sub)
 		end
+	end
+	if n % 60 == 30 then
+		Engine.strategicControl()
 	end
 	local G = Engine.D.micro.dodge
 	if G and G.on and n % (G.every or 6) == 0 then
