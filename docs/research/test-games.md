@@ -1045,3 +1045,14 @@ Counter matrix, flat sites (arm A of 20261015-0212-sbx-il-re-khold, 264 battles)
 - Score +0.12 [-0.10, +0.33]; enemy metal killed mid-game **better** +4.9k [+0.6k, +9.4k]; extractors
   at 20 min **better** +5.7 [+2.3, +9.7]. Gremlins now in 12 of 24 games (T2 vehicle plant in 7, the
   armcv in 19); none in A (no arm ever built the plant without the overlay). Leaning better: kept.
+
+## Cortex overlay with the T2 vehicle plant fix (sandboxes, 24 pairs, vs Armada medium)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-1203-sbx-g53-cortex-overlay3-A (no overlay) | 24 | 4 win, 1 timeout, 19 loss | 5 | 118.4k | 133 / 596 | 0.65 | 30.4 | 11 / 13 | 2.0k |
+| 20261015-1203-sbx-g53-cortex-overlay3-B (overlay) | 24 | 3 win, 4 timeout, 17 loss | 5 | 122.2k | 107 / 575 | 0.57 | 23.0 | 11 / 13 | 1.5k |
+
+- Score -0.04 [-0.17, +0.10]; army at 12 min -459 [-1.1k, +160]. Tzars in only 3 of 24 games (plant in
+  4): Cortex rarely reaches 50 metal/s before it is losing. **Cortex overlay off**; Cortex's gap is the
+  early game (19 of 24 lost; army a third of BARbarian's at 12 min), the next thing to look at.
