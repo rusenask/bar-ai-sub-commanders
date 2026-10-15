@@ -38,3 +38,5 @@ uvx --with lightning-sdk python testenv/sandbox/sbx.py run <id> 'ls /opt/bar'   
   shown to them as 503 no capacity). batch.py staggers: sandbox k is created, and starts its games,
   k x `--stagger` seconds after the first (default 45, `BAR_SBX_STAGGER`), so a 12-sandbox run ramps up
   over ~8 minutes.
+- A batch stopped by a signal (`pkill`) leaves its sandboxes running: `sbx.py list`, then
+  `sbx.py clean bar-<label>`.

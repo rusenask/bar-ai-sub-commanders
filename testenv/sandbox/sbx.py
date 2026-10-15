@@ -5,6 +5,9 @@ usage: uvx --with lightning-sdk python testenv/sandbox/sbx.py <command> ...
   put <id> <local file> <remote>    copy a file in (base64 over run_command; text and binary)
   get <id> <remote> <local>         copy a file out
   delete <id>
+  list                              our bar-* sandboxes (name, status)
+  clean <name prefix>               delete our sandboxes whose name starts with it (a batch stopped by a
+                                    signal leaves its sandboxes running: clean bar-<label>)
 """
 import base64
 import os
@@ -57,6 +60,15 @@ def main():
         open(args[2], "wb").write(base64.b64decode(out.strip()))
     elif cmd == "delete":
         get(args[0]).delete()
+    elif cmd in ("list", "clean"):
+        prefix = args[0] if cmd == "clean" else "bar-"
+        if cmd == "clean" and not prefix.startswith("bar-"):
+            sys.exit("clean: the prefix must start with bar- (only our sandboxes)")
+        for sb in Sandbox().list(teamspace=TEAMSPACE).sandboxes:
+            if (sb.name or "").startswith(prefix):
+                print(sb.name, sb.status, flush=True)
+                if cmd == "clean":
+                    sb.delete()
     else:
         print(__doc__)
         sys.exit(2)
