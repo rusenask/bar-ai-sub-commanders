@@ -41,3 +41,4 @@ play/*
 !testenv/battles-big/
 !testenv/battles-tactics/
 !testenv/battles-counter/
+__pycache__/
