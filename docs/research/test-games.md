@@ -1476,3 +1476,13 @@ Each feature on its own (arm B, per game it was used in):
 
 - +0.07 [-0.13, +0.26], can't tell; army at 12 min **better** +599 [+151, +1.1k], mid metal lost
   -3.0k (leaning better). Neutral against hard (g78): **kept on**.
+
+## Finisher v1 (force, Armada vs Cortex medium, 24 pairs)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261016-0014-force-g81-finisher-armada-A (off) | 24 | 14 win, 5 timeout, 5 loss | 0 | 189.5k | 215 / 468 | 0.79 | 18.0 | 13 / 21 | 4.6k |
+| 20261016-0014-force-g81-finisher-armada-B (factories remembered, their base as a target) | 24 | 16 win, 4 timeout, 4 loss | 0 | 171.7k | 228 / 464 | 0.92 | 17.6 | 12 / 19.5 | 4.1k |
+
+- +0.09 [-0.07, +0.25], can't tell; mid enemy metal killed **better** +4.9k [+0.3k, +9.5k], late +31.5k
+  (leaning better); "engaging enemy factory" 37 -> 189; timeouts 5 -> 4. **Kept on.**
