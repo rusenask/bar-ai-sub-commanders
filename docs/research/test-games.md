@@ -902,3 +902,17 @@ Counter matrix, flat sites (arm A of 20261015-0212-sbx-il-re-khold, 264 battles)
 - Pressing costs Cortex most: its army leaves while BARbarian raids its base and expansions (Cortex's
   known weak spot, minutes 9-25). Testing safe pressing (not while the team defends, nor with more of
   their mobile units near home than the response squad). Overflow spending leans against Cortex too.
+
+## Safe pressing (press only with home safe) — not kept
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-0747-sbx-g44-cortex-presssafe-A (Cortex, pressing) | 24 | 4 win, 10 timeout, 10 loss | 3 | 260.4k | 154 / 1119 | 0.49 | 25.2 | 13 / 27 | 2.4k |
+| 20261015-0747-sbx-g44-cortex-presssafe-B (Cortex, safe pressing) | 24 | 3 win, 5 timeout, 16 loss | 3 | 178.2k | 112 / 845 | 0.49 | 29.2 | 12 / 16 | 2.2k |
+| 20261015-0747-force4-g44-legion-presssafe-A (Legion, pressing) | 12 | 7 win, 4 timeout, 1 loss | 0 | 229.8k | 231 / 661 | 0.77 | 9.8 | 14.5 / 25.5 | 3.9k |
+| 20261015-0747-force4-g44-legion-presssafe-B (Legion, safe pressing) | 12 | 7 win, 1 timeout, 4 loss | 1 | 158.0k | 223 / 618 | 0.89 | 15.1 | 11 / 23 | 3.8k |
+
+- Cortex: extractors at 20 min -6.7 [-11.9, -1.6] **worse**, losses 10 -> 16; Legion losses 1 -> 4.
+  Off. Holding the army back for home's sake costs more than the raids.
+- With the expansion drive on, Cortex with pressing reaches 24 extractors at minute 20 (the regression
+  was measured before it). Legion now: 7 / 4 / 1 against BARbarian medium.
