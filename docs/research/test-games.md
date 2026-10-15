@@ -1541,3 +1541,16 @@ Each feature on its own (arm B, per game it was used in):
 - +0.01 [-0.15, +0.19], can't tell, nothing worse. Spies made for Intelligence and "watching our target /
   their factory" 180x; seismic detectors in 9 games. The weapons they spot for, on their own: cannons
   return 0.22 -> 0.37, Juno 0.40 -> 0.56, nuke kills 4.2 -> 6.2 a game they fire. **Kept.**
+
+## Air Defense merged into the Air Force (force, Legion vs Armada medium, 24 pairs)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261016-0259-force-g85-airforce-merged-A (before: Air Defense + Air Force, old harness roles via alias) | 24 | 14 win, 4 timeout, 6 loss | 1 | 191.8k | 239 / 866 | 0.86 | 18.2 | 11 / 14 | 4.1k |
+| 20261016-0259-force-g85-airforce-merged-B (one Air Force) | 24 | 11 win, 4 timeout, 9 loss | 2 | 193.1k | 211 / 797 | 0.89 | 23.3 | 12 / 19 | 4.1k |
+
+- -0.11 [-0.30, +0.09], can't tell. Planes lost ~300-400 a game in both arms, but mostly by design:
+  Legion's carrier drones (2366) and Martyr kamikazes (2011, half by themselves). The waste: fighters,
+  ~74 a game (4.9k metal), against an opponent that barely flew: a fixed 25% fighter share, and idle
+  fighters patrolling between base and army in reach of their ground anti-air. Air Force v2: 5% fighters
+  while their air is under 3%, idle fighters wait over the base. (The merge stays: the player's call.)

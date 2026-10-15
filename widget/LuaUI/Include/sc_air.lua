@@ -47,7 +47,10 @@ return function(ctx)
 			return "scout"
 		end
 		local fighters, gunships, bombers = have.fighter or 0, have.gunship or 0, have.bomber or 0
-		local share = min(P.maxFighters, max(P.fighters, (enemyAir or 0) * 1.5))
+		-- their air: fighters up to 1.5x its share; hardly any: a few for their scouts (a fixed 25% lost
+		-- ~74 fighters a game to ground anti-air against an opponent that barely flew)
+		local floorShare = (enemyAir or 0) < (P.noAirBelow or 0) and (P.fightersNoAir or P.fighters) or P.fighters
+		local share = min(P.maxFighters, max(floorShare, (enemyAir or 0) * 1.5))
 		if ok("fighter") and fighters < share * (fighters + gunships + bombers + 1) then
 			return "fighter"
 		end

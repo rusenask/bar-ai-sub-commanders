@@ -5099,6 +5099,9 @@ function Tactics.air(sub)
 			set("fighter", { action = "escort", id = "escort:" .. tostring(strike.id), x = strike.x, z = strike.z, text = "escorting the strike" })
 		elseif covers[1] then
 			set("fighter", { action = "cover", id = "cover:area", x = covers[1].x, z = covers[1].z, text = "covering the area we were asked to" })
+		elseif Enemy.share("air") < (P.noAirBelow or 0) then
+			-- nothing of theirs flies: wait over the base (between base and army their ground anti-air shot them)
+			set("fighter", { action = "cover", id = "cover:home", x = hx, z = hz, text = "waiting over the base" })
 		else
 			set("fighter", { action = "cover", id = "cover", x = (hx + ax) * 0.5, z = (hz + az) * 0.5, text = "covering the base and army" })
 		end
