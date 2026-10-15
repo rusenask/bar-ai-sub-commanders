@@ -222,6 +222,10 @@ D.turrets = {
 	end,
 	extractorCoverFrom = 30 * 150, -- first turret at exposed extractors from about minute 2.5
 	extractorCoverRadius = 450,
+	-- a metal spot where we lost an extractor in the last `memory` s needs `turrets` turrets (the second a
+	-- heavy one) before the economy rebuilds there (false: one cheap turret, rebuild at once). Against hard we
+	-- lost ~42 extractors a game in minutes 10-25 to Blitz / Stumpy / Jeffy raids (g73)
+	harden = { memory = 300, turrets = 2 },
 	scale = 1, -- multiplies the budget (tunable by the strategist)
 	-- per area (each defense zone), a mix of turret roles instead of one count for everything:
 	-- light (cheap, fast-firing: raiders), heavy (damage: assault and heavy units), long (range >= 700:

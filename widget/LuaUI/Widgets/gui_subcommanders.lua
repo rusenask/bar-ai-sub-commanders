@@ -977,7 +977,9 @@ function Jobs.mex(sub, unitID, d, ux, uz)
 		local spot = spots[i]
 		local inZone = inSubZones(sub, spot.x, spot.z)
 		-- economy also expands to safe spots on our side of the map beyond its zones
-		if (spotCooldown[i] or 0) <= frame and (inZone or (sub.role == "economy" and not d.commander and Engine.auto(sub).expand and Jobs.safeExpansion(sub, spot)))
+		local rs = Engine.raidedAt(spot.x, spot.z)
+		local hardened = not rs or Engine.turretsNear(spot.x, spot.z, Engine.D.turrets.extractorCoverRadius) >= Engine.D.turrets.harden.turrets
+		if hardened and (spotCooldown[i] or 0) <= frame and (inZone or (sub.role == "economy" and not d.commander and Engine.auto(sub).expand and Jobs.safeExpansion(sub, spot)))
 			and Engine.tm.threat(spot.x, spot.z) <= Engine.tm.influence(spot.x, spot.z) and not plannedConflict(defs[bestMex], spot.x, spot.z, EXTRACTOR_RADIUS) then
 			local exID, exDef = extractorAt(spot)
 			local upgrade = exID and exDef.mex < bestYield and spGetUnitTeam(exID) == myTeam and not spGetUnitIsBeingBuilt(exID)
@@ -2360,6 +2362,28 @@ function Jobs.extractorCover(sub, unitID, d, ux, uz)
 	local o = options[1]
 	if not canSpend(sub, defs[o], "essential") or not Engine.turretBudget(defs[o].cost) then
 		return false
+	end
+	-- metal spots raided lately first (doctrine.turrets.harden): two turrets, the second a heavier one (one
+	-- cheap turret per cluster died to Blitz packs; against hard we lost ~42 extractors a game in minutes 10-25)
+	local H = T.harden
+	if H then
+		for _, rs in ipairs(Engine.raided) do
+			if frame - rs.frame < 30 * H.memory then
+				local n = Engine.turretsNear(rs.x, rs.z, T.extractorCoverRadius)
+				if n < H.turrets and Engine.tm.threat(rs.x, rs.z) <= Engine.tm.influence(rs.x, rs.z) then
+					local ho = n >= 1 and pickDefense(sub, d, false, "heavy") or o
+					if ho and canSpend(sub, defs[ho], "essential") and Engine.turretBudget(defs[ho].cost, Engine.D.firebase.budget) then
+						local ex, ez = enemyDirectionRef(rs.x, rs.z)
+						local dx, dz = ex - rs.x, ez - rs.z
+						local len = max(sqrt(dx * dx + dz * dz), 1)
+						local x, z = findBuildSpot(sub, ho, rs.x + dx / len * 100, rs.z + dz / len * 100, { gap = 16, rings = 5, underFire = true, anywhere = true })
+						if x and issueBuild(sub, unitID, ho, x, z, facingToward(x, z, ex, ez), "hardening a raided metal spot") then
+							return true
+						end
+					end
+				end
+			end
+		end
 	end
 	-- our factories first (raiders go for them), then the exposed extractor clusters
 	local exposed = {}
@@ -8215,7 +8239,57 @@ function widget:UnitFinished(unitID, unitDefID, unitTeam)
 
 end
 
+-- metal spots where raiders killed our extractor lately (doctrine.turrets.harden): their cover needs more
+-- than one cheap turret, and the economy waits for it before rebuilding there
+Engine.raided = {}
+function Engine.noteRaided(unitID, d)
+	local x, _, z = spGetUnitPosition(unitID)
+	if not x then
+		return
+	end
+	for _, r in ipairs(Engine.raided) do
+		if dist2(x, z, r.x, r.z) < 300 * 300 then
+			r.frame, r.n = frame, r.n + 1
+			return
+		end
+	end
+	Engine.raided[#Engine.raided + 1] = { x = x, z = z, frame = frame, n = 1 }
+end
+
+-- the raided spot near (x, z) within memory, if any
+function Engine.raidedAt(x, z)
+	local H = Engine.D.turrets.harden
+	if not H then
+		return nil
+	end
+	for _, r in ipairs(Engine.raided) do
+		if frame - r.frame < 30 * H.memory and dist2(x, z, r.x, r.z) < 400 * 400 then
+			return r
+		end
+	end
+end
+
+-- our turrets near (x, z): count and metal
+function Engine.turretsNear(x, z, r)
+	local n, v = 0, 0
+	for _, u in ipairs(spGetUnitsInCylinder(x, z, r)) do
+		local ud = unitDef(u)
+		if ud and ud.staticDef and not ud.aaOnly and spGetUnitTeam(u) == myTeam then
+			n, v = n + 1, v + ud.cost
+		end
+	end
+	for _, p in pairs(planned) do
+		if defs[p.defID].staticDef and not defs[p.defID].aaOnly and dist2(p.x, p.z, x, z) < r * r then
+			n, v = n + 1, v + defs[p.defID].cost
+		end
+	end
+	return n, v
+end
+
 function widget:UnitDestroyed(unitID, unitDefID, unitTeam, attackerID)
+	if unitTeam == myTeam and defs[unitDefID] and defs[unitDefID].mex > 0 and not spGetUnitIsBeingBuilt(unitID) then
+		Engine.noteRaided(unitID, defs[unitDefID])
+	end
 	local sub = owner[unitID]
 	if sub then
 		local d = defs[unitDefID]
