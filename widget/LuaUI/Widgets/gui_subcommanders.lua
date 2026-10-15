@@ -5852,7 +5852,9 @@ local function thinkCombat(sub, unitID, d, st, threats)
 			-- than `leash` ahead of it along the way waits there (each unit got its own FIGHT at its own speed:
 			-- the fast ones arrived first and alone, a player saw the army strung out)
 			local M = Engine.D.engage.march
-			if M and sq and sq.x then
+			-- raiders are exempt: their speed is the point (with the leash the opening's Goblins and Blitzes
+			-- waited for the slow units, and opening kills fell in three tests)
+			if M and sq and sq.x and d.kind ~= "raider" and d.kind ~= "hover raider" then
 				local dx, dz = so.x - sq.x, so.z - sq.z
 				local len = max(sqrt(dx * dx + dz * dz), 1)
 				if len > M.contact and dist2(x, z, so.x, so.z) > M.contact * M.contact then
