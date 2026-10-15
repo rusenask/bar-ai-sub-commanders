@@ -166,7 +166,7 @@ D.economy = {
 	energyPerMetal = 12, -- energy income to aim for per metal income (strong players 10-16)
 	-- energy behind (under energyPerMetal x metal income or under what we spend): economy constructors build
 	-- generators before build power, labs and radar (false: storage-driven only)
-	energyFirst = false,
+	energyFirst = true,
 	-- generators (unless energy is nearly out) behind the base, away from the enemy and out of known threat
 	-- (false: next to the builder)
 	safeGenerators = false,

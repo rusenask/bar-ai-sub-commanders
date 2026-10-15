@@ -785,3 +785,19 @@ Counter matrix, flat sites (arm A of 20261015-0212-sbx-il-re-khold, 264 battles)
 - What decides these games is macro (base arm's report): 6 factories lost per game, metal storage full
   727 s while energy is near empty 598 s (income we can't spend), 23 constructors lost, the commander
   dead in 11 of 24. Energy is next.
+
+## Whole games, interleaved: energy first (generators before build power, labs, radar while energy is behind metal) — kept
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-0328-sbx-g35-energy-A (base) | 24 | 4 win, 11 timeout, 9 loss | 2 | 206.3k | 221 / 875 | 0.67 | 22.8 | 11 / 17.5 | 3.5k |
+| 20261015-0328-sbx-g35-energy-B (energy first) | 24 | 4 win, 12 timeout, 8 loss | 2 | 270.5k | 249 / 1126 | 0.82 | 21.1 | 13 / 21 | 4.1k |
+| 20261015-0328-force4-g35-energy-A (base) | 12 | 1 win, 7 timeout, 4 loss | 0 | 315.3k | 256 / 1361 | 0.68 | 30.9 | 12 / 23.5 | 4.3k |
+| 20261015-0328-force4-g35-energy-B (energy first) | 12 | 11 timeout, 1 loss | 0 | 344.8k | 290 / 1543 | 0.79 | 24.1 | 12.5 / 20 | 4.0k |
+
+- Energy near empty 472 -> 133 s (sandboxes), 490 -> 112 s (force). Late enemy metal killed +35k [+3k,
+  +68k] **better** (sandboxes); scores +0.04 / +0.03 can't tell; losses 9 -> 8, 4 -> 1. 72/72 ran.
+- Metal storage full went up (578 -> 634 s, 798 -> 940 s): energy no longer holds building back, build
+  power does. Next: spending the metal.
+- Energy was found by the economy report (energy near empty 598 s a game, 9.4 energy per metal at
+  minute 8) and the unused doctrine value energyPerMetal.
