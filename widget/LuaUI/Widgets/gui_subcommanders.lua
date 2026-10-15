@@ -2977,7 +2977,8 @@ function Jobs.strategic(sub, unitID, d, ux, uz)
 			local can = #buildableBy(d, function(od)
 				return od[what]
 			end) > 0
-			log(sub, sformat("%s due: %s", what, can and "can't place or afford it yet" or "no constructor here can build it"))
+			log(sub, sformat("%s due: %s", what, can and sformat("can't place or afford it yet (metal %d%%)", econ.mFrac * 100)
+				or "no constructor here can build it"))
 		end
 	end
 	local hx, hz = Engine.homeX, Engine.homeZ
@@ -3009,8 +3010,13 @@ function Jobs.strategic(sub, unitID, d, ux, uz)
 		end
 		local L = G.lrpc
 		if L.on and have("lrpc") < L.max and minute >= L.minute and income >= L.income and Engine.enemyX then
-			local opts = buildableBy(d, function(od)
-				return od.lrpc
+			-- the cheapest cannon (Olympus 5200, not Legion's 63000-metal Starfall: smoke test 4 started 26)
+			local function isGun(od)
+				return od.lrpc and od.cost <= (L.maxCost or 8000)
+			end
+			local opts = buildableBy(d, isGun)
+			tsort(opts, function(a, b)
+				return defs[a].cost < defs[b].cost
 			end)
 			if #opts > 0 then
 				local function threatAt(px, pz)
@@ -3038,10 +3044,8 @@ function Jobs.strategic(sub, unitID, d, ux, uz)
 						sub["strat:lrpcsite"] = frame
 						log(sub, "lrpc due: no safe place reaches anything of theirs")
 					end
-				elseif buildCheapestUseful(sub, unitID, d, x, z, function(od)
-					return od.lrpc
-				end, function(od)
-					return od.range
+				elseif buildCheapestUseful(sub, unitID, d, x, z, isGun, function(od)
+					return -od.cost
 				end, "long-range cannon on their base", "strategic") then
 					return true
 				end
@@ -3056,7 +3060,9 @@ function Jobs.strategic(sub, unitID, d, ux, uz)
 			jw = jw + (t.weight or 1)
 		end
 		if J.on and have("juno") < 1 and income >= J.income and jw >= J.minTargets then
-			if buildCheapestUseful(sub, unitID, d, hx, hz, function(od)
+			-- behind the base, where generators go: its centre was too crowded to place one (smoke test 4)
+			local jx, jz = Engine.safeEnergyAnchor()
+			if buildCheapestUseful(sub, unitID, d, jx or hx, jz or hz, function(od)
 				return od.juno
 			end, function(od)
 				return -od.cost
@@ -3197,6 +3203,12 @@ function Engine.strategicControl()
 				local w = x and Engine.strategic.rezTarget({ x = x, z = z }, wrecks)
 				if w then
 					order(u, CMD.RESURRECT, { w.id + Game.maxUnits })
+					local rd = UnitDefNames[Spring.GetFeatureResurrect(w.id)]
+					local sub = owner[u]
+					setTask(u, "resurrect", "resurrecting " .. (rd and (rd.translatedHumanName or rd.humanName) or "a wreck"), true)
+					if sub then
+						log(sub, sformat("resurrecting %s (%d metal)", rd and (rd.translatedHumanName or rd.humanName) or "a wreck", w.value))
+					end
 					for i, o in ipairs(wrecks) do
 						if o.id == w.id then
 							table.remove(wrecks, i)
@@ -6030,6 +6042,9 @@ local function runSub(sub, budget, combatPass)
 					if combatPass then
 						thinkNano(sub, unitID, st)
 					end
+				elseif d.rezBot and Engine.D.strategic.resurrect.on then
+					-- Engine.strategicControl raises wrecks with it (it has a radar: Intel.thinkUnit kept it on
+					-- a radar post, never idle, in smoke test 4)
 				elseif d.combat or (d.mobile and not d.builder and not d.commander) then
 					if combatPass then
 						if sub.role == "air" then
