@@ -13,6 +13,7 @@ import argparse
 import base64
 import io
 import random
+import shutil
 import os
 import subprocess
 import sys
@@ -224,6 +225,7 @@ def main():
     ap.add_argument("--only", default="", help="play only games FIRST-LAST of the batch (with --into: fill in games that "
                     "didn't run, e.g. a sandbox host went down)")
     ap.add_argument("--into", default="", help="an existing batch dir to add the games to (its report and arms are rebuilt)")
+    ap.add_argument("--overlays", default="", help="a directory of g<i>.json rule overlays, one per game (scripts/tune.py)")
     ap.add_argument("--learn-score", default="result", help="with --learn: score games on the result or a stage "
                     "(opening, mid, late: enemy metal killed minus lost in it); use the stage the searched rules are for")
     args = ap.parse_args()
@@ -346,6 +348,11 @@ def main():
                 if args.mean_every:
                     cmd += ["-mean-every", str(args.mean_every)]
                 subprocess.run(cmd, cwd=ROOT, check=True)
+            elif args.overlays:
+                # rule sets prepared elsewhere (scripts/tune.py: Optuna's trials), g<i>.json per game
+                overlays = out / "overlays"
+                shutil.copytree(args.overlays, overlays, dirs_exist_ok=True)
+            if overlays is not None:
                 buf = io.BytesIO()
                 with tarfile.open(fileobj=buf, mode="w:gz") as tar:
                     tar.add(overlays, arcname=".")

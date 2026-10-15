@@ -27,7 +27,7 @@ import (
 
 func main() {
 	if len(os.Args) < 2 {
-		log.Fatal("usage: learn sample|update|show|overlay -key <matchup> ...")
+		log.Fatal("usage: learn sample|update|show|overlay|params -key <matchup> ...")
 	}
 	cmd := os.Args[1]
 	fs := flag.NewFlagSet(cmd, flag.ExitOnError)
@@ -44,12 +44,19 @@ func main() {
 	evidence := fs.String("evidence", "", "validate: the A/B batches that show the mean beats the defaults")
 	meanEvery := fs.Int("mean-every", 0, "sample: every this many games play the mean itself (kept in the store)")
 	_ = fs.Parse(os.Args[2:])
-	if *key == "" {
-		log.Fatal("-key is required")
-	}
 	params, err := learn.ParamsFromDoctrine(*doctrine)
 	if err != nil {
 		log.Fatal(err)
+	}
+	// the tunable rules with their bounds and defaults, as JSON (scripts/tune.py searches them with Optuna)
+	if cmd == "params" {
+		if err := json.NewEncoder(os.Stdout).Encode(params); err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
+	if *key == "" {
+		log.Fatal("-key is required")
 	}
 	store, err := learn.Load(*dir, *key, params)
 	if err != nil {

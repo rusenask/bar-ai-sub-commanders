@@ -416,6 +416,12 @@ D.tunable = {
 	focus_kill_time = { D.micro.focus, "killTime", 0.5, 4, "fire control: seconds of fire a target's health is weighed against", "army" },
 	focus_overkill = { D.micro.focus, "overkill", 1, 2.5, "fire control: fire on a target beyond its health x this spills to the next", "army" },
 	focus_armed = { D.micro.focus, "armed", 1, 6, "how much more armed enemies count as targets", "army" },
+	firebase_step = { D.firebase, "step", 150, 900, "firebases: how far past the frontier toward the enemy a new one goes", "defense" },
+	firebase_spacing = { D.firebase, "spacing", 500, 1500, "firebases: least distance between two", "defense" },
+	firebase_reach = { D.firebase, "reach", 0.3, 0.75, "firebases: furthest share of the way to their base", "defense" },
+	firebase_cover = { D.firebase, "cover", 500, 2000, "firebases: only within this of our army's squad (or behind it)", "defense" },
+	firebase_metal_weight = { D.firebase, "metalWeight", 0, 2, "firebases: how much free metal near a site counts", "defense" },
+	firebase_army_ratio = { D.firebase, "armyRatio", 0.3, 2, "firebases: a new one only while army value >= turret value x this", "defense" },
 }
 D.tuneEvery = 30 * 120 -- one change per rule per this many frames
 D.tuneStep = 0.5 -- a change moves a rule at most this fraction of its current value (or of its range near 0)

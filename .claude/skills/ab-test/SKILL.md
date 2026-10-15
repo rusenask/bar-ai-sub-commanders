@@ -120,6 +120,19 @@ Look at, in order: games lost, damage dealt / taken, metal produced, constructor
 treat a 1-game difference in losses as noise. If unclear, run 8 more games of both arms rather than
 arguing from the numbers.
 
+## Sequential tests and tuning (fewer games per decision)
+
+- **Sequential A/B, several challengers at once**: `uvx --with lightning-sdk python scripts/seqtest.py
+  --label <name> --baseline <A Widgets> --arms <B Widgets> [<C Widgets> ...]`. Rounds of 8 pairs per
+  challenger on the sandboxes; after each, the paired score verdict (99% at interim rounds, 95% at the
+  last of 4) stops a challenger that is decided. The default for version-vs-version tests (firebases,
+  strategic weapons); fixed 24-pair batches for anything else.
+- **Tuning numbers**: `uvx --with optuna --with lightning-sdk --with litlogger python scripts/tune.py
+  --key <study> --params <tunable rules> --games 24 --generations 4`. Optuna (TPE, or `--sampler cmaes`)
+  over a handful of `D.tunable` rules (`go run ./cmd/learn params` lists them), one rule set per game,
+  study kept in `~/bar-sim/optuna.db`. Its best set is a candidate: bake it into an arm and seqtest it.
+- `gamereport -confidence 0.99` sets the verdicts' interval level.
+
 ## The experiment tracker
 
 Every batch logs itself at the end to Lightning's experiment tracker (`scripts/track.py`, teamspace

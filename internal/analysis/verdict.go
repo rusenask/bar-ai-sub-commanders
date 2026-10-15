@@ -13,9 +13,24 @@ import (
 )
 
 // Verdict: is an arm really different from the baseline, and in which stage of the game? Each metric is
-// a per-game number; the difference of the arms' means gets a 95% bootstrap interval (resampling each
+// a per-game number; the difference of the arms' means gets a bootstrap interval (95%: Confidence) (resampling each
 // arm's games), and only an interval that leaves out zero says "better" or "worse". At 12 games a side
 // most single metrics say "can't tell": that is the honest answer, and the cue to run more games.
+
+// Confidence is the intervals' level (gamereport -confidence): 0.95 for a fixed-size test; a sequential
+// test (scripts/seqtest.py) looks several times and asks for more at the interim looks.
+var Confidence = 0.95
+
+// quantiles: the interval's ends in sorted bootstrap differences, at Confidence
+func quantiles(d []float64) (lo, hi float64) {
+	n := len(d)
+	tail := (1 - Confidence) / 2
+	i, j := int(float64(n)*tail), int(float64(n)*(1-tail))
+	if j >= n {
+		j = n - 1
+	}
+	return d[i], d[j]
+}
 
 // Stages of a game, by minute: an idea can pay in one and cost in another.
 var Stages = []struct {
@@ -166,7 +181,8 @@ func stratifiedInterval(a, b map[string][]float64, rng *rand.Rand) (diff, lo, hi
 		})
 	}
 	sort.Float64s(d)
-	return diff, d[n*25/1000], d[n*975/1000], true
+	lo, hi = quantiles(d)
+	return diff, lo, hi, true
 }
 
 // pairs: the two arms of an interleaved batch (testenv/sandbox/batch.py --widgets-b: <batch>-A and
@@ -223,7 +239,7 @@ func diffInterval(a, b []float64, rng *rand.Rand) (lo, hi float64) {
 		d[i] = meanOf(rb) - meanOf(ra)
 	}
 	sort.Float64s(d)
-	return d[n*25/1000], d[n*975/1000]
+	return quantiles(d)
 }
 
 // VerdictRow is one metric of one arm against the baseline.
@@ -294,8 +310,9 @@ func WriteVerdicts(w io.Writer, arms []Arm) {
 	vs := Verdicts(arms)
 	for _, arm := range arms[1:] {
 		rows := vs[arm.Label]
-		fmt.Fprintf(w, "\n### %s vs %s (95%% intervals of the difference; \"can't tell\" = the interval holds 0)\n\n", arm.Label, arms[0].Label)
-		fmt.Fprintln(w, "| Metric | Baseline | Arm | Difference [95%] | Games | Verdict |")
+		pct := int(math.Round(Confidence * 100))
+		fmt.Fprintf(w, "\n### %s vs %s (%d%% intervals of the difference; \"can't tell\" = the interval holds 0)\n\n", arm.Label, arms[0].Label, pct)
+		fmt.Fprintf(w, "| Metric | Baseline | Arm | Difference [%d%%] | Games | Verdict |\n", pct)
 		fmt.Fprintln(w, "|---|---|---|---|---|---|")
 		for _, r := range rows {
 			if r.Verdict == "too few games" {

@@ -29,6 +29,7 @@ import (
 func main() {
 	title := flag.String("title", "", "report title (default: the inputs)")
 	compare := flag.Bool("compare", false, "each argument is a directory of games (an arm): compare them")
+	confidence := flag.Float64("confidence", 0.95, "the verdicts' interval level (a sequential test asks for more at interim looks)")
 	benchFile := flag.String("bench", "", "benchmark JSON (default: the strong players' benchmark built into the binary)")
 	benchFrom := flag.String("bench-from", "", "build a benchmark from the data logger's JSONL files in this directory")
 	benchOut := flag.String("bench-out", "internal/analysis/benchmarks/pro-duel.json", "where -bench-from writes the benchmark")
@@ -42,6 +43,7 @@ func main() {
 	team := flag.Int("team", -1, "with -micro: only this team's fight samples in the commit table (0: ours in our own games)")
 	timeline := flag.Bool("timeline", false, "each argument is one game's harness log: show it minute by minute")
 	flag.Parse()
+	analysis.Confidence = *confidence
 
 	if *roles != "" {
 		players, err := analysis.ReadRoles(*roles)
