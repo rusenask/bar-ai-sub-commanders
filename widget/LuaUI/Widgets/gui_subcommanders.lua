@@ -2923,6 +2923,32 @@ end
 
 -- the economy's lab: the opening (constructors and raiders in doctrine order), then the income tier's mix
 -- of constructors and combat units; combat units go to an Army without a lab, else stay as a guard
+-- does any constructor of ours (any sub-commander's, or the player's) have this flag's structure in its options
+Engine.canBuildCache = {}
+function Engine.teamCanBuild(flag)
+	local c = Engine.canBuildCache[flag]
+	if c and frame - c.frame < 90 then
+		return c.v
+	end
+	local v = Engine.teamCanBuildNow(flag)
+	Engine.canBuildCache[flag] = { frame = frame, v = v }
+	return v
+end
+
+function Engine.teamCanBuildNow(flag)
+	for _, u in ipairs(Spring.GetTeamUnits(myTeam) or {}) do
+		local ud = unitDef(u)
+		if ud and ud.builder and not spGetUnitIsBeingBuilt(u) then
+			for _, o in ipairs(ud.options or {}) do
+				if defs[o] and defs[o][flag] then
+					return true
+				end
+			end
+		end
+	end
+	return false
+end
+
 function Engine.economyProduction(sub, facID, fd, cap)
 	local st = getState(facID)
 	st.handOff, st.handOffCombat, st.openingPending = nil, nil, nil
@@ -2935,7 +2961,9 @@ function Engine.economyProduction(sub, facID, fd, cap)
 				t2 = t2 + 1
 			end
 		end
-		if t2 < Engine.D.economy.t2Builders then
+		-- one more while a strategic structure is due that no constructor on the team can build (Jobs.strategic)
+		local want = Engine.D.economy.t2Builders + ((frame - (Engine.wantT2Builder or -99999) < 30 * 60) and 1 or 0)
+		if t2 < want then
 			-- the real T2 constructor (legack / armack / corack), else the builder with the most build
 			-- options: the cheapest "builder" was the Infestor, built 212 times in one batch
 			local cons = buildableBy(fd, function(od)
@@ -3310,14 +3338,18 @@ function Jobs.strategic(sub, unitID, d, ux, uz)
 	local intelRole = sub.role == "intelligence" or sub.role == "economy"
 	-- due but not started: say why, once in a while (no constructor that can build it, can't afford it)
 	local function blocked(what)
+		local can = #buildableBy(d, function(od)
+			return od[what]
+		end) > 0
+		-- nobody on the team can build it (tier 2): the T2 lab makes one more constructor (economyProduction)
+		if not can and not Engine.teamCanBuild(what) then
+			Engine.wantT2Builder = frame
+		end
 		local key = "strat:" .. what
 		if frame - (sub[key] or -99999) > 30 * 300 then
 			sub[key] = frame
-			local can = #buildableBy(d, function(od)
-				return od[what]
-			end) > 0
 			log(sub, sformat("%s due: %s", what, can and sformat("can't place or afford it yet (metal %d%%)", econ.mFrac * 100)
-				or "no constructor here can build it"))
+				or (Engine.teamCanBuild(what) and "waiting for a tier 2 constructor to be free" or "no constructor on the team can build it: asking for one")))
 		end
 	end
 	local hx, hz = Engine.homeX, Engine.homeZ
