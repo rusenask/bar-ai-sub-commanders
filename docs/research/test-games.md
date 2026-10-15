@@ -814,3 +814,17 @@ Counter matrix, flat sites (arm A of 20261015-0212-sbx-il-re-khold, 264 battles)
 - Wind turbines lost per game 79 -> 68 and 87 -> 46, economy buildings 192 -> 170 and 206 -> 137, but
   sandbox score -0.12 [-0.24, +0.00], extractors at 20 min -4.2 [-9.2, +1.2]: the walk to the back of
   the base costs the economy more than the raids did. Off. 72/72 ran.
+
+## Whole games, interleaved: spending overflowing metal (2x construction turrets per lab, 3 more labs while metal is 90% full) — kept
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-0443-sbx-g37-overflow-A (base) | 24 | 1 win, 14 timeout, 9 loss | 1 | 286.2k | 229 / 1176 | 0.73 | 21.1 | 12 / 20 | 3.6k |
+| 20261015-0443-sbx-g37-overflow-B (overflow spending) | 24 | 3 win, 14 timeout, 7 loss | 1 | 277.2k | 267 / 1109 | 0.71 | 18.0 | 13 / 18 | 3.6k |
+| 20261015-0443-force4-g37-overflow-A (base) | 12 | 3 win, 5 timeout, 4 loss | 1 | 228.5k | 208 / 811 | 0.78 | 11.8 | 11.5 / 20 | 3.6k |
+| 20261015-0443-force4-g37-overflow-B (overflow spending) | 12 | 3 win, 8 timeout, 1 loss | 0 | 351.7k | 244 / 1144 | 0.73 | 15.8 | 14 / 20 | 4.1k |
+
+- Both hosts pooled (36 pairs): mid enemy metal killed +2.7k [+0.6k, +5.0k] **better**, score +0.06
+  [-0.06, +0.20]; losses 13 -> 8, wins 4 -> 6. 72/72 ran, no crashes. On.
+- Energy first pooled the same way (36 pairs): late enemy metal killed +26k [+2k, +50k] better, score
+  +0.04 [-0.08, +0.15].

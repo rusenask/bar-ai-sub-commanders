@@ -175,7 +175,7 @@ D.economy = {
 	safeGenerators = false,
 	-- metal storage over `at` full: nanoMul x construction turrets per lab and extraFactories labs over the
 	-- cap (false: off; our games overflowed from minute 30 at 140-160 metal/s with 5 labs)
-	overflowSpend = false,
+	overflowSpend = { at = 0.9, nanoMul = 2, extraFactories = 3 },
 	-- construction turrets before more labs: 200 build power for 230 metal against a lab's 150 for 470;
 	-- a lab is saturated at 4-7 turrets (unit exit time), only then does another lab pay off
 	nanoFrom = 10, -- metal income the first lab uses on its own
