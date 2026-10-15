@@ -880,3 +880,25 @@ Counter matrix, flat sites (arm A of 20261015-0212-sbx-il-re-khold, 264 battles)
 
 - Medium: extractors at 20 min +7.5 [+2.6, +13.2] **better**, losses 13 -> 8, score +0.08 [-0.15, +0.30].
   On. Hard: no change (it kills the expansions; constructors lost 25 -> 34). 72/72 ran.
+
+## force, interleaved: Armada vs Cortex medium, ee612f3 vs now (12 pairs) — fine
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-0717-force4-g43-armada-old-vs-new-A (ee612f3) | 12 | 1 win, 6 timeout, 5 loss | 0 | 188.2k | 193 / 729 | 0.90 | 19.6 | 12 / 15.5 | 4.1k |
+| 20261015-0717-force4-g43-armada-old-vs-new-B (now) | 12 | 3 win, 4 timeout, 5 loss | 0 | 234.1k | 212 / 858 | 0.64 | 22.8 | 13.5 / 17.5 | 3.9k |
+
+- Score +0.07 [-0.14, +0.27]; extractors at 20 min +4.9 [+1.1, +8.6] better.
+
+## Cortex bisection (sandboxes, interleaved, 12 pairs each; B = now without one change)
+
+| Without | Score | Extractors at 20 min | Now's results in that batch |
+|---|---|---|---|
+| pressing the advantage | +0.08 [-0.00, +0.15] | **+6.2 [+0.6, +12.2] better** | 0 / 0 / 12 |
+| energy first | -0.08 [-0.36, +0.19] | +0.6 | 3 / 2 / 7 |
+| overflow spending | +0.18 [-0.01, +0.40] | **+5.2 [+0.6, +10.4] better** | 1 / 3 / 8 |
+| the concave | +0.04 [-0.04, +0.12] | +4.1 [-0.2, +8.7] | 1 / 4 / 7 |
+
+- Pressing costs Cortex most: its army leaves while BARbarian raids its base and expansions (Cortex's
+  known weak spot, minutes 9-25). Testing safe pressing (not while the team defends, nor with more of
+  their mobile units near home than the response squad). Overflow spending leans against Cortex too.
