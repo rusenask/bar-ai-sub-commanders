@@ -150,3 +150,21 @@ Our fights by strength ratio (share of each side's units able to shoot):
 - Every engaging unit fight-moves to the same point: the blob funnels in and only its front fires. The
   concave (sc_squads.lua arc) and BAR's roam move state are being tested on big-fight specs
   (testenv/battles-big).
+
+## Our games against BARbarian, by phase (24 games, full view; eco samples per team)
+
+| Minutes | Our army | BARbarian's army | Our extractors | Theirs | Our metal income | Theirs |
+|---|---|---|---|---|---|---|
+| 10-19 | 5.9k | 6.2k | 16 | 28 | 34 | 55 |
+| 20-29 | 15.7k | 7.9k | 22 | 45 | 70 | 96 |
+| 30-39 | 41.4k | 10.4k | 27 | 45 | 119 | 119 |
+| 40-49 | 80.0k | 25.6k | 30 | 42 | 163 | 138 |
+| 50-59 | 88.1k | 58.4k | 26 | 46 | 155 | 177 |
+| 60-69 | 95.8k | 98.5k | 24 | 51 | 156 | 202 |
+
+- From minute 20 to 50 our army is 3-4x theirs, and it spends that chasing their raiders at home
+  ("engaging intruders (6.3x)"): an army attacks only when no intruder is around, and against a
+  raiding opponent one always is. BARbarian takes nearly twice our extractors, overtakes our income
+  after minute 50 and wins late (29 of 42 losses at minutes 40-59, all "no units left").
+- Rules under test: press the advantage (2.5x their mobile army: go for their side), spend overflowing
+  metal (more turrets and labs).
