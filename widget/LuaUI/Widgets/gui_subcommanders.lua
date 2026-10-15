@@ -1227,6 +1227,11 @@ function Jobs.buildPower(sub, unitID, d, ux, uz)
 	local o = options[1]
 	local reach = defs[o].buildRange
 	local limit = Engine.D.economy.nanosPerLab
+	-- metal overflowing: more construction turrets per lab (doctrine.economy.overflowSpend)
+	local OS = Engine.D.economy.overflowSpend
+	if OS and econ.mFrac > OS.at then
+		limit = limit * OS.nanoMul
+	end
 	local best, bestN
 	for _, teamID in ipairs({ myTeam }) do
 		for _, u in ipairs(Spring.GetTeamUnits(teamID) or {}) do
@@ -1907,7 +1912,10 @@ function Jobs.newFactory(sub, unitID, d, ux, uz)
 			want = want + 1
 		end
 	end
-	if have >= min(want, E.maxFactories) then
+	-- metal overflowing (doctrine.economy.overflowSpend): labs beyond the cap to spend it
+	local OS = E.overflowSpend
+	local cap = E.maxFactories + ((OS and econ.mFrac > OS.at) and OS.extraFactories or 0)
+	if have >= min(want, cap) then
 		return false
 	end
 	-- construction turrets first: another lab only once every lab has its turrets, as long as energy can

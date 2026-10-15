@@ -170,6 +170,9 @@ D.economy = {
 	-- generators (unless energy is nearly out) behind the base, away from the enemy and out of known threat
 	-- (false: next to the builder)
 	safeGenerators = false,
+	-- metal storage over `at` full: nanoMul x construction turrets per lab and extraFactories labs over the
+	-- cap (false: off; our games overflowed from minute 30 at 140-160 metal/s with 5 labs)
+	overflowSpend = false,
 	-- construction turrets before more labs: 200 build power for 230 metal against a lab's 150 for 470;
 	-- a lab is saturated at 4-7 turrets (unit exit time), only then does another lab pay off
 	nanoFrom = 10, -- metal income the first lab uses on its own
