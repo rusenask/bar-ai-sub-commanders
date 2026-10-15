@@ -1520,3 +1520,13 @@ Each feature on its own (arm B, per game it was used in):
 - Income at 20 min **better** +9.2 [+0.4, +18.6], extractors at 20 min **better** +4.1 [+0.1, +8.6], late
   kills **better** +3.8k; late metal lost worse +37.8k (more metal to lose: 53.5k -> 72.5k). Opening kills
   not restored (-65, can't tell): the leash wasn't the cause of the opening drop. **Kept.**
+
+## Finisher v1 with Legion (sequential, sandboxes, Legion vs Armada medium, 32 pairs)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261016-0138-seq-finisher-legion-b-A (off) | 32 | 21 win, 4 timeout, 7 loss | 3 | 165.4k | 219 / 641 | 0.85 | 14.5 | 10.5 / 18 | 3.7k |
+| 20261016-0138-seq-finisher-legion-b-B (on) | 32 | 18 win, 5 timeout, 9 loss | 2 | 193.7k | 234 / 694 | 0.90 | 18.7 | 12 / 20 | 3.9k |
+
+- -0.07 [-0.27, +0.12], can't tell; mid enemy metal killed **worse** -2.1k [-4.3k, -0.2k] (Armada: +4.9k
+  better); factory engagements 30 -> 158. Finisher v2: only from minute 25 (the late timeouts it's for).

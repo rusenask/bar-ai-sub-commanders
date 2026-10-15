@@ -28,7 +28,9 @@ D.engage = {
 	reinforce = { radius = 1600, weight = 0.6 },
 	-- finishing: their factories stay attack / raid targets until seen gone, and with none known their start
 	-- position counts as their base, worth baseValue (false: only structures seen in the last 10 minutes)
-	finish = { baseValue = 1500 },
+	-- v2: only from `minute` (v1 all game: mid kills +4.9k for Armada but -2.1k for Legion, the army sent at
+	-- their defended factories too early; it's for the late games that timed out)
+	finish = { baseValue = 1500, minute = 25 },
 	cohesion = 650, -- units farther than this from the squad centre regroup first
 	-- marching to a target: while the main body is farther than `contact` from it, a unit more than `leash`
 	-- ahead of the body waits (false: every unit at its own speed, the fast ones first and alone)

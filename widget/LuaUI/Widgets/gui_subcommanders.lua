@@ -4799,7 +4799,8 @@ function Engine.raidCandidates(withBase)
 			-- factories stay targets until seen gone (doctrine.engage.finish): late in a game we often hadn't
 			-- seen their base in 10 minutes, and a 115k army had nothing there to go for (timed out vs medium)
 			local F = Engine.D.engage.finish
-			if (age < 30 * 600 or (F and d.factory)) and not d.staticDef then
+			local late = F and Engine.minute() >= (F.minute or 0)
+			if (age < 30 * 600 or (late and d.factory)) and not d.staticDef then
 				-- their long-range cannons and nuke silos: what the army and the strikes go for first
 				kind = ((d.lrpc or d.nukeSilo) and "artillery") or (d.mex > 0 and "extractor") or (d.energy > 0 and "generator") or (d.factory and "factory") or (d.intelStructure and "radar") or "structure"
 			end
@@ -4812,7 +4813,7 @@ function Engine.raidCandidates(withBase)
 	end
 	-- no factory of theirs known: their start position stands for their base (doctrine.engage.finish)
 	local F = Engine.D.engage.finish
-	if withBase and F and Engine.enemyX then
+	if withBase and F and Engine.enemyX and Engine.minute() >= (F.minute or 0) then
 		local haveFactory = false
 		for _, c in ipairs(list) do
 			haveFactory = haveFactory or c.kind == "factory"
