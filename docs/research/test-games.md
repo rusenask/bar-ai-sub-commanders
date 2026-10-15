@@ -1497,3 +1497,15 @@ Each feature on its own (arm B, per game it was used in):
 - -0.02 [-0.20, +0.16], can't tell; extractors at 20 min -4.3 [-8.7, +0.2] (leaning worse, as against
   hard: -2.4); lost games lasted longer (+10 min, 7-8 games). Raids cost the economy more with the army
   away: **not adopted** (the bar stays max(600, 8%)).
+
+## All of 2026-10-15's changes against hard (force, Legion vs Armada hard, 24 pairs)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261016-0102-force-g82-today-vs-hard-A (b8a7b41, the morning's) | 24 | 24 loss | 3 | 59.0k | 59 / 391 | 0.52 | 25.4 | 12.5 / 15 | 3.3k |
+| 20261016-0102-force-g82-today-vs-hard-B (main: factory fixes, anti-nuke v2, march, anti-air behind, T2 on demand, hardening, fog-aware odds, finisher) | 24 | 24 loss | 4 | 78.3k | 82 / 482 | 0.52 | 32.5 | 13 / 18.5 | 4.0k |
+
+- Still every game lost. Minutes survived +1.8 [-1.4, +5.8]; metal 59k -> 78k; army at 12 min +456;
+  mid kills +2.5k (leaning better); extractors lost in minutes 10-25 1035 -> 941; anti-air lost 199 ->
+  150. Opening enemy metal killed **worse** -203 [-378, -38]: the third test in a row with fewer opening
+  kills (g77, g80): one of the day's changes touches the opening (factory queue ahead?). Next to look at.
