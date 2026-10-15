@@ -28,6 +28,20 @@ return {
 		T.eq((S.decide(weak, 2000, 2000, 0, { engaged = true, support = 0 })), "fallback", "0.75x in a fight away from home")
 		T.eq((S.decide(weak, 2000, 2000, 0, { engaged = true, support = 100 })), "engage", "turret support holds it")
 	end,
+	reinforcements_nearby_count = function()
+		local tm = F.map()
+		local S = T.load("sc_squads")({ tm = tm, doctrine = F.doctrine })
+		for i = 1, 4 do
+			tm.see(i, 1, 2000 + i * 10, 2000, 0) -- 400 metal at the target
+		end
+		local sq = S.summarize({ { x = 1500, z = 2000, cost = 600 } })
+		T.eq((S.decide(sq, 2000, 2000, 0)), "engage", "1.5x against the target alone")
+		for i = 5, 8 do
+			tm.see(i, 1, 3200 + i * 10, 2000, 0) -- 400 more, 1200 away: they join the fight
+		end
+		local _, ratio = S.decide(sq, 2000, 2000, 0)
+		T.ok(ratio < 1.2, "their army nearby counts: " .. ratio)
+	end,
 	regroup_when_spread = function()
 		local tm = F.map()
 		local S = T.load("sc_squads")({ tm = tm, doctrine = F.doctrine })

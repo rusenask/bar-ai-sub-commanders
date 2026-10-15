@@ -23,6 +23,9 @@ D.engage = {
 	hold = 0.8, -- keep fighting while at least this strong
 	defend = 0.5, -- inside our base, with turret support, fight down to this
 	radius = 700, -- "local": around the target / the squad
+	-- their mobile forces within `radius` (but beyond the local one) count at `weight` in the odds: they join
+	-- the fight (false: only what's within the local radius)
+	reinforce = { radius = 1600, weight = 0.6 },
 	cohesion = 650, -- units farther than this from the squad centre regroup first
 	-- marching to a target: while the main body is farther than `contact` from it, a unit more than `leash`
 	-- ahead of the body waits (false: every unit at its own speed, the fast ones first and alone)

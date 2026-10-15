@@ -52,6 +52,15 @@ return function(ctx)
 	-- our power against theirs around a target. support: our turrets' value around the target
 	function S.ratio(squad, tx, tz, frame, support)
 		local theirs = tm.enemyPower(tx, tz, E.radius, frame)
+		-- their mobile forces just beyond the fight join it within seconds (doctrine.engage.reinforce):
+		-- counted at a weight. Against hard a quarter of our engagements saw the odds fall under 0.7x within
+		-- a minute: we judged the target alone and met their army
+		local R = E.reinforce
+		if R then
+			local near = tm.enemyPower(tx, tz, E.radius, frame, { mobileOnly = true })
+			local wide = tm.enemyPower(tx, tz, R.radius, frame, { mobileOnly = true })
+			theirs = theirs + R.weight * max(wide - near, 0)
+		end
 		local ours = squad.together + (support or 0)
 		return ours / max(theirs, 1), ours, theirs
 	end
