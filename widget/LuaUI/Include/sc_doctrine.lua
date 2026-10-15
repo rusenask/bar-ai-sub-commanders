@@ -405,10 +405,13 @@ D.cloak = false
 
 D.factions = {
 	armada = {
-		-- the clandestine faction: Gremlins (T2 bots, cloaking, 230 metal) and Sharpshooters (cloaking
+		-- the clandestine faction: Gremlins (T2 vehicles, cloaking, 230 metal) and Sharpshooters (cloaking
 		-- snipers) stay cloaked; six Gremlins kept for raids on their economy
 		{ "cloak", { keepOn = true, raid = true } },
-		{ "production.quota", { armgremlin = 6 } },
+		-- Gremlins come from the T2 vehicle plant, which only a construction vehicle builds (our games go
+		-- the bot route): keep one, and the plant from 50 metal/s
+		{ "production.quota", { armgremlin = 6, armcv = 1 } },
+		{ "escalation.t2VehicleIncome", 50 },
 	},
 	cortex = {
 		-- the Tzar (corgol: 1650 metal, 7800 health, T2 vehicles) is Cortex's decisive unit: its T2 vehicle

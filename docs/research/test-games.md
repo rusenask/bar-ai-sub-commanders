@@ -972,3 +972,17 @@ Counter matrix, flat sites (arm A of 20261015-0212-sbx-il-re-khold, 264 battles)
   bot route, and only a construction vehicle (corcv) can build the T2 vehicle plant (corvp's cheapest
   constructor is the Trapper mine layer). Overlay now keeps one corcv; re-testing, counting Tzars.
 - Classifier fix on Legion: score -0.21 [-0.50, +0.06] (wins 8 -> 5); re-testing with 24 pairs.
+
+## Armada cloak overlay, first test (both hosts, 36 pairs) — no Gremlins built
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-1038-sbx-g49-armada-cloak-A (no overlay) | 24 | 13 win, 5 timeout, 6 loss | 0 | 149.9k | 217 / 553 | 0.84 | 15.5 | 13 / 18 | 5.0k |
+| 20261015-1038-sbx-g49-armada-cloak-B (overlay) | 24 | 15 win, 1 timeout, 8 loss | 2 | 144.0k | 201 / 460 | 0.89 | 13.9 | 12.5 / 20 | 4.9k |
+| 20261015-1038-force4-g49-armada-cloak-A (no overlay) | 12 | 8 win, 1 timeout, 3 loss | 0 | 164.8k | 264 / 480 | 0.85 | 10.8 | 13.5 / 22 | 4.3k |
+| 20261015-1038-force4-g49-armada-cloak-B (overlay) | 12 | 7 win, 2 timeout, 3 loss | 1 | 148.0k | 181 / 496 | 0.93 | 11.8 | 13.5 / 22 | 4.6k |
+
+- Pooled score -0.01 [-0.19, +0.18]: no Gremlin was built (they come from the T2 vehicle plant, which
+  only a construction vehicle builds; our games go the bot route), only Sharpshooters were kept cloaked.
+  Overlay now keeps one armcv and the plant from 50 metal/s; re-testing.
+- Armada vs Cortex medium now: 21 wins, 6 alive, 9 lost of 36 (no overlay).
