@@ -1093,3 +1093,17 @@ Counter matrix, flat sites (arm A of 20261015-0212-sbx-il-re-khold, 264 battles)
 - **Better**: score +0.10 [+0.00, +0.21]; army at 12 min +1.4k [+0.7k, +2.2k]; mid metal lost -9.4k
   [-14.7k, -3.7k]. Vehicle plant by minute 12 in 24 of 24 games (8 in A). On in the Cortex overlay;
   the Armada test (force-g56) decides the default.
+
+## Second factory from 18 metal/s, Armada (force, 24 pairs, vs Cortex medium; Armada overlay in both)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-1251-force-g56-armada-secondlab-A (overflow only) | 24 | 11 win, 7 timeout, 6 loss | 0 | 202.1k | 220 / 627 | 0.78 | 17.2 | 12 / 23.5 | 4.1k |
+| 20261015-1251-force-g56-armada-secondlab-B (from 18 metal/s) | 24 | 10 win, 7 timeout, 7 loss | 0 | 169.3k | 227 / 503 | 0.87 | 10.1 | 13 / 16 | 5.3k |
+
+- Score -0.02 [-0.27, +0.22], can't tell. Army at 12 min **better** +1.15k [+0.3k, +2.0k], opening
+  kills and mid metal lost **better**, but extractors at 20 min **worse** -6.9 [-10.7, -2.9] and total
+  metal 169k vs 202k: the two plants drain metal into the army (46 units by minute 25) and expansion
+  starves (constructors alive at minute 20: 5.6 vs 11.2). Kept for Cortex only; for Armada (which
+  already wins most of these) the trade is a wash. A second lab that leaves the economy its share is
+  the follow-up.
