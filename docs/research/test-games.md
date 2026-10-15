@@ -828,3 +828,18 @@ Counter matrix, flat sites (arm A of 20261015-0212-sbx-il-re-khold, 264 battles)
   [-0.06, +0.20]; losses 13 -> 8, wins 4 -> 6. 72/72 ran, no crashes. On.
 - Energy first pooled the same way (36 pairs): late enemy metal killed +26k [+2k, +50k] better, score
   +0.04 [-0.08, +0.15].
+
+## Whole games, interleaved: pressing the advantage (2.5x their mobile army: go for their side) — kept
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-0527-sbx-g38-dominance-A (base) | 24 | 4 win, 12 timeout, 8 loss | 2 | 267.2k | 282 / 1138 | 0.74 | 20.4 | 11 / 20 | 3.6k |
+| 20261015-0527-sbx-g38-dominance-B (pressing) | 24 | **10 win**, 6 timeout, 8 loss | 1 | 194.2k | 263 / 801 | 0.82 | 19.6 | 11.5 / 16.5 | 3.6k |
+| 20261015-0527-force4-g38-dominance-A (base) | 12 | 2 win, 6 timeout, 4 loss | 2 | 289.9k | 262 / 1105 | 0.69 | 15.2 | 13.5 / 19 | 4.0k |
+| 20261015-0527-force4-g38-dominance-B (pressing) | 12 | **6 win**, 2 timeout, 4 loss | 0 | 270.7k | 250 / 856 | 0.67 | 15.2 | 12.5 / 22 | 4.0k |
+
+- Pooled 36 pairs: score **+0.19 [+0.03, +0.34] better**, late metal lost **-53k [-96k, -11k] better**;
+  wins 6 -> 16, losses 12 -> 12. The rule fired 878 times. 72/72 ran, no crashes. On.
+- Against BARbarian medium we now win more than we lose (16 / 8 / 12).
+- Found by replaying our games with full view: our army was 3-4x theirs from minute 20 to 50 and spent
+  it on their raiders at home.

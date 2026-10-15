@@ -17,6 +17,10 @@ out wrong.
   (engine-v2/v3 hard)
 - Offline model accuracy isn't game strength: the fight model (AUC 0.81) gave more kills and more lost
   games. (decision model arm F)
+- The biggest gain came from looking at the whole game with full view, not at fights: our army was 3-4x
+  BARbarian's for 30 minutes and never attacked, because any intruder at home took priority. One rule
+  (2.5x their mobile army: go for their side) moved wins from 6 to 16 of 36. Before tuning micro, check
+  what the army does with the advantage it has. (g38)
 - Lab wins in narrow scenarios don't add up to games: kiting while holding (+0.19 on the counter matrix)
   and the contact fallback (+0.34..+0.59 on defend / retreat specs) were neutral to worse in 36 game pairs.
   The concave, which won where most metal fights (big fights, +0.61), was the one that held in games.
