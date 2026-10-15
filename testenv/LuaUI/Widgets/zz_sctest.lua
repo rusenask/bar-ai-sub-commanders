@@ -174,6 +174,11 @@ function widget:UnitDestroyed(unitID, unitDefID, unitTeam, attackerID, attackerD
 	local by = attackerDefID and UnitDefs[attackerDefID] and UnitDefs[attackerDefID].name or "?"
 	local api = WG.SubCommanders
 	local feature = api and api.featureOf and (mine and api.featureOf(unitID) or (attackerID and attackerTeam == myTeam and api.featureOf(attackerID))) or nil
+	-- widgets aren't told who killed an enemy unit (every kill logged by=?): the widget credits its own
+	-- operations (a cannon's target, inside a nuke's or Juno's blast, in a firebase turret's range)
+	if not mine and not feature and api and api.killCredit and x then
+		feature = api.killCredit(unitID, unitDefID, x, z)
+	end
 	out(string.format("%s minute=%d kind=%s name=%s cost=%d x=%d z=%d by=%s%s", mine and "lost" or "killed",
 		(Spring.GetGameFrame() - startOffset) / 1800, ((d.kind or "?"):gsub(" ", "_")), UnitDefs[unitDefID].name, d.cost, x or -1, z or -1,
 		by, feature and (" feature=" .. feature) or ""))

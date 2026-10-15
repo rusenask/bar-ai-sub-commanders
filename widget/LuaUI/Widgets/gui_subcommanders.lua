@@ -1725,6 +1725,46 @@ function Engine.featureOf(unitID)
 	return nil
 end
 
+-- which of our features an enemy unit's death goes to (widgets aren't told the killer): a long-range
+-- cannon's current target; inside a nuke's or a Juno's blast within 20 s of the shot (Juno: their
+-- intel structures and mines only); in weapon range of a turret of a firebase. nil otherwise
+function Engine.killCredit(unitID, defID, x, z)
+	for _, u in ipairs(Engine.ourStrategic().lrpc) do
+		local st = ustate[u]
+		if st and st.lrpcTarget == unitID then
+			return "lrpc"
+		end
+	end
+	-- within secs of the order (a nuke flies for a while: 60 s)
+	local function blast(b, secs)
+		return b and frame - b.frame <= 30 * (secs or 20) and dist2(x, z, b.x, b.z) <= b.r * b.r
+	end
+	if blast(Engine.lastNukeAt, 60) then
+		return "nuke"
+	end
+	local ed = defs[defID]
+	if ed and blast(Engine.lastJunoAt) and ((ed.jammer or 0) > 0 or ed.intelStructure or ed.mine or ed.kind == "radar" or ed.kind == "camera") then
+		return "juno"
+	end
+	if Engine.D.firebase.on then
+		local R = Engine.D.firebase.radius
+		for _, b in ipairs(Engine.firebases) do
+			if dist2(x, z, b.x, b.z) <= (R + 1300) ^ 2 then
+				for _, u in ipairs(spGetUnitsInCylinder(b.x, b.z, R)) do
+					local ud = spGetUnitTeam(u) == myTeam and unitDef(u)
+					if ud and ud.staticDef and not ud.mobile then
+						local ux, _, uz = spGetUnitPosition(u)
+						if ux and dist2(x, z, ux, uz) <= (ud.range + 32) ^ 2 then
+							return "firebase"
+						end
+					end
+				end
+			end
+		end
+	end
+	return nil
+end
+
 function Engine.featureSpend(unitID, d)
 	local f = Engine.featureOf(unitID)
 	if f and f ~= "raised" then
@@ -3478,6 +3518,7 @@ function Engine.strategicControl()
 					if x then
 						order(u, CMD.ATTACK, { x, spGetGroundHeight(x, z), z })
 						st.junoNext = frame + 30 * 20
+						Engine.lastJunoAt = { x = x, z = z, r = G.juno.aoe, frame = frame }
 						local sub = owner[u]
 						if sub then
 							log(sub, sformat("Juno on %d of their radar / jammers / mines at %d,%d", n, x, z))
@@ -3543,6 +3584,7 @@ function Engine.strategicControl()
 				if x then
 					order(u, CMD.ATTACK, { x, spGetGroundHeight(x, z), z })
 					Engine.lastNuke = frame
+					Engine.lastNukeAt = { x = x, z = z, r = ud.weaponAoe or 640, frame = frame }
 					if owner[u] then
 						log(owner[u], sformat("%s: nuke on %d metal of theirs at %d,%d (%d anti-nukes known)", ud.human, v, x, z, #antis))
 					end
@@ -6926,6 +6968,9 @@ local function exportAPI()
 		end,
 		featureOf = function(unitID)
 			return Engine.featureOf(unitID)
+		end,
+		killCredit = function(unitID, defID, x, z)
+			return Engine.killCredit(unitID, defID, x, z)
 		end,
 		features = function()
 			return Engine.features
