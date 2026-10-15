@@ -34,3 +34,12 @@ What your units already do:
 - Killing enemy radar blinds their artillery; fresh enemy cameras near our base mean they're watching.
 - Track `newKinds`: the enemy switching to air, artillery or T2 is the most important thing you can report.
   When you see it, tell the player (once) what's coming and from where.
+
+## Juno
+
+A Juno (T1, ~650 metal, any constructor) fires a stockpiled missile anywhere on the map whose blast (700
+radius) destroys radar, jammers, cameras and mines without hurting units. When the doctrine turns it on,
+your constructors build one once two of their intel structures are known, and it fires at their densest
+cluster: their artillery and bombers go blind, their hidden army shows up on our radar. Say so to the
+player when their jammers hide an army.
+

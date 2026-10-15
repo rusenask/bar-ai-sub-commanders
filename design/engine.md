@@ -261,3 +261,22 @@ and are kept only when that faction's own interleaved games say so:
 Unit kinds come from the game's own data (`testenv/LuaUI/Widgets/zz_defsdump.lua` dumps every unit's
 cost, tech, cloak, stealth, health, range): an armoured long-range unit (4000+ health, 3.5+ per metal) is a
 heavy, not a kiting skirmisher.
+
+## Strategic structures (sc_strategic.lua, doctrine.strategic)
+
+Built from the game's own unit data (unitkinds flags: antinuke, shieldGen, lrpc, juno, nukeSilo, rezBot),
+each switched on by doctrine once its games say so:
+
+- **Anti-nuke** (Defense, Economy without one): as soon as a nuke silo of theirs is known, or from minute
+  30 at 60 metal/s; interceptors kept stockpiled (2).
+- **Shield** over the labs (Defense): once their long-range cannons or a real air force are seen, or from
+  minute 35, at 80 metal/s.
+- **Long-range plasma cannons** (Basilica / Basilisk / Olympus, range ~4800; Defense): from minute 25 at
+  100 metal/s, at the first place on the way to their base that reaches it and that no known enemy weapon
+  covers. Fire control every 2 s: their cannons and nuke silos first, then labs, big power, shields,
+  extractors; nothing under their shields (the shot only drains them).
+- **Their cannons and silos** are the army's and the strikes' first targets (ATTACK_PREFER artillery 4).
+- **Juno** (Intelligence): built once two of their radar / jammers / mines are known; fired (stockpiled)
+  at the densest cluster within its 700 radius every 20 s at most.
+- **Resurrection** (Lazarus / Graverobber / Zagreus): two kept (production quota), raising the most metal
+  for the walk among the wrecks near home or the army, out of known threat.
