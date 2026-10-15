@@ -944,3 +944,17 @@ Counter matrix, flat sites (arm A of 20261015-0212-sbx-il-re-khold, 264 battles)
   -8.3 [-13.6, -3.4] worse. Off.
 - Cortex spends nearly as much on turrets as on its army at minutes 10-14 (1.6k v 1.9k; Legion 1.8k v
   5.9k at 10-19): next, a smaller turret budget for it.
+
+## Cortex with half the turret budget (both hosts, 36 pairs) — worse, not kept
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-0935-sbx-g47-cortex-turrets-half-A (full) | 24 | 3 win, 6 timeout, 15 loss | 5 | 144.6k | 121 / 628 | 0.56 | 22.9 | 12 / 17 | 2.1k |
+| 20261015-0935-sbx-g47-cortex-turrets-half-B (half) | 24 | 1 win, 5 timeout, 18 loss | 2 | 109.1k | 117 / 710 | 0.58 | 35.2 | 12 / 13 | 2.2k |
+| 20261015-0935-force4-g47-cortex-turrets-half-A (full) | 12 | 5 timeout, 7 loss | 1 | 175.5k | 119 / 826 | 0.49 | 25.7 | 12.5 / 8 | 1.8k |
+| 20261015-0935-force4-g47-cortex-turrets-half-B (half) | 12 | 2 timeout, 10 loss | 1 | 83.7k | 84 / 607 | 0.52 | 35.0 | 10.5 / 11 | 1.8k |
+
+- Pooled: score -0.04 [-0.15, +0.07], extractors at 20 min -3.7 [-8.8, +1.4], army at 12 min +0.2k;
+  losses 22 -> 28, constructors lost ~24 -> 35. The turret metal didn't become army; the turrets were
+  what kept Cortex's constructors alive. Cortex's early army gap is elsewhere (unit choice or
+  production), for a per-faction look.
