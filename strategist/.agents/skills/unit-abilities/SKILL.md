@@ -37,8 +37,8 @@ The full catalogue (every unit, its cost, health, range and abilities, from the 
 ## What our sub-commanders already use
 
 Radar, jammers, sonar and seismic detectors (Intelligence), the commander's D-gun, energy converters and
-geothermal (Economy), and since 2026-10-15 cloaking (Armada) and the Tzar as Cortex's heavy (the faction
-doctrine overlays). On by default (`doctrine.strategic`): an anti-nuke with stockpiled interceptors once
+geothermal (Economy), and since 2026-10-15 the faction doctrine overlays: Armada keeps Gremlins cloaked for raids,
+Legion fields Mantis drone carriers and Cleaver cluster skirmishers, Cortex adds a vehicle plant early. On by default (`doctrine.strategic`): an anti-nuke with stockpiled interceptors once
 their nuke silo is seen, and a shield over the labs once their long-range cannons or a real air force
 are seen. Built and working but off, because they cost more than they won in tests: long-range plasma
 cannons with fire control, a Juno silo fired on their radar/jammer clusters, resurrection bots. Suggest
