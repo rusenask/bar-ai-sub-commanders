@@ -1466,3 +1466,13 @@ Each feature on its own (arm B, per game it was used in):
   as "their base" for the army's attack when none is known): testing (force-g81).
 - The Cortex review (24 games) misread holds ("too strong here, 0.4x") as engagements and single-intruder
   odds (660-8141x) as charges again; its "never converts mass into a decisive push" checked out.
+
+## Fog-aware odds against medium (sequential, sandboxes, Legion vs Armada, 32 pairs)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-2312-seq-reinforce-b-A (off) | 32 | 17 win, 6 timeout, 9 loss | 2 | 172.8k | 205 / 685 | 0.82 | 17.0 | 10.5 / 18 | 3.5k |
+| 20261015-2312-seq-reinforce-b-B (on) | 32 | 19 win, 5 timeout, 8 loss | 0 | 201.2k | 240 / 810 | 0.87 | 19.8 | 11 / 18 | 3.8k |
+
+- +0.07 [-0.13, +0.26], can't tell; army at 12 min **better** +599 [+151, +1.1k], mid metal lost
+  -3.0k (leaning better). Neutral against hard (g78): **kept on**.
