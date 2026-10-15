@@ -1023,7 +1023,10 @@ local function buildCheapestUseful(sub, unitID, d, ax, az, filter, value, why, k
 	for i = 1, min(#options, 3) do
 		local o = options[i]
 		if canSpend(sub, defs[o], kind) then
-			local x, z = findBuildSpot(sub, o, ax, az, { gap = gap or Lanes.gapFor(defs[o]), rings = 12 })
+			-- strategic structures stand where they must (a cannon's site toward the enemy, a silo behind the
+			-- base), outside the builder's zones: in zone only, a cannon was "can't place" 63 times with metal
+			-- 52-99% full (g70)
+			local x, z = findBuildSpot(sub, o, ax, az, { gap = gap or Lanes.gapFor(defs[o]), rings = 12, anywhere = kind == "strategic" })
 			if x then
 				return issueBuild(sub, unitID, o, x, z, 0, why)
 			end
@@ -3369,7 +3372,9 @@ function Jobs.strategic(sub, unitID, d, ux, uz)
 				if x then
 					for _, e in pairs(Enemy.units) do
 						local ed = defs[e.defID]
-						if ed and not ed.mobile and frame - e.last < 30 * 600 and dist2(x, z, e.x, e.z) <= (range * 0.95) ^ 2 then
+						-- every structure of theirs we have seen (they don't move; the 10-minute window missed most of
+						-- their base: "only N metal in reach" 90+ times in g70)
+						if ed and not ed.mobile and dist2(x, z, e.x, e.z) <= (range * 0.95) ^ 2 then
 							inReach = inReach + ed.cost
 						end
 					end

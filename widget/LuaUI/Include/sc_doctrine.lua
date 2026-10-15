@@ -450,7 +450,9 @@ D.strategic = {
 	-- or with a surplus (`income` and metal storage `surplus` full) while the team isn't defending, and
 	-- only where `minTargetValue` metal of their structures is in reach (v1, from minute 25 at 100 metal/s,
 	-- was part of the package that lost -0.27, g54)
-	lrpc = { on = true, minute = 20, income = 80, surplus = 0.5, minTargetValue = 3000, max = 2, reach = 0.9, maxCost = 8000, minValue = 300,
+	-- v3: placed outside the builder's zones, every structure of theirs ever seen counts in reach, 1500 (v2:
+	-- in zone only, seen in 10 min, 3000: built in 7 of 24 games)
+	lrpc = { on = true, minute = 20, income = 80, surplus = 0.5, minTargetValue = 1500, max = 2, reach = 0.9, maxCost = 8000, minValue = 300,
 		weights = { lrpc = 6, nuke = 6, antinuke = 4, factory = 5, energy = 3, shield = 3, extractor = 2, turret = 1, other = 0.5 } },
 	-- nuke silo (Armageddon / Apocalypse / Supernova: ~8000 metal; each missile 1000-1500 metal and 125-190k
 	-- energy): late, with a big economy (`income` metal/s, `energy` energy/s, metal storage `surplus` full,
