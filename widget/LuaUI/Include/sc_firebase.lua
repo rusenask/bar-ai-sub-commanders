@@ -3,7 +3,7 @@
 -- a radar, a heavy, anti-air once they fly, a long-range turret later); once complete the next one goes
 -- further out from the new frontier (territory follows our structures), so the line creeps forward and
 -- the army has a strong point to fall back on and push from. BARbarian hard grows every radar into one.
---   site(pickets, home, enemy, bases, threatAt)  where the next firebase goes ({ x, z } or nil)
+--   site(pickets, home, enemy, bases, threatAt, metalAt)  where the next firebase goes ({ x, z } or nil)
 --   nextLayer(have, airShare, minute, income)    the role a firebase builds next, or nil (complete)
 --   offset(role)                                  where in the base a role stands (forward, back)
 --
@@ -23,8 +23,9 @@ return function(ctx)
 	-- pickets: the territory's frontier points { x, z, score } (sc_territory.pickets). From each, a point
 	-- `step` further toward the enemy (or half that, or the picket itself) that no known enemy weapon
 	-- covers, no nearer than `spacing` to another firebase, and no further from home than `reach` of the
-	-- way to their base. The best by the picket's score times how far forward it is
-	function F.site(pickets, home, enemy, bases, threatAt)
+	-- way to their base. The best by the picket's score times how far forward it is, times
+	-- (1 + metalWeight x free metal spots near it: metalAt(x, z) -> count; creeping is for territory's metal)
+	function F.site(pickets, home, enemy, bases, threatAt, metalAt)
 		local C = D.firebase
 		local full = max(sqrt(d2(home.x, home.z, enemy.x, enemy.z)), 1)
 		local ax, az = (enemy.x - home.x) / full, (enemy.z - home.z) / full
@@ -42,7 +43,7 @@ return function(ctx)
 					end
 				end
 				if ok then
-					local score = (p.score or 1) * (1 + max(forward, 0) / full)
+					local score = (p.score or 1) * (1 + max(forward, 0) / full) * (1 + (C.metalWeight or 0) * (metalAt and metalAt(x, z) or 0))
 					if not bestScore or score > bestScore then
 						best, bestScore = { x = x, z = z }, score
 					end

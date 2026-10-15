@@ -36,6 +36,14 @@ return {
 		local s = FB.site({ { x = 2000, z = 2000, score = 1 }, { x = 2000, z = -2000, score = 3 } }, home, enemy, {}, safe)
 		T.ok(s.z < 0, "the higher-scored picket")
 	end,
+	site_prefers_free_metal = function()
+		local FB = firebase()
+		local pickets = { { x = 2000, z = 2000, score = 1 }, { x = 2000, z = -2000, score = 1 } }
+		local s = FB.site(pickets, home, enemy, {}, safe, function(_, z)
+			return z > 0 and 3 or 0
+		end)
+		T.ok(s.z > 0, "the side with metal")
+	end,
 	layers_in_order_with_air_and_late_conditions = function()
 		local FB = firebase()
 		T.eq(FB.nextLayer({}, 0, 5, 20), "light")

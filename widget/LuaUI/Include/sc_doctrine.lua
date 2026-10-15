@@ -238,6 +238,11 @@ D.firebase = {
 	spacing = 900, -- between firebases
 	reach = 0.55, -- no further than this share of the way to their base
 	radius = 300, -- what stands within this belongs to the firebase
+	-- v3: sites near free metal score higher (1 + metalWeight x spots within metalRadius), and a metal spot
+	-- within expandRadius of a firebase with two turrets standing is safe to take for the economy
+	metalWeight = 0.5,
+	metalRadius = 600,
+	expandRadius = 700,
 	budget = 1.5, -- firebase turrets may take the turret budget up to this multiple
 	-- only where the army covers it (its squad within this, or further forward), and none founded while the
 	-- team defends; false: anywhere safe (v1: constructors lost 10.6 -> 14.7 a game, g62)

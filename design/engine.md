@@ -297,5 +297,10 @@ radar) hold ground: they defend what's behind them and are where the army pushes
 - **Creep**: once one is complete (or under fire) the next is founded; our structures make the
   territory, so the frontier and the next site move out. Up to `max` (3); one with nothing left for two
   minutes is given up.
+- **Versions** (kept on; each measured against the previous): v1 sites anywhere safe (constructors died
+  building ahead of the army); v2 only where the army covers the site (its squad within `cover` 1000 or
+  further forward), none founded while the team defends; v3 sites near free metal score higher
+  (`metalWeight`), and a metal spot within `expandRadius` (700) of a firebase with two turrets is safe
+  for the economy to take even forward of the usual expansion rule (creeping is for territory's metal).
 - **Army**: rallies 200 behind the furthest firebase with two turrets standing (it falls back onto
   turrets on contact anyway, doctrine.engage.retreatToTurrets).

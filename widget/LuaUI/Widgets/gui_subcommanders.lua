@@ -922,6 +922,11 @@ end
 -- a metal spot outside the zones worth taking: closer to our zones than to the enemy,
 -- not too far, and no enemy seen or known defence near it lately
 function Jobs.safeExpansion(sub, spot)
+	-- under a firebase's guns (doctrine.firebase.expandRadius, two turrets standing): ours to take even
+	-- forward, as long as we're the stronger there
+	if Engine.firebaseCovers(spot.x, spot.z) then
+		return Engine.tm.threat(spot.x, spot.z) <= Engine.tm.influence(spot.x, spot.z)
+	end
 	local zone = nearestZone(sub, spot.x, spot.z)
 	if not zone then
 		return false
@@ -1669,6 +1674,44 @@ function Engine.firebaseHave(b)
 	return have, any
 end
 
+-- free metal spots (no extractor of anyone's, not planned) within r of (x, z)
+function Engine.freeSpotsNear(x, z, r)
+	local n = 0
+	for _, s in ipairs(metalSpots()) do
+		if dist2(x, z, s.x, s.z) <= r * r then
+			local taken = false
+			for _, u in ipairs(spGetUnitsInCylinder(s.x, s.z, 40)) do
+				local ud = unitDef(u)
+				taken = taken or (ud and ud.mex and ud.mex > 0)
+			end
+			for _, p in pairs(planned) do
+				taken = taken or (defs[p.defID].mex > 0 and dist2(p.x, p.z, s.x, s.z) < 48 * 48)
+			end
+			if not taken then
+				n = n + 1
+			end
+		end
+	end
+	return n
+end
+
+-- is (x, z) under the guns of a firebase with two turrets standing (doctrine.firebase.expandRadius)
+function Engine.firebaseCovers(x, z)
+	local C = Engine.D.firebase
+	if not C.on or not C.expandRadius then
+		return false
+	end
+	for _, b in ipairs(Engine.firebases) do
+		if dist2(x, z, b.x, b.z) <= C.expandRadius * C.expandRadius then
+			local have = Engine.firebaseHave(b)
+			if (have.light or 0) + (have.heavy or 0) + (have.long or 0) >= 2 then
+				return true
+			end
+		end
+	end
+	return false
+end
+
 function Jobs.firebase(sub, unitID, d, ux, uz)
 	local C = Engine.D.firebase
 	if not C.on or Engine.minute() < C.minute or not Engine.homeX or not Engine.enemyX or d.commander then
@@ -1722,6 +1765,8 @@ function Jobs.firebase(sub, unitID, d, ux, uz)
 		local pickets = Engine.terr.pickets(5, { Engine.homeX, Engine.homeZ }, { Engine.enemyX, Engine.enemyZ }, A and A.sectors)
 		local site = FB.site(pickets, { x = Engine.homeX, z = Engine.homeZ }, { x = Engine.enemyX, z = Engine.enemyZ }, bases, function(x, z)
 			return covered(x, z) and Engine.tm.threat(x, z) or 1
+		end, C.metalWeight and function(x, z)
+			return Engine.freeSpotsNear(x, z, C.metalRadius or 600)
 		end)
 		if not site then
 			return false
