@@ -843,3 +843,17 @@ Counter matrix, flat sites (arm A of 20261015-0212-sbx-il-re-khold, 264 battles)
 - Against BARbarian medium we now win more than we lose (16 / 8 / 12).
 - Found by replaying our games with full view: our army was 3-4x theirs from minute 20 to 50 and spent
   it on their raiders at home.
+
+## Pressing at 1.8x instead of 2.5x (sandboxes, 24 pairs) — 1.8 kept; against BARbarian hard (force) — lost everything
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-0604-sbx-g39-dominance18-A (2.5x) | 24 | 9 win, 11 timeout, 4 loss | 0 | 267.2k | 240 / 988 | 0.71 | 14.5 | 12 / 18.5 | 4.2k |
+| 20261015-0604-sbx-g39-dominance18-B (1.8x) | 24 | 13 win, 6 timeout, 5 loss | 1 | 204.9k | 242 / 674 | 0.85 | 10.7 | 13 / 20 | 4.2k |
+| 20261015-0603-force4-g39-hard-old-vs-new-A (ee612f3, hard) | 12 | 12 loss | 1 | 64.8k | 65 / 409 | 0.49 | 20.7 | 11.5 / 12.5 | 3.6k |
+| 20261015-0603-force4-g39-hard-old-vs-new-B (today, hard) | 12 | 12 loss | 2 | 69.7k | 74 / 433 | 0.51 | 23.2 | 13 / 16.5 | 4.2k |
+
+- 1.8x: late metal lost -60k [-103k, -17k] better, score +0.10 [-0.11, +0.31]; 13 / 6 / 5 against
+  BARbarian medium. On.
+- BARbarian hard beats both old and new in all 24 games; new loses less in the opening (-1.3k better).
+  Next: what hard does that medium doesn't (full-view replays).
