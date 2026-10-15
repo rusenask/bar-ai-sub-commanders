@@ -1199,3 +1199,14 @@ Counter matrix, flat sites (arm A of 20261015-0212-sbx-il-re-khold, 264 battles)
   Real games are exposed to the same race at lower latency.
 - Batches from here on open ~30 s faster: compare only arms run together. g63 (firebases v2 vs medium,
   run with the half-fixed harness: lab at ~2:10) is not comparable to earlier baselines.
+
+## Forward firebases v2 vs medium (sandboxes, 24 pairs; half-fixed harness, lab ~2:10)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-1503-sbx-g63-firebase2-medium-A (off) | 24 | 9 win, 3 timeout, 12 loss | 0 | 147.9k | 167 / 657 | 0.70 | 19.6 | 9 / 14.5 | 3.1k |
+| 20261015-1503-sbx-g63-firebase2-medium-B (v2) | 24 | 5 win, 9 timeout, 10 loss | 3 | 187.6k | 161 / 1099 | 0.73 | 19.5 | 9 / 18 | 3.0k |
+
+- Score -0.08 [-0.31, +0.16], can't tell; mid metal lost **better** -3.3k [-6.5k, -0.3k]; constructors
+  lost equal (v1 had +4). Late metal lost +79k with 9 games to the time limit. Re-run with the fixed
+  opening: g65.

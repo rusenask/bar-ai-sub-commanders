@@ -181,6 +181,12 @@ out wrong.
   big builds (labs, strategic structures) check metal in hand instead; count the unit the change is for
   (`grep -c "Tzar"`) before reading the score.
 
+- **Orders travel through the network: ours can land after the player's.** The widget sends an order,
+  the player sends one, and ours arrives second and replaces theirs. Recognising our orders by a time
+  window failed at test speed (latency in frames grows with speed); match build orders by what and
+  where, and restore the player's order when ours lands after it. Every test game lost its first lab
+  to this. (sbx-labdiag)
+
 ## Process traps
 
 - **Read the first three minutes of a test game when the economy table says we're behind from the start.**
