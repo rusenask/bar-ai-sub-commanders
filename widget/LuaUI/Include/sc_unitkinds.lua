@@ -123,6 +123,8 @@ for defID, ud in pairs(UnitDefs) do
 	d.nukeSilo = not mobile and d.stockpile and not d.interceptor and not d.juno and (d.weaponAoe or 0) >= 500
 	d.lrpc = not mobile and d.armed and not d.stockpile and not d.interceptor and d.range >= 3000 and d.range < 20000
 	d.shieldGen = not mobile and d.shield
+	-- the Juno silo (Legion's Blindfold gunship carries a Juno weapon too: the Air Force flies it)
+	d.junoSilo = not mobile and d.juno
 	d.rezBot = mobile and d.resurrect and not d.commander
 	local move = ud.moveDef and ud.moveDef.name or ""
 	d.naval = mobile and not d.air and (move:find("boat") ~= nil or (ud.minWaterDepth or 0) > 0)

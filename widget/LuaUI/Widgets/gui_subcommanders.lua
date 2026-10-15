@@ -2920,13 +2920,13 @@ function Engine.ourStrategic()
 		return C
 	end
 	C.frame = frame
-	for _, k in ipairs({ "antinuke", "shieldGen", "lrpc", "juno", "rezBot" }) do
+	for _, k in ipairs({ "antinuke", "shieldGen", "lrpc", "junoSilo", "rezBot" }) do
 		C[k] = {}
 	end
 	for _, u in ipairs(Spring.GetTeamUnits(myTeam) or {}) do
 		local ud = unitDef(u)
 		if ud then
-			for _, k in ipairs({ "antinuke", "shieldGen", "lrpc", "juno", "rezBot" }) do
+			for _, k in ipairs({ "antinuke", "shieldGen", "lrpc", "junoSilo", "rezBot" }) do
 				if ud[k] then
 					C[k][#C[k] + 1] = u
 				end
@@ -2936,7 +2936,7 @@ function Engine.ourStrategic()
 	C.planned = {}
 	for _, p in pairs(planned) do
 		local pd = defs[p.defID]
-		for _, k in ipairs({ "antinuke", "shieldGen", "lrpc", "juno" }) do
+		for _, k in ipairs({ "antinuke", "shieldGen", "lrpc", "junoSilo" }) do
 			if pd and pd[k] then
 				C.planned[k] = (C.planned[k] or 0) + 1
 			end
@@ -3063,17 +3063,17 @@ function Jobs.strategic(sub, unitID, d, ux, uz)
 		for _, t in ipairs(jt) do
 			jw = jw + (t.weight or 1)
 		end
-		if J.on and have("juno") < 1 and income >= J.income and jw >= J.minTargets then
+		if J.on and have("junoSilo") < 1 and income >= J.income and jw >= J.minTargets then
 			-- behind the base, where generators go: its centre was too crowded to place one (smoke test 4)
 			local jx, jz = Engine.safeEnergyAnchor()
 			if buildCheapestUseful(sub, unitID, d, jx or hx, jz or hz, function(od)
-				return od.juno
+				return od.junoSilo
 			end, function(od)
 				return -od.cost
 			end, "Juno (their radar and jammers)", "strategic") then
 				return true
 			end
-			blocked("juno")
+			blocked("junoSilo")
 		end
 	end
 	return false
@@ -3139,7 +3139,7 @@ function Engine.strategicControl()
 		end
 	end
 	if G.juno.on then
-		for _, u in ipairs(C.juno) do
+		for _, u in ipairs(C.junoSilo) do
 			if not spGetUnitIsBeingBuilt(u) and stock(u, G.juno.stockpile) > 0 then
 				local st = getState(u)
 				if frame >= (st.junoNext or 0) then
@@ -7620,7 +7620,7 @@ function widget:UnitFinished(unitID, unitDefID, unitTeam)
 		applyPriority(sub, unitID)
 	end
 	local d = defs[unitDefID]
-	if d and (d.factory or d.builder or d.antinuke or d.shieldGen or d.lrpc or d.juno) then
+	if d and (d.factory or d.builder or d.antinuke or d.shieldGen or d.lrpc or d.junoSilo) then
 		log(sub, "new " .. d.human)
 	end
 end
