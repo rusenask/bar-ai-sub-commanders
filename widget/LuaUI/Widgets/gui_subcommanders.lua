@@ -137,6 +137,7 @@ do
 	Engine.air = include("sc_air")({ doctrine = Engine.D })
 	Engine.micro = include("sc_micro")({ doctrine = Engine.D })
 	Engine.strategic = include("sc_strategic")({ doctrine = Engine.D })
+	Engine.fb = include("sc_firebase")({ doctrine = Engine.D })
 	Engine.armyStyle, Engine.armyStyleNow, Engine.armyStyleSince = "auto", "balanced", 0
 	Engine.comMode, Engine.comPersonality = "auto", "careful"
 end
@@ -1632,6 +1633,110 @@ function Jobs.defense(sub, unitID, d, ux, uz)
 	return x and issueBuild(sub, unitID, o, x, z, facingToward(x, z, ex, ez), (Engine.prod.turretRole(defs[o]) or "") .. " defense toward the enemy") or false
 end
 
+-- forward firebases (doctrine.firebase, sc_firebase.lua): layered turret groups just past our frontier
+-- toward the enemy; complete ones let the next go further out. Engine.firebases: { x, z, n, started }
+Engine.firebases = {}
+
+-- what stands (or is planned) in a firebase, by role: light / heavy / long turrets, aa, radar
+function Engine.firebaseHave(b)
+	local R = Engine.D.firebase.radius
+	local have, any = {}, 0
+	local function add(od)
+		local role = od.staticDef and not od.aaOnly and Engine.prod.turretRole(od)
+			or (od.aaOnly and not od.mobile and od.armed and "aa")
+			or (not od.mobile and not od.armed and od.radar > 0 and "radar")
+		if role then
+			have[role] = (have[role] or 0) + 1
+			any = any + 1
+		end
+	end
+	for _, u in ipairs(spGetUnitsInCylinder(b.x, b.z, R)) do
+		local ud = spGetUnitTeam(u) == myTeam and unitDef(u)
+		if ud and not ud.mobile then
+			add(ud)
+		end
+	end
+	for _, p in pairs(planned) do
+		if dist2(p.x, p.z, b.x, b.z) <= R * R then
+			add(defs[p.defID])
+		end
+	end
+	return have, any
+end
+
+function Jobs.firebase(sub, unitID, d, ux, uz)
+	local C = Engine.D.firebase
+	if not C.on or Engine.minute() < C.minute or not Engine.homeX or not Engine.enemyX or d.commander then
+		return false
+	end
+	local FB, bases = Engine.fb, Engine.firebases
+	-- a firebase with nothing left (overrun, or never started) for two minutes is given up
+	for i = #bases, 1, -1 do
+		local b = bases[i]
+		local _, any = Engine.firebaseHave(b)
+		if any > 0 then
+			b.seen = frame
+		elseif frame - (b.seen or b.started) > 30 * 120 then
+			log(sub, sformat("firebase %d at %d,%d is gone", b.n, b.x, b.z))
+			tremove(bases, i)
+		end
+	end
+	local air, minute, income = Enemy.share("air"), Engine.minute(), max(econ.mInc, 0)
+	-- the nearest unfinished one that isn't under fire; else found the next
+	local todo, role, bestD
+	for _, b in ipairs(bases) do
+		local r = FB.nextLayer((Engine.firebaseHave(b)), air, minute, income)
+		local dd = dist2(ux, uz, b.x, b.z)
+		if r and Engine.tm.threat(b.x, b.z) <= 0 and (not bestD or dd < bestD) then
+			todo, role, bestD = b, r, dd
+		end
+	end
+	if not todo then
+		if #bases >= C.max then
+			return false
+		end
+		local A = Engine.approach
+		local pickets = Engine.terr.pickets(5, { Engine.homeX, Engine.homeZ }, { Engine.enemyX, Engine.enemyZ }, A and A.sectors)
+		local site = FB.site(pickets, { x = Engine.homeX, z = Engine.homeZ }, { x = Engine.enemyX, z = Engine.enemyZ }, bases, function(x, z)
+			return Engine.tm.threat(x, z)
+		end)
+		if not site then
+			return false
+		end
+		Engine.firebaseCount = (Engine.firebaseCount or 0) + 1
+		todo = { x = site.x, z = site.z, n = Engine.firebaseCount, started = frame }
+		bases[#bases + 1] = todo
+		role = FB.nextLayer({}, air, minute, income)
+		log(sub, sformat("founding firebase %d at %d,%d (%d of %d)", todo.n, todo.x, todo.z, #bases, C.max))
+	end
+	-- what to build for the role
+	local o
+	if role == "radar" then
+		local opts = buildableBy(d, function(od)
+			return not od.mobile and not od.armed and od.radar > 0 and od.jammer == 0
+		end)
+		tsort(opts, function(a, b)
+			return defs[a].cost < defs[b].cost
+		end)
+		o = opts[1]
+	else
+		o = pickDefense(sub, d, role == "aa", role ~= "aa" and role or nil)
+	end
+	if not o or not canSpend(sub, defs[o], (role == "light" or role == "radar") and "essential" or nil) then
+		return false
+	end
+	if role ~= "aa" and role ~= "radar" and not Engine.turretBudget(defs[o].cost, C.budget) then
+		return false
+	end
+	local ex, ez = enemyDirectionRef(todo.x, todo.z)
+	local dx, dz = ex - todo.x, ez - todo.z
+	local len = max(sqrt(dx * dx + dz * dz), 1)
+	local off, side = FB.offset(role), (random() - 0.5) * 2 * 120
+	local ax, az = clampToMap(todo.x + dx / len * off - dz / len * side, todo.z + dz / len * off + dx / len * side)
+	local x, z = findBuildSpot(sub, o, ax, az, { gap = 32, rings = 6, anywhere = true })
+	return x and issueBuild(sub, unitID, o, x, z, facingToward(x, z, ex, ez), sformat("firebase %d: %s", todo.n, role)) or false
+end
+
 function Engine.haveFactoryNamed(pattern)
 	for _, u in ipairs(Spring.GetTeamUnits(myTeam) or {}) do
 		local ud = unitDef(u)
@@ -2529,6 +2634,7 @@ local BUILDER_PLANS = {
 		return Jobs.removeMarked(sub, u, d, x, z)
 			or Jobs.strategic(sub, u, d, x, z)
 			or Jobs.repair(sub, u, d, x, z)
+			or Jobs.firebase(sub, u, d, x, z)
 			or Jobs.extractorCover(sub, u, d, x, z)
 			or Jobs.radar(sub, u, d, x, z)
 			-- enemy aircraft are a real part of what they field: anti-air on our line too
@@ -3925,6 +4031,24 @@ function Tactics.rallyPoint(sub)
 		local ax, az = Engine.approachDir()
 		if ax then
 			rx, rz = (rx + hx + ax * 1100) * 0.5, (rz + hz + az * 1100) * 0.5
+		end
+		-- forward firebases (doctrine.firebase): the army waits just behind the furthest one that has two
+		-- turrets standing; it pushes from there and falls back onto it
+		if Engine.D.firebase.on and Engine.enemyX then
+			local ex, ez = Engine.enemyX - hx, Engine.enemyZ - hz
+			local best
+			for _, b in ipairs(Engine.firebases) do
+				local have = Engine.firebaseHave(b)
+				local turrets = (have.light or 0) + (have.heavy or 0) + (have.long or 0)
+				local fwd = (b.x - hx) * ex + (b.z - hz) * ez
+				if turrets >= 2 and (not best or fwd > best.fwd) then
+					best = { x = b.x, z = b.z, fwd = fwd }
+				end
+			end
+			if best then
+				local len = max(sqrt(ex * ex + ez * ez), 1)
+				rx, rz = best.x - ex / len * 200, best.z - ez / len * 200
+			end
 		end
 	end
 	local tm = Engine.tm
@@ -8305,14 +8429,14 @@ end
 
 -- turrets have a budget (strong players put their metal into the army): metal of turrets we have plus
 -- the one we'd add, against sc_doctrine's turrets.budget(minute, army value)
-function Engine.turretBudget(extra)
+function Engine.turretBudget(extra, mult)
 	local planned_ = 0
 	for _, p in pairs(planned) do
 		if defs[p.defID].staticDef and not defs[p.defID].aaOnly then
 			planned_ = planned_ + defs[p.defID].cost
 		end
 	end
-	return (Engine.turretValue or 0) + planned_ + (extra or 0) <= Engine.turretBudgetValue()
+	return (Engine.turretValue or 0) + planned_ + (extra or 0) <= Engine.turretBudgetValue() * (mult or 1)
 end
 
 function Engine.minute()

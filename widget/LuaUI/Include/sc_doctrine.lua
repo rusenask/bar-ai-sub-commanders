@@ -226,6 +226,32 @@ D.turrets = {
 	lightCost = 150,
 }
 
+-- forward firebases (sc_firebase.lua): Defense grows layered turret groups just past our frontier
+-- toward the enemy, and once one is complete founds the next further out (the territory follows our
+-- structures, so the line creeps forward). BARbarian hard grows every radar into one.
+D.firebase = {
+	on = false,
+	minute = 4, -- the first from here
+	max = 3, -- firebases at once
+	step = 450, -- past the frontier picket toward the enemy
+	spacing = 900, -- between firebases
+	reach = 0.55, -- no further than this share of the way to their base
+	radius = 300, -- what stands within this belongs to the firebase
+	budget = 1.5, -- firebase turrets may take the turret budget up to this multiple
+	-- layers in order: { role, count (cumulative), air = their air share, minute =, income = }
+	layers = {
+		{ "light", 1 },
+		{ "radar", 1 },
+		{ "light", 2 },
+		{ "heavy", 1 },
+		{ "aa", 1, air = 0.1 },
+		{ "heavy", 2 },
+		{ "long", 1, minute = 8, income = 30 },
+	},
+	-- where each role stands: toward the enemy (+) or back (-) from the centre
+	offsets = { light = 90, heavy = 0, long = -140, radar = -120, aa = -60 },
+}
+
 -- spending a big economy (v19: 150-240 metal/s by minute 35, metal at the storage cap, T1 turrets only,
 -- 130 idle guards): the defences grow and harden, Defense gets tier 2, the Army gets an air wing
 D.escalation = {
