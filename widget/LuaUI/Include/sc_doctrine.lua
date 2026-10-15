@@ -443,9 +443,11 @@ D.tuneStep = 0.5 -- a change moves a rule at most this fraction of its current v
 -- faction, before learned rules. Each: { "path.to.field", value } (paths below D).
 -- strategic structures (sc_strategic.lua; units from docs/research/units.md). on = false: not built
 D.strategic = {
-	-- anti-nuke (Citadel / Prevailer / Aegis): when they have a nuke silo, or from `minute` (false: only
-	-- on a seen silo) at `income`; interceptors kept stockpiled. On timers the whole package cost -0.27 (g54)
-	antinuke = { on = true, minute = false, income = 60, max = 1, stockpile = 2 },
+	-- anti-nuke (Citadel / Prevailer / Aegis): when they have a nuke silo, or from `minute` at `income`;
+	-- interceptors kept stockpiled. v2: preemptive again from minute 25 (the player's call: a must; a 1v4
+	-- game ran to minute 34 at 89 metal/s with none, since no silo of theirs was seen; 1500 metal is ~17 s
+	-- of that income). v1 (only on a seen silo) built one in 1 game of 24
+	antinuke = { on = true, minute = 25, income = 60, max = 1, stockpile = 2 },
 	-- shield generator (Keeper / Overseer / Soteria, radius 550) over the labs: once their long-range
 	-- cannons or their air (15%+) are seen, or from `minute` (false: only then), at `income`
 	shield = { on = true, minute = false, income = 80, max = 1 },

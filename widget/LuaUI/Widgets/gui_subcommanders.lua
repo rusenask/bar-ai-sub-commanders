@@ -873,7 +873,11 @@ local function canSpend(sub, what, kind)
 	if kind == "essential" then
 		return true
 	end
-	if metal > 20 and econ.mFrac < (Player.yield and max(p.minM, 0.25) or p.minM) then
+	-- the metal kept in reserve: a share of storage, but at most a few seconds of income (with 9000 storage,
+	-- 25% held 2250 metal back while the player built: factories idle "with a good amount of resources")
+	local frac = Player.yield and max(p.minM, 0.25) or p.minM
+	local reserve = min(frac * (econ.mS or 0), max(150, (econ.mInc or 0) * (Player.yield and 8 or 4)))
+	if metal > 20 and (econ.m or 0) < reserve then
 		return false
 	end
 	if kind ~= "energy" and energy > 50 and econ.eFrac < p.minE then
@@ -4219,7 +4223,8 @@ local function thinkFactory(sub, facID, fd, st)
 	if spGetUnitIsBeingBuilt(facID) then
 		return
 	end
-	if (spGetFactoryCommandCount(facID) or 0) > 0 then
+	-- one queued behind the one being built: no idle gap between units while the next think comes round
+	if (spGetFactoryCommandCount(facID) or 0) > 1 then
 		return
 	end
 	local defID, why = pickProduction(sub, facID, fd)
@@ -4229,10 +4234,9 @@ local function thinkFactory(sub, facID, fd, st)
 	end
 	if why == "army" or why == "anti-air" then
 		local pick = Decider.production(sub, facID, fd, st)
-		if pick == nil then
-			st.factoryNote = "deciding"
-			return
-		elseif pick then
+		-- still asking: the rules build this one, the model's answer goes to the next (it waited up to 2 s
+		-- a unit, and answers over the file transport come late)
+		if pick then
 			defID, why = pick, "decision model"
 		end
 	end
