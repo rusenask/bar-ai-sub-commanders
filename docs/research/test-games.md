@@ -1149,3 +1149,13 @@ Counter matrix, flat sites (arm A of 20261015-0212-sbx-il-re-khold, 264 battles)
 - Force alone **better** +0.38 [+0.18, +0.56]. Pooled **better** +0.23 [+0.07, +0.39], wins 16 -> 30;
   late enemy metal killed **better** +20k [+4k, +37k]. **Shipped** (Mantis drone carriers, Cleavers,
   T2 vehicle plant from 50 metal/s with a construction vehicle).
+
+## Forward firebases vs hard (sandboxes, Legion vs Armada hard, 24 pairs)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-1430-sbx-g61-firebase-hard-A (off) | 24 | 24 loss | 3 | 71.6k | 65 / 445 | 0.51 | 25.4 | 11 / 20 | 3.4k |
+| 20261015-1430-sbx-g61-firebase-hard-B (on) | 24 | 24 loss | 5 | 61.4k | 67 / 401 | 0.50 | 25.0 | 12 / 14 | 3.4k |
+
+- Score +0.00 [-0.02, +0.02]: every game lost either way; mid trades 0.44 vs 0.33, extractors at 20
+  min -2.2 (can't tell). Against hard the score is saturated. Re-testing against medium (g62).
