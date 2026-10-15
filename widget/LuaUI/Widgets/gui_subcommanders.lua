@@ -2500,7 +2500,7 @@ local BUILDER_PLANS = {
 			or (econ.mFrac > 0.7 and econ.eFrac > 0.3 and not energyBehind() and Jobs.buildPower(sub, u, d, x, z))
 			or Jobs.rebuildFactory(sub, u, d, x, z)
 			or Jobs.newFactory(sub, u, d, x, z)
-			or ((not Engine.subOfRole("defense") or not Engine.subOfRole("intelligence")) and Jobs.strategic(sub, u, d, x, z))
+			or Jobs.strategic(sub, u, d, x, z)
 			or Jobs.earlyRadar(sub, u, d, x, z)
 			or Jobs.basicEconomy(sub, u, d, x, z)
 			or (energyWanted() and Jobs.energy(sub, u, d, x, z, false))
@@ -2516,8 +2516,8 @@ local BUILDER_PLANS = {
 	end,
 	defense = function(sub, u, d, x, z)
 		return Jobs.removeMarked(sub, u, d, x, z)
-			or Jobs.repair(sub, u, d, x, z)
 			or Jobs.strategic(sub, u, d, x, z)
+			or Jobs.repair(sub, u, d, x, z)
 			or Jobs.extractorCover(sub, u, d, x, z)
 			or Jobs.radar(sub, u, d, x, z)
 			-- enemy aircraft are a real part of what they field: anti-air on our line too
@@ -2960,8 +2960,21 @@ function Jobs.strategic(sub, unitID, d, ux, uz)
 	local function have(k)
 		return #C[k] + (C.planned[k] or 0)
 	end
-	local defenseRole = sub.role == "defense" or (sub.role == "economy" and not Engine.subOfRole("defense"))
-	local intelRole = sub.role == "intelligence" or (sub.role == "economy" and not Engine.subOfRole("intelligence"))
+	-- Defense's and the Economy's constructors (the Economy has most of the T2 ones; Defense's two were
+	-- always repairing), Intelligence's for Juno (the Economy's too: Intelligence runs one constructor)
+	local defenseRole = sub.role == "defense" or sub.role == "economy"
+	local intelRole = sub.role == "intelligence" or sub.role == "economy"
+	-- due but not started: say why, once in a while (no constructor that can build it, can't afford it)
+	local function blocked(what)
+		local key = "strat:" .. what
+		if frame - (sub[key] or -99999) > 30 * 300 then
+			sub[key] = frame
+			local can = #buildableBy(d, function(od)
+				return od[what]
+			end) > 0
+			log(sub, sformat("%s due: %s", what, can and "can't place or afford it yet" or "no constructor here can build it"))
+		end
+	end
 	local hx, hz = Engine.homeX, Engine.homeZ
 	if defenseRole then
 		local A = G.antinuke
@@ -2973,6 +2986,7 @@ function Jobs.strategic(sub, unitID, d, ux, uz)
 			end, "anti-nuke", "essential") then
 				return true
 			end
+			blocked("antinuke")
 		end
 		local Sh = G.shield
 		local threat = #Engine.enemyHas("lrpc") > 0 or Enemy.share("air") > 0.15
@@ -2986,6 +3000,7 @@ function Jobs.strategic(sub, unitID, d, ux, uz)
 			end, "shield over the labs") then
 				return true
 			end
+			blocked("shieldGen")
 		end
 		local L = G.lrpc
 		if L.on and have("lrpc") < L.max and minute >= L.minute and income >= L.income and Engine.enemyX then
@@ -2993,10 +3008,32 @@ function Jobs.strategic(sub, unitID, d, ux, uz)
 				return od.lrpc
 			end)
 			if #opts > 0 then
-				local x, z = Engine.strategic.lrpcSite({ x = hx, z = hz }, { x = Engine.enemyX, z = Engine.enemyZ }, defs[opts[1]].range, function(px, pz)
+				local function threatAt(px, pz)
 					return Engine.tm.threat(px, pz)
-				end)
-				if x and buildCheapestUseful(sub, unitID, d, x, z, function(od)
+				end
+				local range = defs[opts[1]].range
+				-- a safe place that reaches their base; else one that reaches a lab or something worth 200+
+				-- of theirs (their base centre sat inside their threat on All That Simmers), the safest
+				local x, z = Engine.strategic.lrpcSite({ x = hx, z = hz }, { x = Engine.enemyX, z = Engine.enemyZ }, range, threatAt)
+				if not x then
+					local bestD
+					for _, e in pairs(Enemy.units) do
+						local ed = defs[e.defID]
+						if ed and not ed.mobile and (ed.factory or ed.cost >= 200) then
+							local sx, sz = Engine.strategic.lrpcSite({ x = hx, z = hz }, { x = e.x, z = e.z }, range, threatAt)
+							local dd = sx and dist2(hx, hz, sx, sz) - (ed.factory and 1e6 or 0)
+							if sx and (not bestD or dd < bestD) then
+								x, z, bestD = sx, sz, dd
+							end
+						end
+					end
+				end
+				if not x then
+					if frame - (sub["strat:lrpcsite"] or -99999) > 30 * 300 then
+						sub["strat:lrpcsite"] = frame
+						log(sub, "lrpc due: no safe place reaches anything of theirs")
+					end
+				elseif buildCheapestUseful(sub, unitID, d, x, z, function(od)
 					return od.lrpc
 				end, function(od)
 					return od.range
@@ -3004,11 +3041,16 @@ function Jobs.strategic(sub, unitID, d, ux, uz)
 					return true
 				end
 			end
+			blocked("lrpc")
 		end
 	end
 	if intelRole then
 		local J = G.juno
-		if J.on and have("juno") < 1 and income >= J.income and #Engine.junoTargets() >= J.minTargets then
+		local jt, jw = Engine.junoTargets(), 0
+		for _, t in ipairs(jt) do
+			jw = jw + (t.weight or 1)
+		end
+		if J.on and have("juno") < 1 and income >= J.income and jw >= J.minTargets then
 			if buildCheapestUseful(sub, unitID, d, hx, hz, function(od)
 				return od.juno
 			end, function(od)
@@ -3016,6 +3058,7 @@ function Jobs.strategic(sub, unitID, d, ux, uz)
 			end, "Juno (their radar and jammers)") then
 				return true
 			end
+			blocked("juno")
 		end
 	end
 	return false
@@ -3026,7 +3069,10 @@ function Engine.junoTargets()
 	local list = {}
 	for _, e in pairs(Enemy.units) do
 		local ed = defs[e.defID]
-		if ed and not ed.mobile and (ed.intelStructure or ed.mine or ed.kind == "radar" or ed.kind == "jammer" or ed.kind == "camera") then
+		if ed and (ed.jammer or 0) > 0 and not ed.commander then
+			-- jammers, static or mobile: they hide an army (worth a missile on their own)
+			list[#list + 1] = { x = e.x, z = e.z, cost = ed.cost, weight = 2 }
+		elseif ed and not ed.mobile and (ed.intelStructure or ed.mine or ed.kind == "radar" or ed.kind == "camera") then
 			list[#list + 1] = { x = e.x, z = e.z, cost = ed.cost }
 		end
 	end

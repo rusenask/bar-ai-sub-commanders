@@ -69,8 +69,9 @@ return function(ctx)
 		return best
 	end
 
-	-- cands: their radar, jammers, cameras and mines { x, z, cost }. The centre (one of them) whose aoe
-	-- holds the most of them (by count, then value), if at least minTargets. Returns x, z, n or nil
+	-- cands: their radar, jammers, cameras and mines { x, z, cost, weight (default 1; a jammer counts 2:
+	-- it hides an army) }. The centre (one of them) whose aoe holds the most weight (then value), if at
+	-- least minTargets. Returns x, z, n or nil
 	function S.junoTarget(cands, aoe, minTargets)
 		local bestN, bestV, bx, bz = 0, 0, nil, nil
 		local a2 = aoe * aoe
@@ -78,7 +79,7 @@ return function(ctx)
 			local n, v = 0, 0
 			for _, o in ipairs(cands) do
 				if d2(c.x, c.z, o.x, o.z) <= a2 then
-					n, v = n + 1, v + (o.cost or 0)
+					n, v = n + (o.weight or 1), v + (o.cost or 0)
 				end
 			end
 			if n > bestN or (n == bestN and v > bestV) then

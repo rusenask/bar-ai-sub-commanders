@@ -36,6 +36,7 @@ return {
 		T.eq(n, 2)
 		T.ok(x == 0 or x == 300)
 		T.eq(S.junoTarget({ { x = 0, z = 0, cost = 100 } }, 700, 2), nil, "one radar isn't worth a missile")
+		T.ok(S.junoTarget({ { x = 0, z = 0, cost = 100, weight = 2 } }, 700, 2), "one jammer is")
 	end,
 	rez_takes_the_most_metal_for_the_walk = function()
 		local S = strategic()
