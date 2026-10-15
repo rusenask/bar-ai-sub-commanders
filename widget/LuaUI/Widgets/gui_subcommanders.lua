@@ -856,6 +856,11 @@ local function canSpend(sub, what, kind)
 	else
 		cost, metal, energy = what, what, 0
 	end
+	-- strategic structures (shields, long-range cannons, Juno: Jobs.strategic) are deliberate: no cost cap
+	-- (a 5000-metal cannon was over it below 270 metal/s), only a little metal in hand to start
+	if kind == "strategic" then
+		return econ.mFrac >= 0.1
+	end
 	if cost > costCap(sub, kind == "essential" and 1.5 or 1) then
 		return false
 	end
@@ -2997,7 +3002,7 @@ function Jobs.strategic(sub, unitID, d, ux, uz)
 				return od.shieldGen
 			end, function(od)
 				return -od.cost
-			end, "shield over the labs") then
+			end, "shield over the labs", "strategic") then
 				return true
 			end
 			blocked("shieldGen")
@@ -3037,7 +3042,7 @@ function Jobs.strategic(sub, unitID, d, ux, uz)
 					return od.lrpc
 				end, function(od)
 					return od.range
-				end, "long-range cannon on their base") then
+				end, "long-range cannon on their base", "strategic") then
 					return true
 				end
 			end
@@ -3055,7 +3060,7 @@ function Jobs.strategic(sub, unitID, d, ux, uz)
 				return od.juno
 			end, function(od)
 				return -od.cost
-			end, "Juno (their radar and jammers)") then
+			end, "Juno (their radar and jammers)", "strategic") then
 				return true
 			end
 			blocked("juno")
