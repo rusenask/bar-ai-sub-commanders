@@ -219,6 +219,11 @@ def main():
                     help="seconds between sandbox k and k+1, for the create and for starting its games: the pool's host "
                     "is shared, and 12 cpu-16 sandboxes created and loaded at once filled it (192 cores) and turned "
                     "everyone else's creates away")
+    ap.add_argument("--retries", type=int, default=2, help="a sandbox that fails (host down, unreachable) is replaced and "
+                    "its games re-run, up to this many times")
+    ap.add_argument("--only", default="", help="play only games FIRST-LAST of the batch (with --into: fill in games that "
+                    "didn't run, e.g. a sandbox host went down)")
+    ap.add_argument("--into", default="", help="an existing batch dir to add the games to (its report and arms are rebuilt)")
     ap.add_argument("--learn-score", default="result", help="with --learn: score games on the result or a stage "
                     "(opening, mid, late: enemy metal killed minus lost in it); use the stage the searched rules are for")
     args = ap.parse_args()
@@ -239,14 +244,19 @@ def main():
     if args.sandboxes > allowed:
         print(f"{running} of our sandboxes already run (cap {cap}): using {allowed} instead of {args.sandboxes}", flush=True)
         args.sandboxes = allowed
-    n = min(args.sandboxes, args.games)
-    per = [(args.games * k // n + 1, args.games * (k + 1) // n) for k in range(n)]
+    lo, hi = 1, args.games
+    if args.only:
+        lo, hi = (int(x) for x in args.only.split("-"))
+    count = hi - lo + 1
+    n = min(args.sandboxes, count)
+    per = [(lo + count * k // n, lo + count * (k + 1) // n - 1) for k in range(n)]
     if args.widgets_b:
         # whole pairs per sandbox: both arms of a pair play on the same machine
-        if args.games % 2:
-            sys.exit("--widgets-b needs an even number of games")
-        pairs = args.games // 2
-        per = [(2 * (pairs * k // n) + 1, 2 * (pairs * (k + 1) // n)) for k in range(n)]
+        if args.games % 2 or (lo % 2 == 0) or (hi % 2):
+            sys.exit("--widgets-b needs an even number of games and --only on pair boundaries (odd-even)")
+        pairs = count // 2
+        n = min(n, pairs)
+        per = [(lo + 2 * (pairs * k // n), lo + 2 * (pairs * (k + 1) // n) - 1) for k in range(n)]
     gens = args.generations if args.learn else 1
     boxes, errors = [None] * n, []
     par = [args.parallel] * n  # games at a time per sandbox (lower on a fallback instance)
@@ -273,9 +283,10 @@ def main():
                 delay = min(delay * 2, 180)
         raise RuntimeError(f"no capacity after retries: {last_err}")
 
-    def setup(k):
+    def setup(k, stagger=True):
         first, last = per[k]
-        time.sleep(k * args.stagger)
+        if stagger:
+            time.sleep(k * args.stagger)
         try:
             sb = create(k, first, last)
             boxes[k] = sb
@@ -314,8 +325,14 @@ def main():
             stamp = time.strftime("%Y%m%d-%H%M")
             label = args.label if gens == 1 else f"{args.label}-g{gen + 1}"
             out = T / "batch" / f"{stamp}-{label}"
-            (out / "remote").mkdir(parents=True)
-            (out / "meta.txt").write_text(
+            if args.into:
+                out = Path(args.into).resolve()
+                with open(out / "meta.txt", "a") as f:
+                    f.write(f"filled in: games {lo}-{hi} at {time.strftime('%Y-%m-%d %H:%M')} (commit {commit})\n")
+            else:
+                (out / "remote").mkdir(parents=True)
+            if not args.into:
+                (out / "meta.txt").write_text(
                 f"label: {label}\ncommit: {commit}\nwidgets: {args.widgets or 'working tree'}\n"
                 f"scenario: {args.scenario}  script: script_vsai.txt  opponent: {args.opponent}  map: {args.map}  speed: 100  lockstep: 0  "
                 f"minutes: {args.minutes}  workers: {n}x{args.parallel} ({args.instance} sandboxes)  side: {args.side} vs {args.enemy_side}\n"
@@ -337,28 +354,45 @@ def main():
             gen_errors = []
 
             def play(k):
-                sb, (first, last) = boxes[k], per[k]
-                if sb is None:
-                    return
                 # games ramp up one sandbox at a time too (setup ends together for sandboxes that were warm)
                 time.sleep(sum(1 for b in boxes[:k] if b is not None) * args.stagger)
-                try:
-                    if overlays is not None:
-                        put_bytes(sb, otgz, "/opt/bar/overlays.tgz")
-                        sh(sb, "rm -rf /opt/bar/overlays && mkdir -p /opt/bar/overlays && tar xzf /opt/bar/overlays.tgz -C /opt/bar/overlays")
-                    else:
-                        sh(sb, "rm -rf /opt/bar/overlays")
-                    code, log = sh_long(sb, f"rm -rf /opt/bar/games /opt/bar/results.tgz; bash /opt/bar/run_games.sh {first} {last} {par[k]} {limit}")
-                    print(f"sandbox {k}: {log.strip()[-200:]}", flush=True)
-                    data = get_bytes(sb, "/opt/bar/results.tgz")
-                    with tarfile.open(fileobj=io.BytesIO(data), mode="r:gz") as tar:
-                        tar.extractall(out / "remote", filter="data")
-                    for f in (out / "remote").glob("g*/datalog.jsonl"):
-                        (out / "data").mkdir(exist_ok=True)
-                        f.rename(out / "data" / (f.parent.name[1:] + ".jsonl"))
-                except Exception as e:  # this sandbox's games count as not run
-                    gen_errors.append(f"sandbox {k}: {e}")
-                    print(f"sandbox {k} failed: {e}", flush=True)
+                last_err = errors[-1] if errors and boxes[k] is None else "no sandbox"
+                for attempt in range(args.retries + 1):
+                    if boxes[k] is None or attempt > 0:
+                        # a new sandbox for the same games (setup failed, the host went down, it stopped answering)
+                        print(f"sandbox {k}: games {per[k][0]}-{per[k][1]} on a new sandbox (try {attempt + 1} of {args.retries + 1})", flush=True)
+                        try:
+                            if boxes[k] is not None:
+                                boxes[k].delete()
+                        except Exception:
+                            pass
+                        boxes[k] = None
+                        setup(k, stagger=False)
+                        if boxes[k] is None:
+                            continue
+                    try:
+                        run_on(k)
+                        return
+                    except Exception as e:
+                        last_err = e
+                        print(f"sandbox {k} failed: {e}", flush=True)
+                gen_errors.append(f"sandbox {k}: {last_err}")
+
+            def run_on(k):
+                sb, (first, last) = boxes[k], per[k]
+                if overlays is not None:
+                    put_bytes(sb, otgz, "/opt/bar/overlays.tgz")
+                    sh(sb, "rm -rf /opt/bar/overlays && mkdir -p /opt/bar/overlays && tar xzf /opt/bar/overlays.tgz -C /opt/bar/overlays")
+                else:
+                    sh(sb, "rm -rf /opt/bar/overlays")
+                code, log = sh_long(sb, f"rm -rf /opt/bar/games /opt/bar/results.tgz; bash /opt/bar/run_games.sh {first} {last} {par[k]} {limit}")
+                print(f"sandbox {k}: {log.strip()[-200:]}", flush=True)
+                data = get_bytes(sb, "/opt/bar/results.tgz")
+                with tarfile.open(fileobj=io.BytesIO(data), mode="r:gz") as tar:
+                    tar.extractall(out / "remote", filter="data")
+                for f in (out / "remote").glob("g*/datalog.jsonl"):
+                    (out / "data").mkdir(exist_ok=True)
+                    f.rename(out / "data" / (f.parent.name[1:] + ".jsonl"))
 
             parallel(play)
             if errors or gen_errors:

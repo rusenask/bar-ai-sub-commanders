@@ -40,3 +40,7 @@ uvx --with lightning-sdk python testenv/sandbox/sbx.py run <id> 'ls /opt/bar'   
   over ~8 minutes.
 - A batch stopped by a signal (`pkill`) leaves its sandboxes running: `sbx.py list`, then
   `sbx.py clean bar-<label>`.
+- A sandbox that fails (its host went down: "sandbox unreachable ... connection refused"; setup failed)
+  is replaced and its games re-run, up to `--retries` (2) times. Games that still didn't run can be
+  filled in later: `batch.py 48 --only 17-32 --into testenv/batch/<dir> --widgets ... --widgets-b ...`
+  (same arms; on pair boundaries for an A/B); the batch's report and arms are rebuilt.
