@@ -5725,6 +5725,36 @@ local function thinkCombat(sub, unitID, d, st, threats)
 		order(unitID, Engine.CMD_WANT_CLOAK, { 1 })
 		st.cloakSet = true
 	end
+	-- the army's anti-air covers it from behind (doctrine.engage.aaFollow, elmos behind the squad, away from
+	-- its target): it chased aircraft and patrolled the army's zone, which reaches past the front, and died to
+	-- ground units walking ahead of the army (a player's game). Hold position: it shoots what flies in range
+	local aaBack = Engine.D.engage.aaFollow
+	if aaBack and sub.role == "army" and d.aaOnly and d.mobile and not d.air then
+		if not st.aaHold then
+			order(unitID, CMD.MOVE_STATE, { 0 })
+			st.aaHold = true
+		end
+		local so, sq = sub.squadOrder, sub.squad
+		local cx, cz = sub.rallyX, sub.rallyZ
+		if sq and sq.x then
+			cx, cz = sq.x, sq.z
+		end
+		if cx then
+			local tx, tz = (so and so.x) or Engine.enemyX, (so and so.z) or Engine.enemyZ
+			if tx then
+				local dx, dz = cx - tx, cz - tz
+				local len = max(sqrt(dx * dx + dz * dz), 1)
+				cx, cz = cx + dx / len * aaBack, cz + dz / len * aaBack
+			end
+			cx, cz = clampToMap(cx, cz)
+			if dist2(x, z, cx, cz) > 220 * 220 and (not busy or frame - (st.aaFollowFrame or 0) > 90) then
+				order(unitID, CMD.MOVE, { cx, spGetGroundHeight(cx, cz), cz })
+				st.aaFollowFrame = frame
+				setTask(unitID, "follow", "covering the army from behind", true)
+			end
+		end
+		return
+	end
 	-- the army acts as one squad (Tactics.squad)
 	if sub.role == "army" and not d.aaOnly and not d.air then
 		-- roam: an idle unit goes for enemies it sees (BAR's default only answers what comes close), so a
@@ -5743,6 +5773,27 @@ local function thinkCombat(sub, unitID, d, st, threats)
 			if slot then
 				gx, gz = clampToMap(slot.x, slot.z)
 			end
+			-- the march (doctrine.engage.march): while the main body is still far from the target, a unit more
+			-- than `leash` ahead of it along the way waits there (each unit got its own FIGHT at its own speed:
+			-- the fast ones arrived first and alone, a player saw the army strung out)
+			local M = Engine.D.engage.march
+			if M and sq and sq.x then
+				local dx, dz = so.x - sq.x, so.z - sq.z
+				local len = max(sqrt(dx * dx + dz * dz), 1)
+				if len > M.contact and dist2(x, z, so.x, so.z) > M.contact * M.contact then
+					local ahead = ((x - sq.x) * dx + (z - sq.z) * dz) / len
+					if ahead > M.leash then
+						if st.marchWait ~= so.id or frame - (st.marchFrame or 0) > 90 then
+							local wx, wz = clampToMap(sq.x + dx / len * M.leash * 0.5, sq.z + dz / len * M.leash * 0.5)
+							order(unitID, CMD.MOVE, { wx, spGetGroundHeight(wx, wz), wz })
+							st.marchWait, st.marchFrame, st.engaged = so.id, frame, nil
+							setTask(unitID, "regroup", "waiting for the army", true)
+						end
+						return
+					end
+				end
+			end
+			st.marchWait = nil
 			local moved = st.engageX and dist2(gx, gz, st.engageX, st.engageZ) > 150 * 150
 			if st.engaged ~= so.id or not busy or moved or frame - (st.engagedFrame or 0) > 150 then
 				order(unitID, CMD.FIGHT, { gx, spGetGroundHeight(gx, gz), gz })
@@ -5841,7 +5892,9 @@ local function thinkCombat(sub, unitID, d, st, threats)
 	local target, targetD
 	for i = 1, #threats do
 		local t = threats[i]
-		if (d.aaOnly and t.air) or (not d.aaOnly and (not t.air or d.air)) then
+		-- anti-air doesn't chase aircraft into ground forces stronger than ours there (it can't shoot them)
+		local aaSafe = not (d.aaOnly and d.mobile and Engine.D.engage.aaFollow) or Engine.tm.threat(t.x, t.z) <= Engine.tm.influence(t.x, t.z)
+		if aaSafe and ((d.aaOnly and t.air) or (not d.aaOnly and (not t.air or d.air))) then
 			local dd = dist2(x, z, t.x, t.z)
 			if not targetD or dd < targetD then
 				target, targetD = t, dd

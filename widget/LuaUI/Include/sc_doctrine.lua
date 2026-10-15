@@ -24,6 +24,12 @@ D.engage = {
 	defend = 0.5, -- inside our base, with turret support, fight down to this
 	radius = 700, -- "local": around the target / the squad
 	cohesion = 650, -- units farther than this from the squad centre regroup first
+	-- marching to a target: while the main body is farther than `contact` from it, a unit more than `leash`
+	-- ahead of the body waits (false: every unit at its own speed, the fast ones first and alone)
+	march = { leash = 300, contact = 1100 },
+	-- the army's mobile anti-air stays this far behind the squad (away from its target), holding position;
+	-- anti-air anywhere doesn't chase aircraft into stronger enemy ground forces (false: chase and patrol)
+	aaFollow = 250,
 	minAttack = 1200, -- metal value of the smallest squad that attacks on its own (BARb quota.attack)
 	chase = 2600, -- an army chases intruders it drove off this far from home (if it still beats them)
 	raid = { 250, 900 }, -- [min, max] metal value of a raid squad (BARb quota.raid)
