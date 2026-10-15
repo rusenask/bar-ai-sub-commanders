@@ -4542,6 +4542,17 @@ function Tactics.squad(sub)
 			theirs = theirs + max(0, g.power - g.static)
 		end
 		dominant = sq.power >= dom * max(theirs, 1)
+		-- and only with home safe (doctrine.engage.pressSafe): not while the team defends, nor while the
+		-- intruders in our areas outweigh pressSafe x the response squad (Cortex lost its base and
+		-- expansions to raids while its army pressed: 0 wins in 12)
+		local ps = Engine.D.engage.pressSafe
+		if dominant and ps and Engine.homeX then
+			local intruders = Engine.tm.enemyPower(Engine.homeX, Engine.homeZ, ps.radius, frame, { mobileOnly = true })
+			local resp = sub.respSquad and sub.respSquad.together or 0
+			if Engine.team.plan.phase == "defend" or intruders > ps.share * max(resp, 1) then
+				dominant = false
+			end
+		end
 	end
 	if dominant then
 		for _, t in ipairs(sub.threats) do

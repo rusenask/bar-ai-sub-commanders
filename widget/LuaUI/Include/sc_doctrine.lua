@@ -37,6 +37,9 @@ D.engage = {
 	-- an army this many times the enemy's known mobile army goes for their side instead of chasing
 	-- intruders at home (false: intruders first)
 	dominance = 1.8,
+	-- pressing only with home safe: not while the team defends, nor with more than share x the response
+	-- squad's power of their mobile units within radius of home (false: press regardless)
+	pressSafe = false,
 	-- a squad that would hold against a threat within `dist` of its centre, at under `below` of its
 	-- strength, falls back instead (false: holds; at any ratio it threw away mirror fights, -0.47)
 	contactFallback = false,
