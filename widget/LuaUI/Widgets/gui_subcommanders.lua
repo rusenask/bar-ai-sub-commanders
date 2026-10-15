@@ -2545,6 +2545,30 @@ function Intel.watchPoints(sub)
 	return points
 end
 
+-- Intelligence v2: a seismic detector at home from doctrine.intel.seismicMinute (reveals cloaked units moving)
+function Jobs.seismic(sub, unitID, d, ux, uz)
+	local I = Engine.D.intel
+	if not I or not I.seismicMinute or Engine.minute() < I.seismicMinute or not Engine.homeX then
+		return false
+	end
+	for _, u in ipairs(Spring.GetTeamUnits(myTeam) or {}) do
+		local ud = unitDef(u)
+		if ud and not ud.mobile and (ud.seismic or 0) > 0 then
+			return false
+		end
+	end
+	for _, p in pairs(planned) do
+		if (defs[p.defID].seismic or 0) > 0 then
+			return false
+		end
+	end
+	return buildCheapestUseful(sub, unitID, d, Engine.homeX, Engine.homeZ, function(od)
+		return not od.mobile and (od.seismic or 0) > 0
+	end, function(od)
+		return -od.cost
+	end, "seismic detector (finds cloaked units)")
+end
+
 function Jobs.radarNet(sub, unitID, d, ux, uz)
 	local options = buildableBy(d, function(od)
 		return od.radarRange >= 1000 and not od.mobile and not od.armed
@@ -2670,7 +2694,140 @@ function Jobs.sonar(sub, unitID, d, ux, uz)
 end
 
 -- known enemy radar/jammer/camera to hit next: near our zones, not covered by known turrets
+-- a unit that can spot for Intelligence v2: a cheap cloaking, radar-stealthy unit (the spies: Ghost,
+-- Spectre, Eidolon) or a scout
+function Engine.isSpotter(d)
+	return d and d.mobile and not d.air and ((d.canCloak and d.stealthy and d.cost <= 400) or d.scout) or false
+end
+
+-- a sub-commander's cloaking spies (spotters that cloak)
+function Engine.cloakSpies(sub)
+	local n = 0
+	for u in pairs(sub.units) do
+		local ud = unitDef(u)
+		if ud and Engine.isSpotter(ud) and ud.canCloak then
+			n = n + 1
+		end
+	end
+	return n
+end
+
+-- how many spotters Intelligence wants (doctrine.intel.spotters)
+function Engine.spottersWanted()
+	local I = Engine.D.intel
+	if not I then
+		return 0
+	end
+	return min(I.spotters.max, I.spotters.base + floor(max(econ.mInc, 0) / I.spotters.perIncome))
+end
+
+-- where eyes help most: our cannons', strikes' and the army's targets, their factories (nearest our base
+-- first), their start when no factory of theirs is known. { x, z, why }, a point per 800 elmos
+function Engine.watchPoints()
+	local pts = {}
+	local function add(x, z, why)
+		for _, p in ipairs(pts) do
+			if dist2(p.x, p.z, x, z) < 800 * 800 then
+				return
+			end
+		end
+		pts[#pts + 1] = { x = x, z = z, why = why }
+	end
+	for _, p in ipairs(Engine.operationPoints()) do
+		add(p.x, p.z, "our target")
+	end
+	local facs = {}
+	for _, e in pairs(Enemy.units) do
+		local ed = defs[e.defID]
+		if ed and ed.factory then
+			facs[#facs + 1] = e
+		end
+	end
+	local hx, hz = Engine.homeX or 0, Engine.homeZ or 0
+	tsort(facs, function(a, b)
+		return dist2(a.x, a.z, hx, hz) < dist2(b.x, b.z, hx, hz)
+	end)
+	for i = 1, min(#facs, 3) do
+		add(facs[i].x, facs[i].z, "their factory")
+	end
+	if #facs == 0 and Engine.enemyX then
+		add(Engine.enemyX, Engine.enemyZ, "their base")
+	end
+	return pts
+end
+
+-- a spotter's post: the watch point least watched (nearest first), held `standoff` back toward our base;
+-- a spotter that can't cloak keeps out of their known reach. Returns true when it acted
+function Intel.spot(sub, unitID, d, st, x, z)
+	local I = Engine.D.intel
+	local pts = Engine.watchPoints()
+	if #pts == 0 then
+		return false
+	end
+	if d.canCloak and not st.cloakOn then
+		order(unitID, Engine.CMD_WANT_CLOAK, { 1 })
+		st.cloakOn = true
+	end
+	local p = st.watch
+	if not p or frame - (st.watchFrame or 0) > I.retarget then
+		local load = {}
+		for u in pairs(sub.units) do
+			local o = ustate[u]
+			if u ~= unitID and o and o.watch then
+				load[o.watch.key] = (load[o.watch.key] or 0) + 1
+			end
+		end
+		local best, bestScore
+		for _, q in ipairs(pts) do
+			q.key = floor(q.x / 400) .. ":" .. floor(q.z / 400)
+			local score = (load[q.key] or 0) * 1e8 + dist2(x, z, q.x, q.z)
+			if not bestScore or score < bestScore then
+				best, bestScore = q, score
+			end
+		end
+		p, st.watch, st.watchFrame = best, best, frame
+	end
+	local hx, hz = Engine.homeX or x, Engine.homeZ or z
+	local dx, dz = hx - p.x, hz - p.z
+	local len = max(sqrt(dx * dx + dz * dz), 1)
+	local px, pz = clampToMap(p.x + dx / len * I.standoff, p.z + dz / len * I.standoff)
+	if not d.canCloak and Engine.tm.threat(px, pz) > 0 then
+		local sx, sz = Engine.tm.safePoint(px, pz, hx, hz)
+		if sx then
+			px, pz = sx, sz
+		end
+	end
+	if dist2(x, z, px, pz) > 150 * 150 and (frame - (st.spotOrder or 0) > 90 or (spGetUnitCommandCount(unitID) or 0) == 0) then
+		order(unitID, CMD.MOVE, { px, spGetGroundHeight(px, pz), pz })
+		st.spotOrder = frame
+	end
+	setTask(unitID, "spot", "watching " .. p.why, true)
+	return true
+end
+
+-- counter-intelligence: their scouts, spies, cameras and unarmed units in our zones or base, seen lately
+function Intel.spyTarget(sub, x, z)
+	local best, bestD
+	for u, e in pairs(Enemy.units) do
+		local ed = defs[e.defID]
+		if ed and frame - e.last < 30 * 30 and (ed.scout or ed.kind == "camera" or (ed.canCloak and ed.stealthy) or (ed.mobile and not ed.armed and not ed.air))
+			and (inSubZones(sub, e.x, e.z) or Engine.inBase(e.x, e.z)) then
+			local dd = dist2(x, z, e.x, e.z)
+			if not bestD or dd < bestD then
+				best, bestD = u, dd
+			end
+		end
+	end
+	return best
+end
+
 function Intel.huntTarget(sub, x, z)
+	if Engine.D.intel then
+		local spy = Intel.spyTarget(sub, x, z)
+		if spy then
+			return spy
+		end
+	end
 	local best, bestD
 	for u, e in pairs(Enemy.units) do
 		local ed = defs[e.defID]
@@ -2728,6 +2885,21 @@ function Intel.thinkUnit(sub, unitID, d, st, threats)
 		return
 	end
 	local busy = (spGetUnitCommandCount(unitID) or 0) > 0
+	-- Intelligence v2: spotters hold watch over targets (cloakers always; scouts while spotters are short)
+	if Engine.D.intel and Engine.isSpotter(d) then
+		local cloaker = d.canCloak and d.stealthy
+		local posted = 0
+		if not cloaker then
+			for u in pairs(sub.units) do
+				local o = ustate[u]
+				posted = posted + ((u ~= unitID and o and o.watch and frame - (o.watchFrame or 0) < 30 * 60) and 1 or 0)
+			end
+		end
+		if (cloaker or posted < Engine.spottersWanted()) and Intel.spot(sub, unitID, d, st, x, z) then
+			return
+		end
+		st.watch = nil
+	end
 	if d.scout or (d.air and not d.armed) then
 		if not busy or (st.softUntil and frame > st.softUntil) then
 			local p = Intel.nextScoutPoint(sub, x, z)
@@ -2739,6 +2911,21 @@ function Intel.thinkUnit(sub, unitID, d, st, threats)
 		return
 	end
 	if not d.armed then
+		-- Intelligence v2: a mobile jammer follows the army (hides it), a little behind its centre
+		local army = Engine.D.intel and Engine.D.intel.jammerFollow and d.jammer > 0 and Engine.anyArmy()
+		local sq = army and army.squad
+		if sq and sq.x then
+			local ex, ez = enemyDirectionRef(sq.x, sq.z)
+			local dx, dz = sq.x - ex, sq.z - ez
+			local len = max(sqrt(dx * dx + dz * dz), 1)
+			local jx, jz = clampToMap(sq.x + dx / len * 150, sq.z + dz / len * 150)
+			if dist2(x, z, jx, jz) > 250 * 250 and (not busy or frame - (st.jamFrame or 0) > 90) then
+				order(unitID, CMD.MOVE, { jx, spGetGroundHeight(jx, jz), jz })
+				st.jamFrame = frame
+			end
+			setTask(unitID, "post", "jamming over the army", true)
+			return
+		end
 		-- mobile radar / jammer: stay at the zone edge toward the enemy
 		local zone = nearestZone(sub, x, z)
 		if zone and not busy then
@@ -2896,6 +3083,7 @@ local BUILDER_PLANS = {
 			or Jobs.cameras(sub, u, d, x, z)
 			or Jobs.sonar(sub, u, d, x, z)
 			or Jobs.jammer(sub, u, d, x, z)
+			or Jobs.seismic(sub, u, d, x, z)
 			or Jobs.repair(sub, u, d, x, z)
 			or Jobs.helpBuild(sub, u, d, x, z)
 			or Jobs.reclaim(sub, u, d, x, z)
@@ -3005,6 +3193,20 @@ function Engine.economyProduction(sub, facID, fd, cap)
 			end)
 			if cons[1] then
 				return cons[1], "tier 2 constructor"
+			end
+		end
+		-- Intelligence v2: spies for Intelligence (its own factory is tier 1 or missing): handed over
+		local intel = Engine.D.intel and Engine.subOfRole("intelligence")
+		if intel and not intel.paused and Engine.cloakSpies(intel) < Engine.spottersWanted() then
+			local spies = buildableBy(fd, function(od)
+				return Engine.isSpotter(od) and od.canCloak
+			end)
+			tsort(spies, function(a, b)
+				return defs[a].cost < defs[b].cost
+			end)
+			if spies[1] then
+				st.handOff, st.handOffCombat = intel.id, true
+				return spies[1], "spy for " .. intel.name
 			end
 		end
 		for _, s in ipairs(subs) do
@@ -3836,6 +4038,23 @@ local function pickProduction(sub, facID, fd)
 	if sub.role == "intelligence" then
 		-- a few scouts, one mobile radar / jammer, then fast raiders to hunt enemy intel
 		local scoutCap = sub.posture == "conserve" and 1 or (sub.posture == "spend" and 4 or 2)
+		-- Intelligence v2: cloaking spies for the spotter posts first (this factory or the T2 lab's hand-off),
+		-- scouts fill in where no spy can be made
+		if Engine.D.intel then
+			local want = Engine.spottersWanted()
+			if Engine.cloakSpies(sub) < want then
+				local spies = buildableBy(fd, function(od)
+					return Engine.isSpotter(od) and od.canCloak and od.cost <= cap * 1.5
+				end)
+				tsort(spies, function(a, b)
+					return defs[a].cost < defs[b].cost
+				end)
+				if spies[1] then
+					return spies[1], "spy (eyes for the cannons and bombers)"
+				end
+			end
+			scoutCap = max(scoutCap, want)
+		end
 		if counts.scouts < scoutCap then
 			local options = buildableBy(fd, function(od)
 				return (od.scout or (od.air and not od.armed and not od.transport and not od.builder)) and od.cost <= cap

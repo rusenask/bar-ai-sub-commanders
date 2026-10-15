@@ -245,6 +245,20 @@ D.turrets = {
 	lightCost = 150,
 }
 
+-- Intelligence v2 (gui_subcommanders Intel.*): spotters (cloaked spies first, else scouts) keep eyes on
+-- our operations' targets and their factories for the cannons, artillery and bombers, holding
+-- `standoff` back from the target and cloaked; `spotters` = base + income / perIncome, up to max (the
+-- Economy's T2 lab makes spies for Intelligence); counter-intelligence: armed intel units hunt their scouts,
+-- spies and cameras in our zones first, a seismic detector from seismicMinute, the mobile jammer follows
+-- the army. false: v1 (scouts pass through, no spotters)
+D.intel = {
+	spotters = { base = 2, perIncome = 50, max = 5 },
+	standoff = 420,
+	retarget = 30 * 20,
+	seismicMinute = 8,
+	jammerFollow = true,
+}
+
 -- forward firebases (sc_firebase.lua): Defense grows layered turret groups just past our frontier
 -- toward the enemy, and once one is complete founds the next further out (the territory follows our
 -- structures, so the line creeps forward). BARbarian hard grows every radar into one. Kept on (the
