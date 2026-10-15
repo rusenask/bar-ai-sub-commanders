@@ -1056,3 +1056,15 @@ Counter matrix, flat sites (arm A of 20261015-0212-sbx-il-re-khold, 264 battles)
 - Score -0.04 [-0.17, +0.10]; army at 12 min -459 [-1.1k, +160]. Tzars in only 3 of 24 games (plant in
   4): Cortex rarely reaches 50 metal/s before it is losing. **Cortex overlay off**; Cortex's gap is the
   early game (19 of 24 lost; army a third of BARbarian's at 12 min), the next thing to look at.
+
+## Legion overlay (sandboxes, 24 pairs, vs Armada medium): Mantis drone carriers and Cleavers
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-1221-sbx-g55-legion-overlay-A (no overlay) | 24 | 9 win, 10 timeout, 5 loss | 0 | 243.8k | 244 / 774 | 0.67 | 13.7 | 12 / 18.5 | 4.2k |
+| 20261015-1221-sbx-g55-legion-overlay-B (overlay) | 24 | 12 win, 7 timeout, 5 loss | 1 | 224.4k | 250 / 969 | 0.79 | 12.2 | 12 / 19.5 | 4.0k |
+
+- Overlay (in the arm only, not on main): T2 vehicle plant from 50 metal/s, one legcv, 4 Mantis
+  (legvcarry), the Cleaver (legamcluster) preferred. Score +0.08 [-0.18, +0.33], can't tell; late
+  enemy metal killed +17.8k [-4.9k, +39k], mid metal lost +3.1k [-0.3k, +6.5k]. Mantis in 11 games,
+  Cleavers in 9, the plant in 9. 24 more pairs queued on force (force-g57) to pool.
