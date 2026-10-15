@@ -930,3 +930,17 @@ Counter matrix, flat sites (arm A of 20261015-0212-sbx-il-re-khold, 264 battles)
   +8.5k [+4.6k, +12.5k] worse (constructors lost 23 -> 29-39). The earlier "worse" (g40) doesn't hold.
 - Cortex wins 3 of 72 against Armada medium (Legion 13-16 of 24-36): Cortex needs its own work (its
   constructors and expansions die in BARbarian's mid-game raids).
+
+## Army parity (no new constructors while our army is under 0.6x theirs) — not kept
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-0909-sbx-g46-cortex-parity-A (Cortex) | 24 | 5 win, 3 timeout, 16 loss | 3 | 153.8k | 152 / 761 | 0.56 | 29.1 | 12.5 / 18.5 | 2.3k |
+| 20261015-0909-sbx-g46-cortex-parity-B (Cortex, parity) | 24 | 5 win, 3 timeout, 16 loss | 3 | 170.9k | 167 / 777 | 0.54 | 28.0 | 12 / 17 | 2.1k |
+| 20261015-0908-force4-g46-legion-parity-A (Legion) | 12 | 7 win, 4 timeout, 1 loss | 0 | 256.9k | 265 / 977 | 0.66 | 14.6 | 10.5 / 24 | 3.5k |
+| 20261015-0908-force4-g46-legion-parity-B (Legion, parity) | 12 | 9 win, 1 timeout, 2 loss | 0 | 159.9k | 226 / 494 | 0.76 | 8.3 | 13 / 18 | 3.4k |
+
+- Cortex: no change (army at 12 min the same). Legion: mid and late losses better, extractors at 20 min
+  -8.3 [-13.6, -3.4] worse. Off.
+- Cortex spends nearly as much on turrets as on its army at minutes 10-14 (1.6k v 1.9k; Legion 1.8k v
+  5.9k at 10-19): next, a smaller turret budget for it.
