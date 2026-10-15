@@ -70,6 +70,14 @@ Positions are world coordinates; our start is in the `scenario ...`/`enemy start
 The engine log of the last game is `testenv/run.log` (Lua errors: `grep -i error testenv/run.log`), the
 final screenshot is in `testenv/screenshots/`.
 
+## One feature at a time
+
+The report's **feature table** judges each of our features on its own (spent, killed, lost, return;
+kills and losses carry `by=` the killer and `feature=` ours). For the why, `scripts/llm_review.py
+<batch> --feature firebase|lrpc|nuke|antinuke|shield|juno|rez` (run with `uv run --quiet --with certifi
+python`): a per-game account and a synthesis in `<batch>/llm-<feature>.md`. It reads only the log: it
+doesn't know the doctrine's caps and limits, so check a claim in the code and the log before acting.
+
 ## Turning findings into work
 
 1. Read `docs/research/lessons.md` first: the finding may already have a known cause or a failed fix.

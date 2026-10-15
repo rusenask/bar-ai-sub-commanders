@@ -37,6 +37,12 @@ means the interval holds zero: the arms may be the same. Read it like this:
 - "can't tell" on everything = no evidence either way: run more games (24+ a side) before deciding, or
   drop it if it was a long shot. Don't call 3 wins against 1 an improvement on its own.
 - Any **worse** = revert, or restrict the change to the stage where it helps.
+- Kept strategies (firebases, cannons, nukes, anti-nukes, shields, Juno, resurrection) are never reverted:
+  A/B version against version, and judge the piece on its own too: the **feature table** at the end of
+  `make compare` (per feature: games used, metal spent, enemy metal killed, its losses, return). Then ask
+  why with `uv run --quiet --with certifi python scripts/llm_review.py <batch>-B --feature <name>`
+  (DeepSeek flash reads each game's events for it in parallel, ~10 s, and synthesises the recurring
+  problems and the next version's changes). Check its claims against the log before acting on them.
 
 ## Micro changes: the battle lab first
 
