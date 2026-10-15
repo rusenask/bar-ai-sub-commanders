@@ -38,8 +38,10 @@ The full catalogue (every unit, its cost, health, range and abilities, from the 
 
 Radar, jammers, sonar and seismic detectors (Intelligence), the commander's D-gun, energy converters and
 geothermal (Economy), and since 2026-10-15 cloaking (Armada) and the Tzar as Cortex's heavy (the faction
-doctrine overlays). Under test (off by default, `doctrine.strategic`): anti-nukes with stockpiled
-interceptors, a shield over the labs, long-range plasma cannons with fire control (their cannons and
-silos first, never under their shields), a Juno silo fired on their radar/jammer clusters, and
-resurrection bots raising wrecks. The rest needs a player's order or a focus (`set_focus`) for now; say so when it
+doctrine overlays). On by default (`doctrine.strategic`): an anti-nuke with stockpiled interceptors once
+their nuke silo is seen, and a shield over the labs once their long-range cannons or a real air force
+are seen. Built and working but off, because they cost more than they won in tests: long-range plasma
+cannons with fire control, a Juno silo fired on their radar/jammer clusters, resurrection bots. Suggest
+them only for a reason the player sees (their jammers hiding an army: Juno; a stalemate at long range:
+cannons). The rest needs a player's order or a focus (`set_focus`) for now; say so when it
 would help (an enemy nuke silo: an anti-nuke; mines on their raid paths; resurrection after a big fight).
