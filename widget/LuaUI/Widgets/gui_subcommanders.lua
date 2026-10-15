@@ -1887,13 +1887,23 @@ function Jobs.firebase(sub, unitID, d, ux, uz)
 		if C.armyRatio and (Engine.armyValue or 0) < (Engine.turretValue or 0) * C.armyRatio then
 			return false
 		end
+		-- v7: how we stand against their strongest known group: outmatched, no new firebase; the creep's
+		-- reach grows with our edge (v6 over-extended against hard: 7 games lost by minute 25, v4 2)
+		local strength = (Engine.armyValue or 0) / max(Engine.enemyArmy or 0, 1)
+		if C.foundStrength and (Engine.enemyArmy or 0) > 0 and strength < C.foundStrength then
+			return false
+		end
 		local A = Engine.approach
 		local pickets = Engine.terr.pickets(5, { Engine.homeX, Engine.homeZ }, { Engine.enemyX, Engine.enemyZ }, A and A.sectors)
+		local reach
+		if C.strengthFull and (Engine.enemyArmy or 0) > 0 then
+			reach = C.reach * min(1, max(C.reachMin or 0.5, strength / C.strengthFull))
+		end
 		local site = FB.site(pickets, { x = Engine.homeX, z = Engine.homeZ }, { x = Engine.enemyX, z = Engine.enemyZ }, bases, function(x, z)
 			return covered(x, z) and Engine.tm.threat(x, z) or 1
 		end, C.metalWeight and function(x, z)
 			return Engine.freeSpotsNear(x, z, C.metalRadius or 600)
-		end)
+		end, reach)
 		if not site then
 			return false
 		end
@@ -4930,6 +4940,7 @@ function Engine.refreshTeam()
 	end
 	local income = max(econ.mInc, 0)
 	local prev = team.plan.phase
+	Engine.enemyArmy = enemyArmy -- the strongest known enemy group (metal): firebases scale their creep by it
 	local plan = team.phase({
 		minute = Engine.minute(), income = income, armyPower = Engine.armyValue or 0, enemyArmy = enemyArmy,
 		baseUnderAttack = inBase, techLab = Engine.haveTechLab(), frame = frame,

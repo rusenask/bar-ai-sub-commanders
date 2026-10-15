@@ -239,6 +239,11 @@ D.firebase = {
 	-- v6: established once its first `core` layers stand (light, heavy, radar, light): the next may be
 	-- founded while the rest is built (false: every layer, v1-v5)
 	core = 4,
+	-- v7: against their strongest known group (team plan's enemyArmy): no new firebase while our army is
+	-- under foundStrength x theirs; the reach is full at strengthFull x and shrinks to reachMin x reach
+	foundStrength = 0.7,
+	strengthFull = 1.5,
+	reachMin = 0.5,
 	-- covered = our combat units worth coverValue within coverRadius of the site (or in our base) instead of
 	-- a squad anywhere further forward: tried in v6 and it cancelled the gains (seqtest fb-v4-v6: with it
 	-- -0.00 over 32 pairs, without it +0.54 [+0.17, +0.87] after 8): off

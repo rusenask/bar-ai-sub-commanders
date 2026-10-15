@@ -3,7 +3,8 @@
 -- a radar, a heavy, anti-air once they fly, a long-range turret later); once complete the next one goes
 -- further out from the new frontier (territory follows our structures), so the line creeps forward and
 -- the army has a strong point to fall back on and push from. BARbarian hard grows every radar into one.
---   site(pickets, home, enemy, bases, threatAt, metalAt)  where the next firebase goes ({ x, z } or nil)
+--   site(pickets, home, enemy, bases, threatAt, metalAt, reach)  where the next firebase goes ({ x, z } or
+--                                                   nil); reach: share of the way to their base (default doctrine)
 --   nextLayer(have, airShare, minute, income)    the role a firebase builds next, or nil (complete)
 --   established(have, airShare, minute, income)  its core (the first `core` layers) stands: the next may go
 --   offset(role)                                  where in the base a role stands (forward, back)
@@ -26,8 +27,9 @@ return function(ctx)
 	-- covers, no nearer than `spacing` to another firebase, and no further from home than `reach` of the
 	-- way to their base. The best by the picket's score times how far forward it is, times
 	-- (1 + metalWeight x free metal spots near it: metalAt(x, z) -> count; creeping is for territory's metal)
-	function F.site(pickets, home, enemy, bases, threatAt, metalAt)
+	function F.site(pickets, home, enemy, bases, threatAt, metalAt, reach)
 		local C = D.firebase
+		reach = reach or C.reach
 		local full = max(sqrt(d2(home.x, home.z, enemy.x, enemy.z)), 1)
 		local ax, az = (enemy.x - home.x) / full, (enemy.z - home.z) / full
 		local best, bestScore
@@ -37,7 +39,7 @@ return function(ctx)
 			for _, step in ipairs({ C.step, C.step * 0.5, 0 }) do
 				local x, z = p.x + dx / len * step, p.z + dz / len * step
 				local forward = (x - home.x) * ax + (z - home.z) * az
-				local ok = forward <= C.reach * full and threatAt(x, z) <= 0
+				local ok = forward <= reach * full and threatAt(x, z) <= 0
 				for _, b in ipairs(bases) do
 					if ok and d2(x, z, b.x, b.z) < C.spacing * C.spacing then
 						ok = false

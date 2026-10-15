@@ -320,5 +320,8 @@ radar) hold ground: they defend what's behind them and are where the army pushes
   `core` (4) layers stand (light, heavy, radar, light; the heavy moved to second) and the next may be
   founded while the rest is built (v5 waited for every layer: one site short of its long-range turret
   froze the line); 2 not yet established at once, 6 standing, army ratio 0.75.
+  v6 shipped without the local-cover check (it cancelled the gains). v7: against their strongest known
+  group (the team plan's enemyArmy): no new firebase while our army is under 0.7x theirs, and the reach
+  scales from half to full between 0.75x and 1.5x (v6 over-extended against hard).
 - **Army**: rallies 200 behind the furthest firebase with two turrets standing (it falls back onto
   turrets on contact anyway, doctrine.engage.retreatToTurrets).

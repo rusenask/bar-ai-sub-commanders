@@ -31,6 +31,11 @@ return {
 		T.eq(FB.site({ { x = 2000, z = 0, score = 1 } }, home, enemy, { { x = 2300, z = 0 } }, safe), nil, "too close to a firebase")
 		T.eq(FB.site({ { x = 6000, z = 0, score = 1 } }, home, enemy, {}, safe), nil, "past half the map")
 	end,
+	site_reach_can_be_shortened = function()
+		local FB = firebase()
+		T.ok(FB.site({ { x = 4000, z = 0, score = 1 } }, home, enemy, {}, safe), "4000-4450 is inside 0.55 of 10000")
+		T.eq(FB.site({ { x = 4000, z = 0, score = 1 } }, home, enemy, {}, safe, nil, 0.3), nil, "not inside 0.3")
+	end,
 	site_prefers_the_better_picket = function()
 		local FB = firebase()
 		local s = FB.site({ { x = 2000, z = 2000, score = 1 }, { x = 2000, z = -2000, score = 3 } }, home, enemy, {}, safe)
