@@ -34,6 +34,7 @@ play/*
 !testenv/collect-results.sh
 !testenv/split-arms.sh
 !testenv/pool-pairs.sh
+!testenv/unit-catalogue.sh
 !testenv/battles/
 !testenv/battles-air/
 !testenv/battles-siege/

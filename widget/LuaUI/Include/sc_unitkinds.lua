@@ -70,6 +70,15 @@ for defID, ud in pairs(UnitDefs) do
 	d.scout = mobile and not d.builder and not d.air and d.cost < 45 and (ud.speed or 0) >= 120 and d.sight >= 550
 	d.spy = mobile and (ud.cloakCost or 0) > 0 and ud.stealth and d.builder and not d.commander
 	d.canCloak = ud.canCloak or false
+	-- abilities (docs/research/units.md, scripts/unit_catalogue.py)
+	local ucp = ud.customParams or {}
+	d.stealthy = ud.stealth or false
+	d.resurrect = ud.canResurrect or false
+	d.capture = ud.canCapture or false
+	d.mine = ucp.mine ~= nil
+	d.decoy = ucp.decoyfor ~= nil
+	d.kamikaze = ud.canKamikaze or ucp.instantselfd ~= nil
+	d.paralyzer, d.interceptor, d.stockpile, d.shield, d.flame = false, false, false, false, false
 	d.intelStructure = not mobile and (d.radarRange >= 1000 or d.jammer > 0 or d.sonar > 0 or d.seismic > 0 or d.camera)
 	-- what a weapon loadout says about a unit
 	local bomb, arty = false, false
@@ -83,6 +92,12 @@ for defID, ud in pairs(UnitDefs) do
 		local wd = WeaponDefs[weapons[i].weaponDef]
 		if wd then
 			bomb = bomb or wd.type == "AircraftBomb"
+			-- special weapons (docs/research/units.md): what a unit can do beyond damage
+			d.paralyzer = d.paralyzer or wd.paralyzer or false
+			d.interceptor = d.interceptor or ((wd.interceptor or 0) > 0)
+			d.stockpile = d.stockpile or wd.stockpile or false
+			d.shield = d.shield or wd.type == "Shield" or ((wd.shieldPower or 0) > 0)
+			d.flame = d.flame or wd.type == "Flame"
 			arty = arty or (wd.highTrajectory == 1 and (wd.range or 0) >= 600)
 			local per = (wd.salvoSize or 1) * (wd.projectiles or 1) / max(wd.reload or 1, 0.1)
 			local dmg = wd.damages and wd.damages[0] or 0

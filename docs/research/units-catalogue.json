@@ -1,0 +1,5948 @@
+{
+"armaak": {
+"cost": 520,
+"faction": "Armada",
+"health": 2200,
+"human": "Archangel",
+"kind": "mobile anti-air",
+"tags": [
+"amphibious"
+],
+"tech": "2"
+},
+"armaap": {
+"cost": 2900,
+"faction": "Armada",
+"health": 3750,
+"human": "Advanced Aircraft Plant",
+"kind": "factory",
+"tags": [
+"radar"
+],
+"tech": "2"
+},
+"armaas": {
+"cost": 1000,
+"faction": "Armada",
+"health": 3900,
+"human": "Dragonslayer",
+"kind": "naval",
+"tags": [],
+"tech": "2"
+},
+"armaca": {
+"cost": 340,
+"faction": "Armada",
+"health": 200,
+"human": "Advanced Construction Aircraft",
+"kind": "constructor",
+"tags": [],
+"tech": "2"
+},
+"armack": {
+"cost": 430,
+"faction": "Armada",
+"health": 930,
+"human": "Advanced Construction Bot",
+"kind": "constructor",
+"tags": [],
+"tech": "2"
+},
+"armacsub": {
+"cost": 700,
+"faction": "Armada",
+"health": 1110,
+"human": "Advanced Construction Sub",
+"kind": "constructor",
+"tags": [],
+"tech": "2"
+},
+"armacv": {
+"cost": 550,
+"faction": "Armada",
+"health": 2050,
+"human": "Advanced Construction Vehicle",
+"kind": "constructor",
+"tags": [],
+"tech": "2"
+},
+"armadvsol": {
+"cost": 350,
+"faction": "Armada",
+"health": 1130,
+"human": "Advanced Solar Collector",
+"kind": "economy",
+"tags": [],
+"tech": "1"
+},
+"armafus": {
+"cost": 9700,
+"faction": "Armada",
+"health": 8300,
+"human": "Advanced Fusion Reactor",
+"kind": "economy",
+"tags": [],
+"tech": "2"
+},
+"armageo": {
+"cost": 1600,
+"faction": "Armada",
+"health": 3600,
+"human": "Advanced Geothermal Powerplant",
+"kind": "economy",
+"tags": [
+"geothermal"
+],
+"tech": "2"
+},
+"armah": {
+"cost": 230,
+"faction": "Armada",
+"health": 1070,
+"human": "Sweeper",
+"kind": "hover mobile anti-air",
+"tags": [],
+"tech": "1"
+},
+"armalab": {
+"cost": 2600,
+"faction": "Armada",
+"health": 4250,
+"human": "Advanced Bot Lab",
+"kind": "factory",
+"tags": [],
+"tech": "2"
+},
+"armamb": {
+"cost": 2500,
+"faction": "Armada",
+"health": 4000,
+"human": "Rattlesnake",
+"kind": "long-range artillery",
+"tags": [
+"cloak",
+"switchable weapon modes"
+],
+"tech": "2"
+},
+"armamd": {
+"cost": 1500,
+"faction": "Armada",
+"health": 3300,
+"human": "Citadel",
+"kind": "long-range artillery",
+"tags": [
+"anti-nuke / interceptor",
+"stockpiled missile"
+],
+"tech": "2"
+},
+"armamex": {
+"cost": 200,
+"faction": "Armada",
+"health": 1610,
+"human": "Twilight",
+"kind": "economy",
+"tags": [
+"cloak",
+"on/off"
+],
+"tech": "1"
+},
+"armamph": {
+"cost": 260,
+"faction": "Armada",
+"health": 1170,
+"human": "Platypus",
+"kind": "hover skirmisher",
+"tags": [],
+"tech": "2"
+},
+"armamsub": {
+"cost": 1200,
+"faction": "Armada",
+"health": 2650,
+"human": "Amphibious Complex",
+"kind": "factory",
+"tags": [],
+"tech": "1.5"
+},
+"armanac": {
+"cost": 270,
+"faction": "Armada",
+"health": 1530,
+"human": "Crocodile",
+"kind": "hover heavy",
+"tags": [],
+"tech": "1"
+},
+"armanni": {
+"cost": 3500,
+"faction": "Armada",
+"health": 6100,
+"human": "Pulsar",
+"kind": "long-range artillery",
+"tags": [
+"radar",
+"on/off"
+],
+"tech": "2"
+},
+"armantiship": {
+"cost": 1400,
+"faction": "Armada",
+"health": 5000,
+"human": "Haven",
+"kind": "naval",
+"tags": [
+"radar",
+"sonar",
+"anti-nuke / interceptor",
+"stockpiled missile"
+],
+"tech": "2"
+},
+"armap": {
+"cost": 650,
+"faction": "Armada",
+"health": 2050,
+"human": "Aircraft Plant",
+"kind": "factory",
+"tags": [],
+"tech": "1"
+},
+"armarad": {
+"cost": 400,
+"faction": "Armada",
+"health": 500,
+"human": "Advanced Radar Tower",
+"kind": "radar",
+"tags": [
+"radar"
+],
+"tech": "2"
+},
+"armart": {
+"cost": 135,
+"faction": "Armada",
+"health": 620,
+"human": "Shellshocker",
+"kind": "artillery",
+"tags": [],
+"tech": "1"
+},
+"armaser": {
+"cost": 78,
+"faction": "Armada",
+"health": 340,
+"human": "Smuggler",
+"kind": "mobile jammer",
+"tags": [
+"jammer",
+"on/off"
+],
+"tech": "2"
+},
+"armason": {
+"cost": 170,
+"faction": "Armada",
+"health": 2350,
+"human": "Advanced Sonar Station",
+"kind": "radar",
+"tags": [
+"sonar"
+],
+"tech": "2"
+},
+"armasy": {
+"cost": 2900,
+"faction": "Armada",
+"health": 6000,
+"human": "Advanced Shipyard",
+"kind": "factory",
+"tags": [],
+"tech": "2"
+},
+"armatl": {
+"cost": 1000,
+"faction": "Armada",
+"health": 2800,
+"human": "Moray",
+"kind": "turret",
+"tags": [
+"torpedo"
+],
+"tech": "2"
+},
+"armatlas": {
+"cost": 68,
+"faction": "Armada",
+"health": 265,
+"human": "Stork",
+"kind": "air transport",
+"tags": [
+"transport"
+],
+"tech": "1"
+},
+"armavp": {
+"cost": 2600,
+"faction": "Armada",
+"health": 4750,
+"human": "Advanced Vehicle Plant",
+"kind": "factory",
+"tags": [],
+"tech": "2"
+},
+"armawac": {
+"cost": 175,
+"faction": "Armada",
+"health": 890,
+"human": "Oracle",
+"kind": "scout plane",
+"tags": [
+"radar",
+"sonar"
+],
+"tech": "2"
+},
+"armbanth": {
+"cost": 13500,
+"faction": "Armada",
+"health": 69000,
+"human": "Titan",
+"kind": "skirmisher",
+"tags": [
+"vertical-launch missiles"
+],
+"tech": "3"
+},
+"armbats": {
+"cost": 3300,
+"faction": "Armada",
+"health": 9800,
+"human": "Dreadnought",
+"kind": "naval",
+"tags": [],
+"tech": "2"
+},
+"armbeamer": {
+"cost": 190,
+"faction": "Armada",
+"health": 1430,
+"human": "Beamer",
+"kind": "turret",
+"tags": [],
+"tech": "1"
+},
+"armbeaver": {
+"cost": 150,
+"faction": "Armada",
+"health": 1030,
+"human": "Beaver",
+"kind": "constructor",
+"tags": [
+"amphibious"
+],
+"tech": "1"
+},
+"armblade": {
+"cost": 1250,
+"faction": "Armada",
+"health": 3000,
+"human": "Hornet",
+"kind": "gunship",
+"tags": [],
+"tech": "2"
+},
+"armbrawl": {
+"cost": 310,
+"faction": "Armada",
+"health": 1780,
+"human": "Roughneck",
+"kind": "gunship",
+"tags": [],
+"tech": "2"
+},
+"armbrtha": {
+"cost": 4500,
+"faction": "Armada",
+"health": 4450,
+"human": "Basilica",
+"kind": "long-range artillery",
+"tags": [
+"long-range artillery (2000+)"
+],
+"tech": "2"
+},
+"armbull": {
+"cost": 950,
+"faction": "Armada",
+"health": 4650,
+"human": "Bull",
+"kind": "heavy",
+"tags": [],
+"tech": "2"
+},
+"armca": {
+"cost": 110,
+"faction": "Armada",
+"health": 156,
+"human": "Construction Aircraft",
+"kind": "constructor",
+"tags": [],
+"tech": "1"
+},
+"armch": {
+"cost": 200,
+"faction": "Armada",
+"health": 1440,
+"human": "Construction Hovercraft",
+"kind": "hover constructor",
+"tags": [],
+"tech": "1"
+},
+"armcir": {
+"cost": 750,
+"faction": "Armada",
+"health": 4450,
+"human": "Chainsaw",
+"kind": "anti-air turret",
+"tags": [],
+"tech": "1"
+},
+"armck": {
+"cost": 110,
+"faction": "Armada",
+"health": 760,
+"human": "Construction Bot",
+"kind": "constructor",
+"tags": [],
+"tech": "1"
+},
+"armckfus": {
+"cost": 3550,
+"faction": "Armada",
+"health": 3800,
+"human": "Cloakable Fusion Reactor",
+"kind": "economy",
+"tags": [
+"cloak"
+],
+"tech": "2"
+},
+"armclaw": {
+"cost": 340,
+"faction": "Armada",
+"health": 1330,
+"human": "Dragon's Claw",
+"kind": "turret",
+"tags": [
+"jammer",
+"decoy",
+"lightning"
+],
+"tech": "1"
+},
+"armcom": {
+"cost": 2700,
+"faction": "Armada",
+"health": 3700,
+"human": "Armada Commander",
+"kind": "commander",
+"tags": [
+"capture",
+"torpedo",
+"manual fire (D-gun style)"
+],
+"tech": "1"
+},
+"armconsul": {
+"cost": 250,
+"faction": "Armada",
+"health": 1080,
+"human": "Consul",
+"kind": "constructor",
+"tags": [],
+"tech": "2"
+},
+"armcroc": {
+"cost": 750,
+"faction": "Armada",
+"health": 5000,
+"human": "Turtle",
+"kind": "skirmisher",
+"tags": [
+"amphibious"
+],
+"tech": "2"
+},
+"armcrus": {
+"cost": 1000,
+"faction": "Armada",
+"health": 5600,
+"human": "Paladin",
+"kind": "naval",
+"tags": [
+"torpedo"
+],
+"tech": "2"
+},
+"armcs": {
+"cost": 200,
+"faction": "Armada",
+"health": 1040,
+"human": "Construction Ship",
+"kind": "constructor",
+"tags": [],
+"tech": "1"
+},
+"armcsa": {
+"cost": 150,
+"faction": "Armada",
+"health": 405,
+"human": "Construction Seaplane",
+"kind": "constructor",
+"tags": [
+"seaplane"
+],
+"tech": "1"
+},
+"armcv": {
+"cost": 135,
+"faction": "Armada",
+"health": 1380,
+"human": "Construction Vehicle",
+"kind": "constructor",
+"tags": [],
+"tech": "1"
+},
+"armdecade": {
+"cost": 175,
+"faction": "Armada",
+"health": 970,
+"human": "Dolphin",
+"kind": "naval",
+"tags": [],
+"tech": "1"
+},
+"armdecom": {
+"cost": 770,
+"faction": "Armada",
+"health": 3700,
+"human": "Commander",
+"kind": "constructor",
+"tags": [
+"cloak",
+"capture",
+"decoy",
+"torpedo",
+"manual fire (D-gun style)"
+],
+"tech": "2"
+},
+"armdf": {
+"cost": 270,
+"faction": "Armada",
+"health": 3800,
+"human": "Decoy Fusion Reactor",
+"kind": "economy",
+"tags": [
+"decoy"
+],
+"tech": "2"
+},
+"armdfly": {
+"cost": 320,
+"faction": "Armada",
+"health": 1170,
+"human": "Abductor",
+"kind": "air transport",
+"tags": [
+"radar stealth",
+"transport",
+"EMP (paralyses)"
+],
+"tech": "2"
+},
+"armdl": {
+"cost": 240,
+"faction": "Armada",
+"health": 2200,
+"human": "Anemone",
+"kind": "turret",
+"tags": [
+"sonar",
+"torpedo"
+],
+"tech": "1"
+},
+"armdrag": {
+"cost": 8,
+"faction": "Armada",
+"health": 2800,
+"human": "Dragon's Teeth",
+"kind": "economy",
+"tags": [],
+"tech": "1"
+},
+"armemp": {
+"cost": 1600,
+"faction": "Armada",
+"health": 3350,
+"human": "Paralyzer",
+"kind": "long-range artillery",
+"tags": [
+"EMP (paralyses)",
+"stockpiled missile",
+"manual fire (D-gun style)"
+],
+"tech": "2"
+},
+"armepoch": {
+"cost": 20000,
+"faction": "Armada",
+"health": 50000,
+"human": "Epoch",
+"kind": "naval",
+"tags": [
+"radar",
+"long-range artillery (2000+)"
+],
+"tech": "2"
+},
+"armestor": {
+"cost": 170,
+"faction": "Armada",
+"health": 1890,
+"human": "Energy Storage",
+"kind": "economy",
+"tags": [],
+"tech": "1"
+},
+"armeyes": {
+"cost": 32,
+"faction": "Armada",
+"health": 280,
+"human": "Beholder",
+"kind": "camera",
+"tags": [
+"cloak"
+],
+"tech": "1"
+},
+"armfark": {
+"cost": 210,
+"faction": "Armada",
+"health": 335,
+"human": "Butler",
+"kind": "constructor",
+"tags": [],
+"tech": "2"
+},
+"armfast": {
+"cost": 160,
+"faction": "Armada",
+"health": 690,
+"human": "Sprinter",
+"kind": "assault",
+"tags": [],
+"tech": "2"
+},
+"armfatf": {
+"cost": 800,
+"faction": "Armada",
+"health": 1610,
+"human": "Naval Pinpointer",
+"kind": "economy",
+"tags": [
+"on/off"
+],
+"tech": "2"
+},
+"armfav": {
+"cost": 31,
+"faction": "Armada",
+"health": 105,
+"human": "Rover",
+"kind": "scout",
+"tags": [],
+"tech": "1"
+},
+"armfboy": {
+"cost": 1400,
+"faction": "Armada",
+"health": 7800,
+"human": "Fatboy",
+"kind": "skirmisher",
+"tags": [],
+"tech": "2"
+},
+"armfdrag": {
+"cost": 15,
+"faction": "Armada",
+"health": 4450,
+"human": "Shark's Teeth",
+"kind": "economy",
+"tags": [],
+"tech": "1"
+},
+"armferret": {
+"cost": 330,
+"faction": "Armada",
+"health": 1600,
+"human": "Ferret",
+"kind": "anti-air turret",
+"tags": [
+"cloak"
+],
+"tech": "1"
+},
+"armfflak": {
+"cost": 820,
+"faction": "Armada",
+"health": 1750,
+"human": "Naval Arbalest",
+"kind": "anti-air turret",
+"tags": [],
+"tech": "2"
+},
+"armfhlt": {
+"cost": 470,
+"faction": "Armada",
+"health": 4250,
+"human": "Manta",
+"kind": "turret",
+"tags": [],
+"tech": "1"
+},
+"armfhp": {
+"cost": 670,
+"faction": "Armada",
+"health": 3350,
+"human": "Naval Hovercraft Platform",
+"kind": "factory",
+"tags": [],
+"tech": "1.5"
+},
+"armfido": {
+"cost": 285,
+"faction": "Armada",
+"health": 1200,
+"human": "Hound",
+"kind": "skirmisher",
+"tags": [],
+"tech": "2"
+},
+"armfig": {
+"cost": 73,
+"faction": "Armada",
+"health": 167,
+"human": "Falcon",
+"kind": "fighter",
+"tags": [],
+"tech": "1"
+},
+"armflak": {
+"cost": 820,
+"faction": "Armada",
+"health": 1750,
+"human": "Arbalest",
+"kind": "anti-air turret",
+"tags": [],
+"tech": "2"
+},
+"armflash": {
+"cost": 110,
+"faction": "Armada",
+"health": 730,
+"human": "Blitz",
+"kind": "assault",
+"tags": [],
+"tech": "1"
+},
+"armflea": {
+"cost": 21,
+"faction": "Armada",
+"health": 60,
+"human": "Tick",
+"kind": "scout",
+"tags": [],
+"tech": "1"
+},
+"armfmine3": {
+"cost": 32,
+"faction": "Armada",
+"health": 11,
+"human": "Heavy Mine",
+"kind": "economy",
+"tags": [
+"cloak",
+"kamikaze / self-destruct bomb",
+"mine"
+],
+"tech": "1"
+},
+"armfmkr": {
+"cost": 1,
+"faction": "Armada",
+"health": 167,
+"human": "Naval Energy Converter",
+"kind": "economy",
+"tags": [
+"energy converter"
+],
+"tech": "1"
+},
+"armfort": {
+"cost": 40,
+"faction": "Armada",
+"health": 8900,
+"human": "Fortification Wall",
+"kind": "economy",
+"tags": [],
+"tech": "2"
+},
+"armfrad": {
+"cost": 130,
+"faction": "Armada",
+"health": 110,
+"human": "Naval Radar / Sonar Tower",
+"kind": "radar",
+"tags": [
+"radar",
+"sonar"
+],
+"tech": "1"
+},
+"armfrt": {
+"cost": 80,
+"faction": "Armada",
+"health": 330,
+"human": "Naval Nettle",
+"kind": "anti-air turret",
+"tags": [],
+"tech": "1"
+},
+"armfus": {
+"cost": 3350,
+"faction": "Armada",
+"health": 3800,
+"human": "Fusion Reactor",
+"kind": "economy",
+"tags": [],
+"tech": "2"
+},
+"armgate": {
+"cost": 3000,
+"faction": "Armada",
+"health": 3550,
+"human": "Keeper",
+"kind": "turret",
+"tags": [
+"on/off",
+"shield"
+],
+"tech": "2"
+},
+"armgeo": {
+"cost": 560,
+"faction": "Armada",
+"health": 1940,
+"human": "Geothermal Powerplant",
+"kind": "economy",
+"tags": [
+"geothermal"
+],
+"tech": "1"
+},
+"armgmm": {
+"cost": 1150,
+"faction": "Armada",
+"health": 13900,
+"human": "Prude",
+"kind": "economy",
+"tags": [
+"geothermal"
+],
+"tech": "2"
+},
+"armgremlin": {
+"cost": 230,
+"faction": "Armada",
+"health": 1060,
+"human": "Gremlin",
+"kind": "assault",
+"tags": [
+"cloak",
+"radar stealth"
+],
+"tech": "2"
+},
+"armguard": {
+"cost": 1250,
+"faction": "Armada",
+"health": 3050,
+"human": "Gauntlet",
+"kind": "long-range artillery",
+"tags": [
+"switchable weapon modes"
+],
+"tech": "1"
+},
+"armham": {
+"cost": 130,
+"faction": "Armada",
+"health": 1000,
+"human": "Mace",
+"kind": "assault",
+"tags": [],
+"tech": "1"
+},
+"armhawk": {
+"cost": 150,
+"faction": "Armada",
+"health": 370,
+"human": "Highwind",
+"kind": "fighter",
+"tags": [
+"radar stealth"
+],
+"tech": "2"
+},
+"armhlt": {
+"cost": 440,
+"faction": "Armada",
+"health": 2600,
+"human": "Overwatch",
+"kind": "turret",
+"tags": [],
+"tech": "1"
+},
+"armhp": {
+"cost": 670,
+"faction": "Armada",
+"health": 3350,
+"human": "Hovercraft Platform",
+"kind": "factory",
+"tags": [],
+"tech": "1.5"
+},
+"armhvytrans": {
+"cost": 190,
+"faction": "Armada",
+"health": 630,
+"human": "Osprey",
+"kind": "air transport",
+"tags": [
+"transport"
+],
+"tech": "1"
+},
+"armjam": {
+"cost": 105,
+"faction": "Armada",
+"health": 510,
+"human": "Umbra",
+"kind": "mobile jammer",
+"tags": [
+"jammer",
+"on/off"
+],
+"tech": "2"
+},
+"armjamt": {
+"cost": 240,
+"faction": "Armada",
+"health": 790,
+"human": "Sneaky Pete",
+"kind": "jammer",
+"tags": [
+"jammer",
+"on/off"
+],
+"tech": "1"
+},
+"armjanus": {
+"cost": 240,
+"faction": "Armada",
+"health": 1030,
+"human": "Janus",
+"kind": "assault",
+"tags": [],
+"tech": "1"
+},
+"armjeth": {
+"cost": 125,
+"faction": "Armada",
+"health": 630,
+"human": "Crossbow",
+"kind": "mobile anti-air",
+"tags": [
+"amphibious"
+],
+"tech": "1"
+},
+"armjuno": {
+"cost": 640,
+"faction": "Armada",
+"health": 2350,
+"human": "Juno",
+"kind": "long-range artillery",
+"tags": [
+"stockpiled missile",
+"manual fire (D-gun style)",
+"juno (kills mines, radar, jammers)"
+],
+"tech": "1"
+},
+"armkam": {
+"cost": 135,
+"faction": "Armada",
+"health": 560,
+"human": "Banshee",
+"kind": "gunship",
+"tags": [],
+"tech": "1"
+},
+"armkraken": {
+"cost": 1000,
+"faction": "Armada",
+"health": 4450,
+"human": "Gorgon",
+"kind": "turret",
+"tags": [],
+"tech": "2"
+},
+"armlab": {
+"cost": 500,
+"faction": "Armada",
+"health": 2900,
+"human": "Bot Lab",
+"kind": "factory",
+"tags": [],
+"tech": "1"
+},
+"armlance": {
+"cost": 400,
+"faction": "Armada",
+"health": 1920,
+"human": "Cormorant",
+"kind": "gunship",
+"tags": [
+"sonar",
+"torpedo"
+],
+"tech": "2"
+},
+"armlatnk": {
+"cost": 330,
+"faction": "Armada",
+"health": 1060,
+"human": "Jaguar",
+"kind": "skirmisher",
+"tags": [
+"lightning"
+],
+"tech": "2"
+},
+"armliche": {
+"cost": 2200,
+"faction": "Armada",
+"health": 2300,
+"human": "Liche",
+"kind": "gunship",
+"tags": [],
+"tech": "2"
+},
+"armllt": {
+"cost": 85,
+"faction": "Armada",
+"health": 620,
+"human": "Sentry",
+"kind": "turret",
+"tags": [],
+"tech": "1"
+},
+"armlship": {
+"cost": 570,
+"faction": "Armada",
+"health": 2200,
+"human": "Maelstrom",
+"kind": "naval",
+"tags": [
+"lightning"
+],
+"tech": "2"
+},
+"armlun": {
+"cost": 1150,
+"faction": "Armada",
+"health": 5300,
+"human": "Lunkhead",
+"kind": "hover skirmisher",
+"tags": [
+"torpedo"
+],
+"tech": "3"
+},
+"armmakr": {
+"cost": 1,
+"faction": "Armada",
+"health": 167,
+"human": "Energy Converter",
+"kind": "economy",
+"tags": [
+"energy converter"
+],
+"tech": "1"
+},
+"armmanni": {
+"cost": 1200,
+"faction": "Armada",
+"health": 2800,
+"human": "Starlight",
+"kind": "skirmisher",
+"tags": [],
+"tech": "2"
+},
+"armmar": {
+"cost": 970,
+"faction": "Armada",
+"health": 4900,
+"human": "Marauder",
+"kind": "skirmisher",
+"tags": [],
+"tech": "3"
+},
+"armmark": {
+"cost": 100,
+"faction": "Armada",
+"health": 355,
+"human": "Compass",
+"kind": "mobile radar",
+"tags": [
+"radar"
+],
+"tech": "2"
+},
+"armmart": {
+"cost": 320,
+"faction": "Armada",
+"health": 1070,
+"human": "Mauser",
+"kind": "skirmisher",
+"tags": [],
+"tech": "2"
+},
+"armmav": {
+"cost": 650,
+"faction": "Armada",
+"health": 1800,
+"human": "Gunslinger",
+"kind": "heavy",
+"tags": [],
+"tech": "2"
+},
+"armmercury": {
+"cost": 1600,
+"faction": "Armada",
+"health": 1670,
+"human": "Mercury",
+"kind": "long-range artillery",
+"tags": [
+"stockpiled missile"
+],
+"tech": "2"
+},
+"armmerl": {
+"cost": 920,
+"faction": "Armada",
+"health": 1300,
+"human": "Ambassador",
+"kind": "skirmisher",
+"tags": [
+"radar stealth",
+"vertical-launch missiles"
+],
+"tech": "2"
+},
+"armmex": {
+"cost": 50,
+"faction": "Armada",
+"health": 270,
+"human": "Metal Extractor",
+"kind": "economy",
+"tags": [
+"on/off"
+],
+"tech": "1"
+},
+"armmh": {
+"cost": 175,
+"faction": "Armada",
+"health": 530,
+"human": "Possum",
+"kind": "hover skirmisher",
+"tags": [
+"vertical-launch missiles"
+],
+"tech": "1"
+},
+"armmine1": {
+"cost": 7,
+"faction": "Armada",
+"health": 11,
+"human": "Light Mine",
+"kind": "economy",
+"tags": [
+"cloak",
+"kamikaze / self-destruct bomb",
+"mine"
+],
+"tech": "1"
+},
+"armmine2": {
+"cost": 25,
+"faction": "Armada",
+"health": 11,
+"human": "Medium Mine",
+"kind": "economy",
+"tags": [
+"cloak",
+"kamikaze / self-destruct bomb",
+"mine"
+],
+"tech": "1"
+},
+"armmine3": {
+"cost": 50,
+"faction": "Armada",
+"health": 11,
+"human": "Heavy Mine",
+"kind": "economy",
+"tags": [
+"cloak",
+"kamikaze / self-destruct bomb",
+"mine"
+],
+"tech": "1"
+},
+"armmls": {
+"cost": 190,
+"faction": "Armada",
+"health": 1460,
+"human": "Voyager",
+"kind": "constructor",
+"tags": [
+"minesweeper"
+],
+"tech": "2"
+},
+"armmlv": {
+"cost": 57,
+"faction": "Armada",
+"health": 335,
+"human": "Groundhog",
+"kind": "constructor",
+"tags": [
+"radar stealth",
+"jammer",
+"minesweeper"
+],
+"tech": "1"
+},
+"armmmkr": {
+"cost": 380,
+"faction": "Armada",
+"health": 445,
+"human": "Advanced Energy Converter",
+"kind": "economy",
+"tags": [
+"energy converter"
+],
+"tech": "2"
+},
+"armmoho": {
+"cost": 620,
+"faction": "Armada",
+"health": 2800,
+"human": "Advanced Metal Extractor",
+"kind": "economy",
+"tags": [
+"on/off"
+],
+"tech": "2"
+},
+"armmship": {
+"cost": 2000,
+"faction": "Armada",
+"health": 3350,
+"human": "Longbow",
+"kind": "naval",
+"tags": [
+"radar"
+],
+"tech": "2"
+},
+"armmstor": {
+"cost": 330,
+"faction": "Armada",
+"health": 2100,
+"human": "Metal Storage",
+"kind": "economy",
+"tags": [],
+"tech": "1"
+},
+"armnanotc": {
+"cost": 230,
+"faction": "Armada",
+"health": 560,
+"human": "Construction Turret",
+"kind": "constructor",
+"tags": [],
+"tech": "1"
+},
+"armnanotcplat": {
+"cost": 230,
+"faction": "Armada",
+"health": 560,
+"human": "Naval Construction Turret",
+"kind": "constructor",
+"tags": [],
+"tech": "1"
+},
+"armpb": {
+"cost": 680,
+"faction": "Armada",
+"health": 2800,
+"human": "Pit Bull",
+"kind": "turret",
+"tags": [
+"cloak"
+],
+"tech": "2"
+},
+"armpeep": {
+"cost": 52,
+"faction": "Armada",
+"health": 89,
+"human": "Blink",
+"kind": "scout plane",
+"tags": [
+"radar"
+],
+"tech": "1"
+},
+"armpincer": {
+"cost": 200,
+"faction": "Armada",
+"health": 1340,
+"human": "Pincer",
+"kind": "assault",
+"tags": [],
+"tech": "1"
+},
+"armplat": {
+"cost": 1450,
+"faction": "Armada",
+"health": 2000,
+"human": "Seaplane Platform",
+"kind": "factory",
+"tags": [
+"sonar",
+"on/off"
+],
+"tech": "1.5"
+},
+"armpnix": {
+"cost": 230,
+"faction": "Armada",
+"health": 1130,
+"human": "Blizzard",
+"kind": "bomber",
+"tags": [],
+"tech": "2"
+},
+"armpship": {
+"cost": 380,
+"faction": "Armada",
+"health": 2150,
+"human": "Ellysaw",
+"kind": "naval",
+"tags": [],
+"tech": "1"
+},
+"armpt": {
+"cost": 150,
+"faction": "Armada",
+"health": 780,
+"human": "Skater",
+"kind": "naval",
+"tags": [
+"radar stealth",
+"radar"
+],
+"tech": "1"
+},
+"armpw": {
+"cost": 54,
+"faction": "Armada",
+"health": 370,
+"human": "Pawn",
+"kind": "raider",
+"tags": [],
+"tech": "1"
+},
+"armrad": {
+"cost": 60,
+"faction": "Armada",
+"health": 180,
+"human": "Radar Tower",
+"kind": "radar",
+"tags": [
+"radar"
+],
+"tech": "1"
+},
+"armraz": {
+"cost": 3800,
+"faction": "Armada",
+"health": 13300,
+"human": "Razorback",
+"kind": "heavy",
+"tags": [],
+"tech": "3"
+},
+"armrecl": {
+"cost": 240,
+"faction": "Armada",
+"health": 420,
+"human": "Grim Reaper",
+"kind": "naval",
+"tags": [
+"resurrect"
+],
+"tech": "1"
+},
+"armrectr": {
+"cost": 130,
+"faction": "Armada",
+"health": 220,
+"human": "Lazarus",
+"kind": "mobile radar",
+"tags": [
+"radar stealth",
+"resurrect"
+],
+"tech": "1"
+},
+"armrl": {
+"cost": 80,
+"faction": "Armada",
+"health": 330,
+"human": "Nettle",
+"kind": "anti-air turret",
+"tags": [],
+"tech": "1"
+},
+"armrock": {
+"cost": 120,
+"faction": "Armada",
+"health": 720,
+"human": "Rocketeer",
+"kind": "assault",
+"tags": [],
+"tech": "1"
+},
+"armroy": {
+"cost": 880,
+"faction": "Armada",
+"health": 3700,
+"human": "Corsair",
+"kind": "naval",
+"tags": [
+"torpedo"
+],
+"tech": "1"
+},
+"armsaber": {
+"cost": 210,
+"faction": "Armada",
+"health": 1010,
+"human": "Sabre",
+"kind": "gunship",
+"tags": [
+"seaplane"
+],
+"tech": "1"
+},
+"armsam": {
+"cost": 150,
+"faction": "Armada",
+"health": 820,
+"human": "Whistler",
+"kind": "skirmisher",
+"tags": [],
+"tech": "1"
+},
+"armsb": {
+"cost": 240,
+"faction": "Armada",
+"health": 1170,
+"human": "Tsunami",
+"kind": "bomber",
+"tags": [
+"seaplane"
+],
+"tech": "1"
+},
+"armscab": {
+"cost": 1150,
+"faction": "Armada",
+"health": 870,
+"human": "Umbrella",
+"kind": "mobile anti-air",
+"tags": [
+"anti-nuke / interceptor",
+"stockpiled missile"
+],
+"tech": "2"
+},
+"armsd": {
+"cost": 710,
+"faction": "Armada",
+"health": 2650,
+"human": "Tracer",
+"kind": "radar",
+"tags": [
+"seismic detector",
+"on/off"
+],
+"tech": "2"
+},
+"armseap": {
+"cost": 290,
+"faction": "Armada",
+"health": 1300,
+"human": "Puffin",
+"kind": "gunship",
+"tags": [
+"seaplane",
+"torpedo"
+],
+"tech": "1"
+},
+"armseer": {
+"cost": 125,
+"faction": "Armada",
+"health": 980,
+"human": "Prophet",
+"kind": "mobile radar",
+"tags": [
+"radar"
+],
+"tech": "2"
+},
+"armsehak": {
+"cost": 125,
+"faction": "Armada",
+"health": 580,
+"human": "Horizon",
+"kind": "scout plane",
+"tags": [
+"radar",
+"sonar",
+"seaplane"
+],
+"tech": "1"
+},
+"armserp": {
+"cost": 1800,
+"faction": "Armada",
+"health": 3550,
+"human": "Serpent",
+"kind": "naval",
+"tags": [
+"radar stealth",
+"torpedo"
+],
+"tech": "2"
+},
+"armsfig": {
+"cost": 90,
+"faction": "Armada",
+"health": 220,
+"human": "Cyclone",
+"kind": "fighter",
+"tags": [
+"seaplane"
+],
+"tech": "1"
+},
+"armsh": {
+"cost": 85,
+"faction": "Armada",
+"health": 290,
+"human": "Seeker",
+"kind": "hover raider",
+"tags": [],
+"tech": "1"
+},
+"armshltx": {
+"cost": 7900,
+"faction": "Armada",
+"health": 16000,
+"human": "Experimental Gantry",
+"kind": "factory",
+"tags": [],
+"tech": "3"
+},
+"armshltxuw": {
+"cost": 7900,
+"faction": "Armada",
+"health": 16000,
+"human": "Experimental Gantry",
+"kind": "factory",
+"tags": [],
+"tech": "3"
+},
+"armsilo": {
+"cost": 8100,
+"faction": "Armada",
+"health": 5900,
+"human": "Armageddon",
+"kind": "long-range artillery",
+"tags": [
+"stockpiled missile",
+"nuke",
+"manual fire (D-gun style)"
+],
+"tech": "2"
+},
+"armsjam": {
+"cost": 310,
+"faction": "Armada",
+"health": 1350,
+"human": "Bermuda",
+"kind": "naval",
+"tags": [
+"jammer",
+"on/off"
+],
+"tech": "2"
+},
+"armsnipe": {
+"cost": 680,
+"faction": "Armada",
+"health": 580,
+"human": "Sharpshooter",
+"kind": "skirmisher",
+"tags": [
+"cloak"
+],
+"tech": "2"
+},
+"armsolar": {
+"cost": 155,
+"faction": "Armada",
+"health": 340,
+"human": "Solar Collector",
+"kind": "economy",
+"tags": [
+"on/off"
+],
+"tech": "1"
+},
+"armspid": {
+"cost": 250,
+"faction": "Armada",
+"health": 1110,
+"human": "Webber",
+"kind": "heavy",
+"tags": [
+"radar stealth",
+"EMP (paralyses)"
+],
+"tech": "2"
+},
+"armsptk": {
+"cost": 400,
+"faction": "Armada",
+"health": 1390,
+"human": "Recluse",
+"kind": "skirmisher",
+"tags": [],
+"tech": "2"
+},
+"armspy": {
+"cost": 135,
+"faction": "Armada",
+"health": 300,
+"human": "Ghost",
+"kind": "assault",
+"tags": [
+"cloak",
+"radar stealth",
+"sonar stealth",
+"torpedo"
+],
+"tech": "2"
+},
+"armstil": {
+"cost": 460,
+"faction": "Armada",
+"health": 1880,
+"human": "Stiletto",
+"kind": "bomber",
+"tags": [
+"radar stealth",
+"EMP (paralyses)"
+],
+"tech": "2"
+},
+"armstump": {
+"cost": 225,
+"faction": "Armada",
+"health": 1800,
+"human": "Stout",
+"kind": "assault",
+"tags": [],
+"tech": "1"
+},
+"armsub": {
+"cost": 440,
+"faction": "Armada",
+"health": 840,
+"human": "Eel",
+"kind": "naval",
+"tags": [
+"torpedo"
+],
+"tech": "1"
+},
+"armsubk": {
+"cost": 950,
+"faction": "Armada",
+"health": 2350,
+"human": "Barracuda",
+"kind": "naval",
+"tags": [
+"torpedo"
+],
+"tech": "2"
+},
+"armsy": {
+"cost": 450,
+"faction": "Armada",
+"health": 4100,
+"human": "Shipyard",
+"kind": "factory",
+"tags": [],
+"tech": "1"
+},
+"armtarg": {
+"cost": 810,
+"faction": "Armada",
+"health": 2100,
+"human": "Pinpointer",
+"kind": "economy",
+"tags": [
+"on/off"
+],
+"tech": "2"
+},
+"armthor": {
+"cost": 9000,
+"faction": "Armada",
+"health": 56000,
+"human": "Thor",
+"kind": "skirmisher",
+"tags": [
+"lightning",
+"EMP (paralyses)",
+"stockpiled missile",
+"manual fire (D-gun style)"
+],
+"tech": "3"
+},
+"armthund": {
+"cost": 150,
+"faction": "Armada",
+"health": 670,
+"human": "Stormbringer",
+"kind": "bomber",
+"tags": [],
+"tech": "1"
+},
+"armtide": {
+"cost": 90,
+"faction": "Armada",
+"health": 400,
+"human": "Tidal Generator",
+"kind": "economy",
+"tags": [],
+"tech": "1"
+},
+"armtl": {
+"cost": 170,
+"faction": "Armada",
+"health": 1300,
+"human": "Harpoon",
+"kind": "turret",
+"tags": [
+"torpedo"
+],
+"tech": "1"
+},
+"armuwadves": {
+"cost": 830,
+"faction": "Armada",
+"health": 11700,
+"human": "Hardened Energy Storage",
+"kind": "economy",
+"tags": [],
+"tech": "2"
+},
+"armuwadvms": {
+"cost": 750,
+"faction": "Armada",
+"health": 10300,
+"human": "Hardened Metal Storage",
+"kind": "economy",
+"tags": [],
+"tech": "2"
+},
+"armuwageo": {
+"cost": 1600,
+"faction": "Armada",
+"health": 3600,
+"human": "Advanced Geothermal Powerplant",
+"kind": "economy",
+"tags": [
+"geothermal"
+],
+"tech": "2"
+},
+"armuwes": {
+"cost": 170,
+"faction": "Armada",
+"health": 1890,
+"human": "Naval Energy Storage",
+"kind": "economy",
+"tags": [],
+"tech": "1"
+},
+"armuwfus": {
+"cost": 5200,
+"faction": "Armada",
+"health": 5600,
+"human": "Naval Fusion Reactor",
+"kind": "economy",
+"tags": [],
+"tech": "2"
+},
+"armuwgeo": {
+"cost": 560,
+"faction": "Armada",
+"health": 1940,
+"human": "Offshore Geothermal Powerplant",
+"kind": "economy",
+"tags": [
+"geothermal"
+],
+"tech": "1"
+},
+"armuwmme": {
+"cost": 620,
+"faction": "Armada",
+"health": 2800,
+"human": "Naval Advanced Metal Extractor",
+"kind": "economy",
+"tags": [
+"on/off"
+],
+"tech": "2"
+},
+"armuwmmm": {
+"cost": 380,
+"faction": "Armada",
+"health": 445,
+"human": "Naval Advanced Energy Converter",
+"kind": "economy",
+"tags": [
+"energy converter"
+],
+"tech": "2"
+},
+"armuwms": {
+"cost": 330,
+"faction": "Armada",
+"health": 3600,
+"human": "Naval Metal Storage",
+"kind": "economy",
+"tags": [],
+"tech": "1"
+},
+"armvader": {
+"cost": 65,
+"faction": "Armada",
+"health": 445,
+"human": "Tumbleweed",
+"kind": "assault",
+"tags": [
+"kamikaze / self-destruct bomb",
+"torpedo"
+],
+"tech": "2"
+},
+"armvang": {
+"cost": 3300,
+"faction": "Armada",
+"health": 8500,
+"human": "Vanguard",
+"kind": "artillery",
+"tags": [
+"switchable weapon modes"
+],
+"tech": "3"
+},
+"armveil": {
+"cost": 125,
+"faction": "Armada",
+"health": 830,
+"human": "Veil",
+"kind": "jammer",
+"tags": [
+"jammer",
+"on/off"
+],
+"tech": "2"
+},
+"armvp": {
+"cost": 590,
+"faction": "Armada",
+"health": 3000,
+"human": "Vehicle Plant",
+"kind": "factory",
+"tags": [],
+"tech": "1"
+},
+"armvulc": {
+"cost": 70000,
+"faction": "Armada",
+"health": 32000,
+"human": "Ragnarok",
+"kind": "long-range artillery",
+"tags": [
+"long-range artillery (2000+)"
+],
+"tech": "2"
+},
+"armwar": {
+"cost": 270,
+"faction": "Armada",
+"health": 1590,
+"human": "Centurion",
+"kind": "heavy",
+"tags": [],
+"tech": "1"
+},
+"armwin": {
+"cost": 40,
+"faction": "Armada",
+"health": 196,
+"human": "Wind Turbine",
+"kind": "economy",
+"tags": [],
+"tech": "1"
+},
+"armyork": {
+"cost": 450,
+"faction": "Armada",
+"health": 2600,
+"human": "Shredder",
+"kind": "mobile anti-air",
+"tags": [],
+"tech": "2"
+},
+"armzeus": {
+"cost": 350,
+"faction": "Armada",
+"health": 3500,
+"human": "Welder",
+"kind": "heavy",
+"tags": [
+"lightning"
+],
+"tech": "2"
+},
+"coraak": {
+"cost": 650,
+"faction": "Cortex",
+"health": 3200,
+"human": "Manticore",
+"kind": "mobile anti-air",
+"tags": [
+"amphibious"
+],
+"tech": "2"
+},
+"coraap": {
+"cost": 2900,
+"faction": "Cortex",
+"health": 3900,
+"human": "Advanced Aircraft Plant",
+"kind": "factory",
+"tags": [
+"radar"
+],
+"tech": "2"
+},
+"coraca": {
+"cost": 360,
+"faction": "Cortex",
+"health": 205,
+"human": "Advanced Construction Aircraft",
+"kind": "constructor",
+"tags": [],
+"tech": "2"
+},
+"corack": {
+"cost": 470,
+"faction": "Cortex",
+"health": 1000,
+"human": "Advanced Construction Bot",
+"kind": "constructor",
+"tags": [],
+"tech": "2"
+},
+"coracsub": {
+"cost": 700,
+"faction": "Cortex",
+"health": 1110,
+"human": "Advanced Construction Sub",
+"kind": "constructor",
+"tags": [],
+"tech": "2"
+},
+"coracv": {
+"cost": 580,
+"faction": "Cortex",
+"health": 2150,
+"human": "Advanced Construction Vehicle",
+"kind": "constructor",
+"tags": [],
+"tech": "2"
+},
+"coradvsol": {
+"cost": 370,
+"faction": "Cortex",
+"health": 1200,
+"human": "Advanced Solar Collector",
+"kind": "economy",
+"tags": [],
+"tech": "1"
+},
+"corafus": {
+"cost": 9700,
+"faction": "Cortex",
+"health": 9800,
+"human": "Advanced Fusion Reactor",
+"kind": "economy",
+"tags": [],
+"tech": "2"
+},
+"corageo": {
+"cost": 1500,
+"faction": "Cortex",
+"health": 4150,
+"human": "Advanced Geothermal Powerplant",
+"kind": "economy",
+"tags": [
+"geothermal"
+],
+"tech": "2"
+},
+"corah": {
+"cost": 250,
+"faction": "Cortex",
+"health": 1120,
+"human": "Birdeater",
+"kind": "hover mobile anti-air",
+"tags": [],
+"tech": "1"
+},
+"corak": {
+"cost": 43,
+"faction": "Cortex",
+"health": 280,
+"human": "Grunt",
+"kind": "raider",
+"tags": [],
+"tech": "1"
+},
+"coralab": {
+"cost": 2600,
+"faction": "Cortex",
+"health": 4500,
+"human": "Advanced Bot Lab",
+"kind": "factory",
+"tags": [],
+"tech": "2"
+},
+"coramph": {
+"cost": 330,
+"faction": "Cortex",
+"health": 2350,
+"human": "Duck",
+"kind": "heavy",
+"tags": [
+"amphibious",
+"torpedo"
+],
+"tech": "2"
+},
+"coramsub": {
+"cost": 1200,
+"faction": "Cortex",
+"health": 2800,
+"human": "Amphibious Complex",
+"kind": "factory",
+"tags": [],
+"tech": "1.5"
+},
+"corantiship": {
+"cost": 1400,
+"faction": "Cortex",
+"health": 5000,
+"human": "Oasis",
+"kind": "naval",
+"tags": [
+"radar",
+"sonar",
+"anti-nuke / interceptor",
+"stockpiled missile"
+],
+"tech": "2"
+},
+"corap": {
+"cost": 630,
+"faction": "Cortex",
+"health": 2150,
+"human": "Aircraft Plant",
+"kind": "factory",
+"tags": [],
+"tech": "1"
+},
+"corape": {
+"cost": 370,
+"faction": "Cortex",
+"health": 1560,
+"human": "Wasp",
+"kind": "gunship",
+"tags": [],
+"tech": "2"
+},
+"corarad": {
+"cost": 400,
+"faction": "Cortex",
+"health": 500,
+"human": "Advanced Radar Tower",
+"kind": "radar",
+"tags": [
+"radar"
+],
+"tech": "2"
+},
+"corarch": {
+"cost": 1000,
+"faction": "Cortex",
+"health": 3900,
+"human": "Arrow Storm",
+"kind": "naval",
+"tags": [],
+"tech": "2"
+},
+"corason": {
+"cost": 160,
+"faction": "Cortex",
+"health": 2400,
+"human": "Advanced Sonar Station",
+"kind": "radar",
+"tags": [
+"sonar"
+],
+"tech": "2"
+},
+"corasy": {
+"cost": 2800,
+"faction": "Cortex",
+"health": 5900,
+"human": "Advanced Shipyard",
+"kind": "factory",
+"tags": [],
+"tech": "2"
+},
+"coratl": {
+"cost": 1050,
+"faction": "Cortex",
+"health": 2800,
+"human": "Lamprey",
+"kind": "turret",
+"tags": [
+"torpedo"
+],
+"tech": "2"
+},
+"coravp": {
+"cost": 2600,
+"faction": "Cortex",
+"health": 5100,
+"human": "Advanced Vehicle Plant",
+"kind": "factory",
+"tags": [],
+"tech": "2"
+},
+"corawac": {
+"cost": 180,
+"faction": "Cortex",
+"health": 990,
+"human": "Condor",
+"kind": "scout plane",
+"tags": [
+"radar",
+"sonar"
+],
+"tech": "2"
+},
+"corban": {
+"cost": 1000,
+"faction": "Cortex",
+"health": 2500,
+"human": "Banisher",
+"kind": "skirmisher",
+"tags": [],
+"tech": "2"
+},
+"corbats": {
+"cost": 3400,
+"faction": "Cortex",
+"health": 12000,
+"human": "Despot",
+"kind": "naval",
+"tags": [],
+"tech": "2"
+},
+"corbhmth": {
+"cost": 3100,
+"faction": "Cortex",
+"health": 8300,
+"human": "Cerberus",
+"kind": "long-range artillery",
+"tags": [
+"geothermal"
+],
+"tech": "2"
+},
+"corblackhy": {
+"cost": 21000,
+"faction": "Cortex",
+"health": 53000,
+"human": "Black Hydra",
+"kind": "naval",
+"tags": [
+"radar",
+"long-range artillery (2000+)"
+],
+"tech": "2"
+},
+"corbuzz": {
+"cost": 68000,
+"faction": "Cortex",
+"health": 33500,
+"human": "Calamity",
+"kind": "long-range artillery",
+"tags": [
+"long-range artillery (2000+)"
+],
+"tech": "2"
+},
+"corbw": {
+"cost": 58,
+"faction": "Cortex",
+"health": 83,
+"human": "Shuriken",
+"kind": "gunship",
+"tags": [
+"EMP (paralyses)"
+],
+"tech": "1"
+},
+"corca": {
+"cost": 115,
+"faction": "Cortex",
+"health": 161,
+"human": "Construction Aircraft",
+"kind": "constructor",
+"tags": [],
+"tech": "1"
+},
+"corcan": {
+"cost": 560,
+"faction": "Cortex",
+"health": 6000,
+"human": "Sumo",
+"kind": "heavy",
+"tags": [],
+"tech": "2"
+},
+"corcat": {
+"cost": 4900,
+"faction": "Cortex",
+"health": 6100,
+"human": "Catapult",
+"kind": "skirmisher",
+"tags": [],
+"tech": "3"
+},
+"corch": {
+"cost": 190,
+"faction": "Cortex",
+"health": 1490,
+"human": "Construction Hovercraft",
+"kind": "hover constructor",
+"tags": [],
+"tech": "1"
+},
+"corck": {
+"cost": 120,
+"faction": "Cortex",
+"health": 820,
+"human": "Construction Bot",
+"kind": "constructor",
+"tags": [],
+"tech": "1"
+},
+"corcom": {
+"cost": 2700,
+"faction": "Cortex",
+"health": 3700,
+"human": "Cortex Commander",
+"kind": "commander",
+"tags": [
+"capture",
+"torpedo",
+"manual fire (D-gun style)"
+],
+"tech": "1"
+},
+"corcrash": {
+"cost": 125,
+"faction": "Cortex",
+"health": 640,
+"human": "Trasher",
+"kind": "mobile anti-air",
+"tags": [
+"amphibious"
+],
+"tech": "1"
+},
+"corcrus": {
+"cost": 1000,
+"faction": "Cortex",
+"health": 6200,
+"human": "Buccaneer",
+"kind": "naval",
+"tags": [
+"torpedo"
+],
+"tech": "2"
+},
+"corcrwh": {
+"cost": 5100,
+"faction": "Cortex",
+"health": 16700,
+"human": "Dragon",
+"kind": "gunship",
+"tags": [
+"flamethrower"
+],
+"tech": "2"
+},
+"corcs": {
+"cost": 200,
+"faction": "Cortex",
+"health": 1080,
+"human": "Construction Ship",
+"kind": "constructor",
+"tags": [],
+"tech": "1"
+},
+"corcsa": {
+"cost": 140,
+"faction": "Cortex",
+"health": 435,
+"human": "Construction Seaplane",
+"kind": "constructor",
+"tags": [
+"seaplane"
+],
+"tech": "1"
+},
+"corcut": {
+"cost": 230,
+"faction": "Cortex",
+"health": 1010,
+"human": "Cutlass",
+"kind": "gunship",
+"tags": [
+"seaplane"
+],
+"tech": "1"
+},
+"corcv": {
+"cost": 145,
+"faction": "Cortex",
+"health": 1430,
+"human": "Construction Vehicle",
+"kind": "constructor",
+"tags": [],
+"tech": "1"
+},
+"cordecom": {
+"cost": 750,
+"faction": "Cortex",
+"health": 3700,
+"human": "Commander",
+"kind": "constructor",
+"tags": [
+"cloak",
+"capture",
+"decoy",
+"torpedo",
+"manual fire (D-gun style)"
+],
+"tech": "2"
+},
+"cordemon": {
+"cost": 6000,
+"faction": "Cortex",
+"health": 18000,
+"human": "Demon",
+"kind": "skirmisher",
+"tags": [
+"flamethrower"
+],
+"tech": "3"
+},
+"cordl": {
+"cost": 250,
+"faction": "Cortex",
+"health": 2350,
+"human": "Jellyfish",
+"kind": "turret",
+"tags": [
+"sonar",
+"torpedo"
+],
+"tech": "1"
+},
+"cordoom": {
+"cost": 3000,
+"faction": "Cortex",
+"health": 9400,
+"human": "Bulwark",
+"kind": "turret",
+"tags": [
+"radar",
+"on/off"
+],
+"tech": "2"
+},
+"cordrag": {
+"cost": 8,
+"faction": "Cortex",
+"health": 2800,
+"human": "Dragon's Teeth",
+"kind": "economy",
+"tags": [],
+"tech": "1"
+},
+"corenaa": {
+"cost": 850,
+"faction": "Cortex",
+"health": 1840,
+"human": "Naval Birdshot",
+"kind": "anti-air turret",
+"tags": [],
+"tech": "2"
+},
+"corerad": {
+"cost": 800,
+"faction": "Cortex",
+"health": 4450,
+"human": "Eradicator",
+"kind": "anti-air turret",
+"tags": [],
+"tech": "1"
+},
+"corestor": {
+"cost": 175,
+"faction": "Cortex",
+"health": 2000,
+"human": "Energy Storage",
+"kind": "economy",
+"tags": [],
+"tech": "1"
+},
+"coresupp": {
+"cost": 100,
+"faction": "Cortex",
+"health": 480,
+"human": "Supporter",
+"kind": "naval",
+"tags": [],
+"tech": "1"
+},
+"coreter": {
+"cost": 105,
+"faction": "Cortex",
+"health": 580,
+"human": "Obscurer",
+"kind": "mobile jammer",
+"tags": [
+"jammer",
+"on/off"
+],
+"tech": "2"
+},
+"corexp": {
+"cost": 240,
+"faction": "Cortex",
+"health": 1440,
+"human": "Exploiter",
+"kind": "turret",
+"tags": [],
+"tech": "1"
+},
+"coreyes": {
+"cost": 32,
+"faction": "Cortex",
+"health": 280,
+"human": "Beholder",
+"kind": "camera",
+"tags": [
+"cloak"
+],
+"tech": "1"
+},
+"corfast": {
+"cost": 210,
+"faction": "Cortex",
+"health": 830,
+"human": "Twitcher",
+"kind": "constructor",
+"tags": [],
+"tech": "2"
+},
+"corfatf": {
+"cost": 800,
+"faction": "Cortex",
+"health": 1530,
+"human": "Naval Pinpointer",
+"kind": "economy",
+"tags": [
+"on/off"
+],
+"tech": "2"
+},
+"corfav": {
+"cost": 26,
+"faction": "Cortex",
+"health": 90,
+"human": "Rascal",
+"kind": "scout",
+"tags": [],
+"tech": "1"
+},
+"corfdoom": {
+"cost": 1200,
+"faction": "Cortex",
+"health": 6700,
+"human": "Devastator",
+"kind": "turret",
+"tags": [
+"on/off"
+],
+"tech": "2"
+},
+"corfdrag": {
+"cost": 15,
+"faction": "Cortex",
+"health": 4450,
+"human": "Shark's Teeth",
+"kind": "economy",
+"tags": [],
+"tech": "1"
+},
+"corfhlt": {
+"cost": 480,
+"faction": "Cortex",
+"health": 4350,
+"human": "Coral",
+"kind": "turret",
+"tags": [],
+"tech": "1"
+},
+"corfhp": {
+"cost": 670,
+"faction": "Cortex",
+"health": 3750,
+"human": "Naval Hovercraft Platform",
+"kind": "factory",
+"tags": [],
+"tech": "1.5"
+},
+"corfink": {
+"cost": 51,
+"faction": "Cortex",
+"health": 100,
+"human": "Finch",
+"kind": "scout plane",
+"tags": [
+"radar"
+],
+"tech": "1"
+},
+"corflak": {
+"cost": 850,
+"faction": "Cortex",
+"health": 1840,
+"human": "Birdshot",
+"kind": "anti-air turret",
+"tags": [],
+"tech": "2"
+},
+"corfmd": {
+"cost": 1500,
+"faction": "Cortex",
+"health": 3300,
+"human": "Prevailer",
+"kind": "long-range artillery",
+"tags": [
+"anti-nuke / interceptor",
+"stockpiled missile"
+],
+"tech": "2"
+},
+"corfmine3": {
+"cost": 32,
+"faction": "Cortex",
+"health": 11,
+"human": "Heavy Mine",
+"kind": "economy",
+"tags": [
+"cloak",
+"kamikaze / self-destruct bomb",
+"mine"
+],
+"tech": "1"
+},
+"corfmkr": {
+"cost": 1,
+"faction": "Cortex",
+"health": 167,
+"human": "Naval Energy Converter",
+"kind": "economy",
+"tags": [
+"energy converter"
+],
+"tech": "1"
+},
+"corfort": {
+"cost": 40,
+"faction": "Cortex",
+"health": 8900,
+"human": "Fortification Wall",
+"kind": "economy",
+"tags": [],
+"tech": "2"
+},
+"corfrad": {
+"cost": 130,
+"faction": "Cortex",
+"health": 114,
+"human": "Naval Radar / Sonar Tower",
+"kind": "radar",
+"tags": [
+"radar",
+"sonar"
+],
+"tech": "1"
+},
+"corfrt": {
+"cost": 80,
+"faction": "Cortex",
+"health": 335,
+"human": "Slingshot",
+"kind": "anti-air turret",
+"tags": [],
+"tech": "1"
+},
+"corfship": {
+"cost": 630,
+"faction": "Cortex",
+"health": 2700,
+"human": "Brimstone",
+"kind": "naval",
+"tags": [
+"flamethrower"
+],
+"tech": "2"
+},
+"corfus": {
+"cost": 3600,
+"faction": "Cortex",
+"health": 4300,
+"human": "Fusion Reactor",
+"kind": "economy",
+"tags": [],
+"tech": "2"
+},
+"corgant": {
+"cost": 8000,
+"faction": "Cortex",
+"health": 18000,
+"human": "Experimental Gantry",
+"kind": "factory",
+"tags": [],
+"tech": "3"
+},
+"corgantuw": {
+"cost": 8350,
+"faction": "Cortex",
+"health": 17800,
+"human": "Experimental Gantry",
+"kind": "factory",
+"tags": [],
+"tech": "3"
+},
+"corgarp": {
+"cost": 220,
+"faction": "Cortex",
+"health": 1420,
+"human": "Garpike",
+"kind": "assault",
+"tags": [],
+"tech": "1"
+},
+"corgate": {
+"cost": 3200,
+"faction": "Cortex",
+"health": 3550,
+"human": "Overseer",
+"kind": "turret",
+"tags": [
+"on/off",
+"shield"
+],
+"tech": "2"
+},
+"corgator": {
+"cost": 120,
+"faction": "Cortex",
+"health": 820,
+"human": "Incisor",
+"kind": "assault",
+"tags": [],
+"tech": "1"
+},
+"corgeo": {
+"cost": 540,
+"faction": "Cortex",
+"health": 2050,
+"human": "Geothermal Powerplant",
+"kind": "economy",
+"tags": [
+"geothermal"
+],
+"tech": "1"
+},
+"corgol": {
+"cost": 1650,
+"faction": "Cortex",
+"health": 7800,
+"human": "Tzar",
+"kind": "skirmisher",
+"tags": [],
+"tech": "2"
+},
+"corhal": {
+"cost": 640,
+"faction": "Cortex",
+"health": 4350,
+"human": "Halberd",
+"kind": "hover heavy",
+"tags": [],
+"tech": "1"
+},
+"corhllt": {
+"cost": 195,
+"faction": "Cortex",
+"health": 1670,
+"human": "Twin Guard",
+"kind": "turret",
+"tags": [],
+"tech": "1"
+},
+"corhlt": {
+"cost": 480,
+"faction": "Cortex",
+"health": 2750,
+"human": "Warden",
+"kind": "turret",
+"tags": [],
+"tech": "1"
+},
+"corhp": {
+"cost": 670,
+"faction": "Cortex",
+"health": 3750,
+"human": "Hovercraft Platform",
+"kind": "factory",
+"tags": [],
+"tech": "1.5"
+},
+"corhrk": {
+"cost": 600,
+"faction": "Cortex",
+"health": 610,
+"human": "Arbiter",
+"kind": "skirmisher",
+"tags": [
+"vertical-launch missiles"
+],
+"tech": "2"
+},
+"corhunt": {
+"cost": 130,
+"faction": "Cortex",
+"health": 730,
+"human": "Watcher",
+"kind": "scout plane",
+"tags": [
+"radar",
+"sonar",
+"seaplane"
+],
+"tech": "1"
+},
+"corhurc": {
+"cost": 310,
+"faction": "Cortex",
+"health": 1520,
+"human": "Hailstorm",
+"kind": "bomber",
+"tags": [],
+"tech": "2"
+},
+"corhvytrans": {
+"cost": 190,
+"faction": "Cortex",
+"health": 800,
+"human": "Hephaestus",
+"kind": "air transport",
+"tags": [
+"transport"
+],
+"tech": "1"
+},
+"corint": {
+"cost": 4600,
+"faction": "Cortex",
+"health": 4700,
+"human": "Basilisk",
+"kind": "long-range artillery",
+"tags": [
+"long-range artillery (2000+)"
+],
+"tech": "2"
+},
+"corjamt": {
+"cost": 100,
+"faction": "Cortex",
+"health": 1070,
+"human": "Castro",
+"kind": "jammer",
+"tags": [
+"jammer",
+"on/off"
+],
+"tech": "1"
+},
+"corjugg": {
+"cost": 20000,
+"faction": "Cortex",
+"health": 335000,
+"human": "Behemoth",
+"kind": "skirmisher",
+"tags": [
+"manual fire (D-gun style)"
+],
+"tech": "3"
+},
+"corjuno": {
+"cost": 660,
+"faction": "Cortex",
+"health": 2500,
+"human": "Juno",
+"kind": "long-range artillery",
+"tags": [
+"stockpiled missile",
+"manual fire (D-gun style)",
+"juno (kills mines, radar, jammers)"
+],
+"tech": "1"
+},
+"corkarg": {
+"cost": 2500,
+"faction": "Cortex",
+"health": 12500,
+"human": "Karganeth",
+"kind": "skirmisher",
+"tags": [],
+"tech": "3"
+},
+"corkorg": {
+"cost": 29000,
+"faction": "Cortex",
+"health": 149000,
+"human": "Juggernaut",
+"kind": "skirmisher",
+"tags": [
+"vertical-launch missiles"
+],
+"tech": "3"
+},
+"corlab": {
+"cost": 470,
+"faction": "Cortex",
+"health": 2900,
+"human": "Bot Lab",
+"kind": "factory",
+"tags": [],
+"tech": "1"
+},
+"corlevlr": {
+"cost": 220,
+"faction": "Cortex",
+"health": 1400,
+"human": "Pounder",
+"kind": "assault",
+"tags": [],
+"tech": "1"
+},
+"corllt": {
+"cost": 90,
+"faction": "Cortex",
+"health": 650,
+"human": "Guard",
+"kind": "turret",
+"tags": [],
+"tech": "1"
+},
+"cormabm": {
+"cost": 1250,
+"faction": "Cortex",
+"health": 870,
+"human": "Saviour",
+"kind": "mobile anti-air",
+"tags": [
+"anti-nuke / interceptor",
+"stockpiled missile"
+],
+"tech": "2"
+},
+"cormadsam": {
+"cost": 350,
+"faction": "Cortex",
+"health": 2500,
+"human": "SAM",
+"kind": "anti-air turret",
+"tags": [],
+"tech": "1"
+},
+"cormakr": {
+"cost": 1,
+"faction": "Cortex",
+"health": 167,
+"human": "Energy Converter",
+"kind": "economy",
+"tags": [
+"energy converter"
+],
+"tech": "1"
+},
+"cormando": {
+"cost": 1200,
+"faction": "Cortex",
+"health": 1800,
+"human": "Commando",
+"kind": "constructor",
+"tags": [
+"jammer",
+"amphibious"
+],
+"tech": "2"
+},
+"cormart": {
+"cost": 400,
+"faction": "Cortex",
+"health": 1200,
+"human": "Quaker",
+"kind": "skirmisher",
+"tags": [],
+"tech": "2"
+},
+"cormaw": {
+"cost": 290,
+"faction": "Cortex",
+"health": 1610,
+"human": "Dragon's Maw",
+"kind": "turret",
+"tags": [
+"jammer",
+"decoy",
+"flamethrower"
+],
+"tech": "1"
+},
+"cormex": {
+"cost": 50,
+"faction": "Cortex",
+"health": 275,
+"human": "Metal Extractor",
+"kind": "economy",
+"tags": [
+"on/off"
+],
+"tech": "1"
+},
+"cormexp": {
+"cost": 2400,
+"faction": "Cortex",
+"health": 7800,
+"human": "Advanced Exploiter",
+"kind": "turret",
+"tags": [
+"on/off"
+],
+"tech": "2"
+},
+"cormh": {
+"cost": 200,
+"faction": "Cortex",
+"health": 550,
+"human": "Mangonel",
+"kind": "hover skirmisher",
+"tags": [
+"vertical-launch missiles"
+],
+"tech": "1"
+},
+"cormine1": {
+"cost": 7,
+"faction": "Cortex",
+"health": 11,
+"human": "Light Mine",
+"kind": "economy",
+"tags": [
+"cloak",
+"kamikaze / self-destruct bomb",
+"mine"
+],
+"tech": "1"
+},
+"cormine2": {
+"cost": 25,
+"faction": "Cortex",
+"health": 11,
+"human": "Medium Mine",
+"kind": "economy",
+"tags": [
+"cloak",
+"kamikaze / self-destruct bomb",
+"mine"
+],
+"tech": "1"
+},
+"cormine3": {
+"cost": 50,
+"faction": "Cortex",
+"health": 11,
+"human": "Heavy Mine",
+"kind": "economy",
+"tags": [
+"cloak",
+"kamikaze / self-destruct bomb",
+"mine"
+],
+"tech": "1"
+},
+"cormist": {
+"cost": 155,
+"faction": "Cortex",
+"health": 860,
+"human": "Lasher",
+"kind": "skirmisher",
+"tags": [],
+"tech": "1"
+},
+"cormls": {
+"cost": 200,
+"faction": "Cortex",
+"health": 1600,
+"human": "Pathfinder",
+"kind": "constructor",
+"tags": [
+"minesweeper"
+],
+"tech": "2"
+},
+"cormlv": {
+"cost": 65,
+"faction": "Cortex",
+"health": 450,
+"human": "Trapper",
+"kind": "constructor",
+"tags": [
+"radar stealth",
+"jammer",
+"minesweeper"
+],
+"tech": "1"
+},
+"cormmkr": {
+"cost": 370,
+"faction": "Cortex",
+"health": 560,
+"human": "Advanced Energy Converter",
+"kind": "economy",
+"tags": [
+"energy converter"
+],
+"tech": "2"
+},
+"cormoho": {
+"cost": 640,
+"faction": "Cortex",
+"health": 3900,
+"human": "Advanced Metal Extractor",
+"kind": "economy",
+"tags": [
+"on/off"
+],
+"tech": "2"
+},
+"cormort": {
+"cost": 400,
+"faction": "Cortex",
+"health": 940,
+"human": "Sheldon",
+"kind": "skirmisher",
+"tags": [],
+"tech": "2"
+},
+"cormship": {
+"cost": 2000,
+"faction": "Cortex",
+"health": 3350,
+"human": "Messenger",
+"kind": "naval",
+"tags": [
+"radar"
+],
+"tech": "2"
+},
+"cormstor": {
+"cost": 340,
+"faction": "Cortex",
+"health": 2100,
+"human": "Metal Storage",
+"kind": "economy",
+"tags": [],
+"tech": "1"
+},
+"cormuskrat": {
+"cost": 170,
+"faction": "Cortex",
+"health": 1110,
+"human": "Muskrat",
+"kind": "constructor",
+"tags": [
+"amphibious"
+],
+"tech": "1"
+},
+"cornanotc": {
+"cost": 230,
+"faction": "Cortex",
+"health": 560,
+"human": "Construction Turret",
+"kind": "constructor",
+"tags": [],
+"tech": "1"
+},
+"cornanotcplat": {
+"cost": 230,
+"faction": "Cortex",
+"health": 560,
+"human": "Naval Construction Turret",
+"kind": "constructor",
+"tags": [],
+"tech": "1"
+},
+"cornecro": {
+"cost": 130,
+"faction": "Cortex",
+"health": 220,
+"human": "Graverobber",
+"kind": "mobile radar",
+"tags": [
+"radar stealth",
+"resurrect"
+],
+"tech": "1"
+},
+"corparrow": {
+"cost": 1050,
+"faction": "Cortex",
+"health": 6300,
+"human": "Poison Arrow",
+"kind": "skirmisher",
+"tags": [
+"amphibious"
+],
+"tech": "2"
+},
+"corplat": {
+"cost": 1400,
+"faction": "Cortex",
+"health": 2200,
+"human": "Seaplane Platform",
+"kind": "factory",
+"tags": [
+"sonar"
+],
+"tech": "1.5"
+},
+"corpship": {
+"cost": 420,
+"faction": "Cortex",
+"health": 2350,
+"human": "Riptide",
+"kind": "naval",
+"tags": [],
+"tech": "1"
+},
+"corpt": {
+"cost": 210,
+"faction": "Cortex",
+"health": 890,
+"human": "Herring",
+"kind": "naval",
+"tags": [
+"radar"
+],
+"tech": "1"
+},
+"corpun": {
+"cost": 1300,
+"faction": "Cortex",
+"health": 3250,
+"human": "Agitator",
+"kind": "long-range artillery",
+"tags": [
+"switchable weapon modes"
+],
+"tech": "1"
+},
+"corpyro": {
+"cost": 200,
+"faction": "Cortex",
+"health": 1060,
+"human": "Fiend",
+"kind": "assault",
+"tags": [
+"flamethrower"
+],
+"tech": "2"
+},
+"corrad": {
+"cost": 60,
+"faction": "Cortex",
+"health": 180,
+"human": "Radar Tower",
+"kind": "radar",
+"tags": [
+"radar"
+],
+"tech": "1"
+},
+"corraid": {
+"cost": 235,
+"faction": "Cortex",
+"health": 2000,
+"human": "Brute",
+"kind": "heavy",
+"tags": [],
+"tech": "1"
+},
+"correap": {
+"cost": 690,
+"faction": "Cortex",
+"health": 5300,
+"human": "Tiger",
+"kind": "heavy",
+"tags": [],
+"tech": "2"
+},
+"correcl": {
+"cost": 240,
+"faction": "Cortex",
+"health": 420,
+"human": "Death Cavalry",
+"kind": "naval",
+"tags": [
+"resurrect"
+],
+"tech": "1"
+},
+"corrl": {
+"cost": 80,
+"faction": "Cortex",
+"health": 335,
+"human": "Thistle",
+"kind": "anti-air turret",
+"tags": [],
+"tech": "1"
+},
+"corroach": {
+"cost": 69,
+"faction": "Cortex",
+"health": 620,
+"human": "Bedbug",
+"kind": "assault",
+"tags": [
+"kamikaze / self-destruct bomb",
+"torpedo"
+],
+"tech": "2"
+},
+"corroy": {
+"cost": 960,
+"faction": "Cortex",
+"health": 3950,
+"human": "Oppressor",
+"kind": "naval",
+"tags": [
+"torpedo"
+],
+"tech": "1"
+},
+"corsala": {
+"cost": 350,
+"faction": "Cortex",
+"health": 2100,
+"human": "Salamander",
+"kind": "heavy",
+"tags": [
+"amphibious"
+],
+"tech": "2"
+},
+"corsb": {
+"cost": 200,
+"faction": "Cortex",
+"health": 940,
+"human": "Dam Buster",
+"kind": "bomber",
+"tags": [
+"seaplane"
+],
+"tech": "1"
+},
+"corscreamer": {
+"cost": 1650,
+"faction": "Cortex",
+"health": 1670,
+"human": "Screamer",
+"kind": "long-range artillery",
+"tags": [
+"stockpiled missile"
+],
+"tech": "2"
+},
+"corsd": {
+"cost": 750,
+"faction": "Cortex",
+"health": 2800,
+"human": "Nemesis",
+"kind": "radar",
+"tags": [
+"seismic detector",
+"on/off"
+],
+"tech": "2"
+},
+"corseah": {
+"cost": 370,
+"faction": "Cortex",
+"health": 2200,
+"human": "Skyhook",
+"kind": "air transport",
+"tags": [
+"transport"
+],
+"tech": "2"
+},
+"corseap": {
+"cost": 230,
+"faction": "Cortex",
+"health": 1000,
+"human": "Monsoon",
+"kind": "gunship",
+"tags": [
+"seaplane",
+"torpedo"
+],
+"tech": "1"
+},
+"corsent": {
+"cost": 470,
+"faction": "Cortex",
+"health": 2700,
+"human": "Fury",
+"kind": "mobile anti-air",
+"tags": [],
+"tech": "2"
+},
+"corsfig": {
+"cost": 90,
+"faction": "Cortex",
+"health": 220,
+"human": "Bat",
+"kind": "fighter",
+"tags": [
+"seaplane"
+],
+"tech": "1"
+},
+"corsh": {
+"cost": 75,
+"faction": "Cortex",
+"health": 255,
+"human": "Goon",
+"kind": "hover raider",
+"tags": [],
+"tech": "1"
+},
+"corshad": {
+"cost": 150,
+"faction": "Cortex",
+"health": 680,
+"human": "Whirlwind",
+"kind": "bomber",
+"tags": [],
+"tech": "1"
+},
+"corshark": {
+"cost": 730,
+"faction": "Cortex",
+"health": 1610,
+"human": "Predator",
+"kind": "naval",
+"tags": [
+"torpedo"
+],
+"tech": "2"
+},
+"corshiva": {
+"cost": 1700,
+"faction": "Cortex",
+"health": 9400,
+"human": "Shiva",
+"kind": "skirmisher",
+"tags": [
+"vertical-launch missiles"
+],
+"tech": "3"
+},
+"corshroud": {
+"cost": 130,
+"faction": "Cortex",
+"health": 890,
+"human": "Shroud",
+"kind": "jammer",
+"tags": [
+"jammer",
+"on/off"
+],
+"tech": "2"
+},
+"corsilo": {
+"cost": 7700,
+"faction": "Cortex",
+"health": 6200,
+"human": "Apocalypse",
+"kind": "long-range artillery",
+"tags": [
+"stockpiled missile",
+"nuke",
+"manual fire (D-gun style)"
+],
+"tech": "2"
+},
+"corsjam": {
+"cost": 280,
+"faction": "Cortex",
+"health": 1450,
+"human": "Phantasm",
+"kind": "naval",
+"tags": [
+"jammer",
+"on/off"
+],
+"tech": "2"
+},
+"corsktl": {
+"cost": 755,
+"faction": "Cortex",
+"health": 355,
+"human": "Skuttle",
+"kind": "heavy",
+"tags": [
+"cloak",
+"kamikaze / self-destruct bomb",
+"torpedo"
+],
+"tech": "2"
+},
+"corsnap": {
+"cost": 300,
+"faction": "Cortex",
+"health": 1720,
+"human": "Cayman",
+"kind": "hover heavy",
+"tags": [],
+"tech": "1"
+},
+"corsok": {
+"cost": 950,
+"faction": "Cortex",
+"health": 4200,
+"human": "Cataphract",
+"kind": "hover skirmisher",
+"tags": [
+"torpedo"
+],
+"tech": "3"
+},
+"corsolar": {
+"cost": 150,
+"faction": "Cortex",
+"health": 355,
+"human": "Solar Collector",
+"kind": "economy",
+"tags": [
+"on/off"
+],
+"tech": "1"
+},
+"corspec": {
+"cost": 75,
+"faction": "Cortex",
+"health": 350,
+"human": "Deceiver",
+"kind": "mobile jammer",
+"tags": [
+"jammer",
+"on/off"
+],
+"tech": "2"
+},
+"corspy": {
+"cost": 150,
+"faction": "Cortex",
+"health": 450,
+"human": "Spectre",
+"kind": "heavy",
+"tags": [
+"cloak",
+"radar stealth",
+"sonar stealth",
+"torpedo"
+],
+"tech": "2"
+},
+"corssub": {
+"cost": 1900,
+"faction": "Cortex",
+"health": 3900,
+"human": "Kraken",
+"kind": "naval",
+"tags": [
+"radar stealth",
+"torpedo"
+],
+"tech": "2"
+},
+"corstorm": {
+"cost": 110,
+"faction": "Cortex",
+"health": 740,
+"human": "Aggravator",
+"kind": "assault",
+"tags": [],
+"tech": "1"
+},
+"corsub": {
+"cost": 580,
+"faction": "Cortex",
+"health": 1060,
+"human": "Orca",
+"kind": "naval",
+"tags": [
+"torpedo"
+],
+"tech": "1"
+},
+"corsumo": {
+"cost": 2200,
+"faction": "Cortex",
+"health": 15600,
+"human": "Mammoth",
+"kind": "skirmisher",
+"tags": [],
+"tech": "2"
+},
+"corsy": {
+"cost": 450,
+"faction": "Cortex",
+"health": 4300,
+"human": "Shipyard",
+"kind": "factory",
+"tags": [],
+"tech": "1"
+},
+"cortarg": {
+"cost": 800,
+"faction": "Cortex",
+"health": 2000,
+"human": "Pinpointer",
+"kind": "economy",
+"tags": [
+"on/off"
+],
+"tech": "2"
+},
+"cortermite": {
+"cost": 540,
+"faction": "Cortex",
+"health": 3100,
+"human": "Termite",
+"kind": "heavy",
+"tags": [],
+"tech": "2"
+},
+"corthud": {
+"cost": 140,
+"faction": "Cortex",
+"health": 1100,
+"human": "Thug",
+"kind": "assault",
+"tags": [],
+"tech": "1"
+},
+"cortide": {
+"cost": 85,
+"faction": "Cortex",
+"health": 395,
+"human": "Tidal Generator",
+"kind": "economy",
+"tags": [],
+"tech": "1"
+},
+"cortitan": {
+"cost": 410,
+"faction": "Cortex",
+"health": 1960,
+"human": "Angler",
+"kind": "gunship",
+"tags": [
+"sonar",
+"torpedo"
+],
+"tech": "2"
+},
+"cortl": {
+"cost": 170,
+"faction": "Cortex",
+"health": 1440,
+"human": "Urchin",
+"kind": "turret",
+"tags": [
+"torpedo"
+],
+"tech": "1"
+},
+"cortoast": {
+"cost": 2500,
+"faction": "Cortex",
+"health": 4250,
+"human": "Persecutor",
+"kind": "long-range artillery",
+"tags": [
+"switchable weapon modes"
+],
+"tech": "2"
+},
+"cortrem": {
+"cost": 1850,
+"faction": "Cortex",
+"health": 3000,
+"human": "Tremor",
+"kind": "skirmisher",
+"tags": [],
+"tech": "2"
+},
+"cortron": {
+"cost": 1200,
+"faction": "Cortex",
+"health": 3550,
+"human": "Catalyst",
+"kind": "long-range artillery",
+"tags": [
+"stockpiled missile",
+"manual fire (D-gun style)"
+],
+"tech": "2"
+},
+"coruwadves": {
+"cost": 840,
+"faction": "Cortex",
+"health": 12700,
+"human": "Hardened Energy Storage",
+"kind": "economy",
+"tags": [],
+"tech": "2"
+},
+"coruwadvms": {
+"cost": 760,
+"faction": "Cortex",
+"health": 11200,
+"human": "Hardened Metal Storage",
+"kind": "economy",
+"tags": [],
+"tech": "2"
+},
+"coruwageo": {
+"cost": 1500,
+"faction": "Cortex",
+"health": 4150,
+"human": "Advanced Geothermal Powerplant",
+"kind": "economy",
+"tags": [
+"geothermal"
+],
+"tech": "2"
+},
+"coruwes": {
+"cost": 175,
+"faction": "Cortex",
+"health": 2000,
+"human": "Naval Energy Storage",
+"kind": "economy",
+"tags": [],
+"tech": "1"
+},
+"coruwfus": {
+"cost": 5400,
+"faction": "Cortex",
+"health": 5900,
+"human": "Naval Fusion Reactor",
+"kind": "economy",
+"tags": [],
+"tech": "2"
+},
+"coruwgeo": {
+"cost": 540,
+"faction": "Cortex",
+"health": 2050,
+"human": "Offshore Geothermal Powerplant",
+"kind": "economy",
+"tags": [
+"geothermal"
+],
+"tech": "1"
+},
+"coruwmme": {
+"cost": 640,
+"faction": "Cortex",
+"health": 3900,
+"human": "Naval Advanced Metal Extractor",
+"kind": "economy",
+"tags": [
+"on/off"
+],
+"tech": "2"
+},
+"coruwmmm": {
+"cost": 370,
+"faction": "Cortex",
+"health": 560,
+"human": "Naval Advanced Energy Converter",
+"kind": "economy",
+"tags": [
+"energy converter"
+],
+"tech": "2"
+},
+"coruwms": {
+"cost": 340,
+"faction": "Cortex",
+"health": 2100,
+"human": "Naval Metal Storage",
+"kind": "economy",
+"tags": [],
+"tech": "1"
+},
+"corvalk": {
+"cost": 74,
+"faction": "Cortex",
+"health": 280,
+"human": "Hercules",
+"kind": "air transport",
+"tags": [
+"transport"
+],
+"tech": "1"
+},
+"corvamp": {
+"cost": 145,
+"faction": "Cortex",
+"health": 290,
+"human": "Nighthawk",
+"kind": "fighter",
+"tags": [
+"radar stealth"
+],
+"tech": "2"
+},
+"corveng": {
+"cost": 73,
+"faction": "Cortex",
+"health": 156,
+"human": "Valiant",
+"kind": "fighter",
+"tags": [],
+"tech": "1"
+},
+"corvipe": {
+"cost": 730,
+"faction": "Cortex",
+"health": 3000,
+"human": "Scorpion",
+"kind": "turret",
+"tags": [],
+"tech": "2"
+},
+"corvoyr": {
+"cost": 99,
+"faction": "Cortex",
+"health": 390,
+"human": "Augur",
+"kind": "mobile radar",
+"tags": [
+"radar"
+],
+"tech": "2"
+},
+"corvp": {
+"cost": 570,
+"faction": "Cortex",
+"health": 3000,
+"human": "Vehicle Plant",
+"kind": "factory",
+"tags": [],
+"tech": "1"
+},
+"corvrad": {
+"cost": 100,
+"faction": "Cortex",
+"health": 570,
+"human": "Omen",
+"kind": "mobile radar",
+"tags": [
+"radar"
+],
+"tech": "2"
+},
+"corvroc": {
+"cost": 880,
+"faction": "Cortex",
+"health": 1400,
+"human": "Negotiator",
+"kind": "skirmisher",
+"tags": [
+"radar stealth",
+"vertical-launch missiles"
+],
+"tech": "2"
+},
+"corwin": {
+"cost": 43,
+"faction": "Cortex",
+"health": 220,
+"human": "Wind Turbine",
+"kind": "economy",
+"tags": [],
+"tech": "1"
+},
+"corwolv": {
+"cost": 170,
+"faction": "Cortex",
+"health": 750,
+"human": "Wolverine",
+"kind": "artillery",
+"tags": [],
+"tech": "1"
+},
+"legaabot": {
+"cost": 120,
+"faction": "Legion",
+"health": 610,
+"human": "Toxotai",
+"kind": "mobile anti-air",
+"tags": [
+"amphibious"
+],
+"tech": "1"
+},
+"legaap": {
+"cost": 2900,
+"faction": "Legion",
+"health": 3900,
+"human": "Legion Advanced Aircraft Plant",
+"kind": "factory",
+"tags": [
+"radar"
+],
+"tech": "2"
+},
+"legabm": {
+"cost": 1500,
+"faction": "Legion",
+"health": 3650,
+"human": "Aegis",
+"kind": "long-range artillery",
+"tags": [
+"anti-nuke / interceptor",
+"stockpiled missile"
+],
+"tech": "2"
+},
+"legaca": {
+"cost": 330,
+"faction": "Legion",
+"health": 195,
+"human": "Advanced Construction Aircraft",
+"kind": "constructor",
+"tags": [],
+"tech": "2"
+},
+"legaceb": {
+"cost": 310,
+"faction": "Legion",
+"health": 830,
+"human": "Proteus",
+"kind": "constructor",
+"tags": [],
+"tech": "2"
+},
+"legack": {
+"cost": 410,
+"faction": "Legion",
+"health": 860,
+"human": "Advanced Construction Bot",
+"kind": "constructor",
+"tags": [],
+"tech": "2"
+},
+"legacluster": {
+"cost": 2300,
+"faction": "Legion",
+"health": 3700,
+"human": "Eviscerator",
+"kind": "long-range artillery",
+"tags": [
+"cluster munitions",
+"switchable weapon modes"
+],
+"tech": "2"
+},
+"legacv": {
+"cost": 530,
+"faction": "Legion",
+"health": 1950,
+"human": "Advanced Construction Vehicle",
+"kind": "constructor",
+"tags": [],
+"tech": "2"
+},
+"legadvaabot": {
+"cost": 750,
+"faction": "Legion",
+"health": 2400,
+"human": "Aquilon",
+"kind": "mobile anti-air",
+"tags": [
+"amphibious"
+],
+"tech": "2"
+},
+"legadveconv": {
+"cost": 370,
+"faction": "Legion",
+"health": 560,
+"human": "Advanced Energy Converter",
+"kind": "economy",
+"tags": [
+"energy converter"
+],
+"tech": "2"
+},
+"legadvestore": {
+"cost": 840,
+"faction": "Legion",
+"health": 12700,
+"human": "Hardened Energy Storage",
+"kind": "economy",
+"tags": [],
+"tech": "2"
+},
+"legadvshipyard": {
+"cost": 2800,
+"faction": "Legion",
+"health": 5900,
+"human": "Advanced Shipyard",
+"kind": "factory",
+"tags": [],
+"tech": "2"
+},
+"legadvsol": {
+"cost": 465,
+"faction": "Legion",
+"health": 1100,
+"human": "Advanced Solar Collector",
+"kind": "economy",
+"tags": [],
+"tech": "1"
+},
+"legafcv": {
+"cost": 200,
+"faction": "Legion",
+"health": 450,
+"human": "Aceso",
+"kind": "constructor",
+"tags": [],
+"tech": "2"
+},
+"legafigdef": {
+"cost": 180,
+"faction": "Legion",
+"health": 480,
+"human": "Ajax",
+"kind": "fighter",
+"tags": [],
+"tech": "2"
+},
+"legafus": {
+"cost": 10500,
+"faction": "Legion",
+"health": 9800,
+"human": "Advanced Fusion Reactor",
+"kind": "economy",
+"tags": [],
+"tech": "2"
+},
+"legageo": {
+"cost": 1600,
+"faction": "Legion",
+"health": 4150,
+"human": "Advanced Geothermal Powerplant",
+"kind": "economy",
+"tags": [
+"geothermal"
+],
+"tech": "2"
+},
+"legah": {
+"cost": 210,
+"faction": "Legion",
+"health": 1120,
+"human": "Alpheus",
+"kind": "hover mobile anti-air",
+"tags": [],
+"tech": "1"
+},
+"legaheattank": {
+"cost": 1050,
+"faction": "Legion",
+"health": 5700,
+"human": "Prometheus",
+"kind": "heavy",
+"tags": [],
+"tech": "2"
+},
+"legajam": {
+"cost": 125,
+"faction": "Legion",
+"health": 830,
+"human": "Erebus",
+"kind": "jammer",
+"tags": [
+"jammer",
+"on/off"
+],
+"tech": "2"
+},
+"legajamk": {
+"cost": 75,
+"faction": "Legion",
+"health": 350,
+"human": "Tiresias",
+"kind": "mobile jammer",
+"tags": [
+"jammer",
+"on/off"
+],
+"tech": "2"
+},
+"legalab": {
+"cost": 2600,
+"faction": "Legion",
+"health": 4500,
+"human": "Legion Advanced Bot Lab",
+"kind": "factory",
+"tags": [],
+"tech": "2"
+},
+"legamcluster": {
+"cost": 460,
+"faction": "Legion",
+"health": 1250,
+"human": "Cleaver",
+"kind": "skirmisher",
+"tags": [
+"cluster munitions"
+],
+"tech": "2"
+},
+"legamph": {
+"cost": 600,
+"faction": "Legion",
+"health": 2750,
+"human": "Telchine",
+"kind": "skirmisher",
+"tags": [
+"sonar",
+"amphibious",
+"torpedo"
+],
+"tech": "2"
+},
+"legamphlab": {
+"cost": 1200,
+"faction": "Legion",
+"health": 2800,
+"human": "Amphibious Complex",
+"kind": "factory",
+"tags": [],
+"tech": "1.5"
+},
+"legamphtank": {
+"cost": 200,
+"faction": "Legion",
+"health": 1340,
+"human": "Cetus",
+"kind": "assault",
+"tags": [],
+"tech": "1"
+},
+"legamstor": {
+"cost": 760,
+"faction": "Legion",
+"health": 11200,
+"human": "Hardened Metal Storage",
+"kind": "economy",
+"tags": [],
+"tech": "2"
+},
+"leganavalaaturret": {
+"cost": 820,
+"faction": "Legion",
+"health": 1750,
+"human": "Fulmen",
+"kind": "anti-air turret",
+"tags": [],
+"tech": "2"
+},
+"leganavaladvgeo": {
+"cost": 1500,
+"faction": "Legion",
+"health": 4150,
+"human": "Advanced Underwater Geothermal Powerplant",
+"kind": "economy",
+"tags": [
+"geothermal"
+],
+"tech": "2"
+},
+"leganavaldefturret": {
+"cost": 1250,
+"faction": "Legion",
+"health": 6300,
+"human": "Ionia",
+"kind": "turret",
+"tags": [],
+"tech": "2"
+},
+"leganavaleconv": {
+"cost": 370,
+"faction": "Legion",
+"health": 560,
+"human": "Naval Advanced Energy Converter",
+"kind": "economy",
+"tags": [
+"energy converter"
+],
+"tech": "2"
+},
+"leganavalfusion": {
+"cost": 5400,
+"faction": "Legion",
+"health": 5900,
+"human": "Naval Fusion Reactor",
+"kind": "economy",
+"tags": [],
+"tech": "2"
+},
+"leganavalmex": {
+"cost": 640,
+"faction": "Legion",
+"health": 3900,
+"human": "Advanced Underwater Metal Extractor",
+"kind": "economy",
+"tags": [
+"on/off"
+],
+"tech": "2"
+},
+"leganavalpinpointer": {
+"cost": 800,
+"faction": "Legion",
+"health": 1530,
+"human": "Naval Pinpointer",
+"kind": "economy",
+"tags": [
+"on/off"
+],
+"tech": "2"
+},
+"leganavalsonarstation": {
+"cost": 160,
+"faction": "Legion",
+"health": 2400,
+"human": "Auscultor",
+"kind": "radar",
+"tags": [
+"sonar"
+],
+"tech": "2"
+},
+"leganavaltorpturret": {
+"cost": 1050,
+"faction": "Legion",
+"health": 2800,
+"human": "Delphinus",
+"kind": "turret",
+"tags": [
+"torpedo"
+],
+"tech": "2"
+},
+"leganavyaaship": {
+"cost": 1000,
+"faction": "Legion",
+"health": 3900,
+"human": "Notus",
+"kind": "naval",
+"tags": [],
+"tech": "2"
+},
+"leganavyantinukecarrier": {
+"cost": 1600,
+"faction": "Legion",
+"health": 5000,
+"human": "Hecate",
+"kind": "naval",
+"tags": [
+"radar",
+"sonar",
+"drone carrier",
+"anti-nuke / interceptor",
+"stockpiled missile"
+],
+"tech": "2"
+},
+"leganavyantiswarm": {
+"cost": 500,
+"faction": "Legion",
+"health": 2300,
+"human": "Leocampus",
+"kind": "naval",
+"tags": [],
+"tech": "2"
+},
+"leganavyartyship": {
+"cost": 13000,
+"faction": "Legion",
+"health": 22000,
+"human": "Corinth",
+"kind": "naval",
+"tags": [
+"radar",
+"cluster munitions",
+"long-range artillery (2000+)"
+],
+"tech": "2"
+},
+"leganavybattleship": {
+"cost": 2900,
+"faction": "Legion",
+"health": 10350,
+"human": "Scylla",
+"kind": "hover naval",
+"tags": [],
+"tech": "2"
+},
+"leganavybattlesub": {
+"cost": 1100,
+"faction": "Legion",
+"health": 2350,
+"human": "Architeuthis",
+"kind": "naval",
+"tags": [
+"torpedo"
+],
+"tech": "2"
+},
+"leganavyconsub": {
+"cost": 700,
+"faction": "Legion",
+"health": 1110,
+"human": "Advanced Construction Submarine",
+"kind": "constructor",
+"tags": [],
+"tech": "2"
+},
+"leganavycruiser": {
+"cost": 900,
+"faction": "Legion",
+"health": 5600,
+"human": "Thalassa",
+"kind": "naval",
+"tags": [
+"torpedo"
+],
+"tech": "2"
+},
+"leganavyengineer": {
+"cost": 200,
+"faction": "Legion",
+"health": 1600,
+"human": "Artifex",
+"kind": "constructor",
+"tags": [
+"minesweeper"
+],
+"tech": "2"
+},
+"leganavyflagship": {
+"cost": 16000,
+"faction": "Legion",
+"health": 48000,
+"human": "Neptune",
+"kind": "naval",
+"tags": [
+"radar"
+],
+"tech": "2"
+},
+"leganavyheavysub": {
+"cost": 1900,
+"faction": "Legion",
+"health": 3900,
+"human": "Sphyrna",
+"kind": "naval",
+"tags": [
+"radar stealth",
+"torpedo"
+],
+"tech": "2"
+},
+"leganavymissileship": {
+"cost": 2000,
+"faction": "Legion",
+"health": 3350,
+"human": "Ultor",
+"kind": "naval",
+"tags": [
+"radar"
+],
+"tech": "2"
+},
+"leganavyradjamship": {
+"cost": 450,
+"faction": "Legion",
+"health": 1700,
+"human": "Dolus",
+"kind": "naval",
+"tags": [
+"radar",
+"jammer",
+"on/off"
+],
+"tech": "2"
+},
+"legap": {
+"cost": 430,
+"faction": "Legion",
+"health": 1780,
+"human": "Legion Drone Plant",
+"kind": "factory",
+"tags": [],
+"tech": "1"
+},
+"legapopupdef": {
+"cost": 750,
+"faction": "Legion",
+"health": 2800,
+"human": "Chimera",
+"kind": "turret",
+"tags": [],
+"tech": "2"
+},
+"legarad": {
+"cost": 400,
+"faction": "Legion",
+"health": 500,
+"human": "Advanced Radar Tower",
+"kind": "radar",
+"tags": [
+"radar"
+],
+"tech": "2"
+},
+"legaradk": {
+"cost": 99,
+"faction": "Legion",
+"health": 390,
+"human": "Euclid",
+"kind": "mobile radar",
+"tags": [
+"radar"
+],
+"tech": "2"
+},
+"legaskirmtank": {
+"cost": 450,
+"faction": "Legion",
+"health": 2500,
+"human": "Gladiator",
+"kind": "skirmisher",
+"tags": [],
+"tech": "2"
+},
+"legaspy": {
+"cost": 125,
+"faction": "Legion",
+"health": 300,
+"human": "Eidolon",
+"kind": "assault",
+"tags": [
+"cloak",
+"radar stealth",
+"sonar stealth",
+"torpedo"
+],
+"tech": "2"
+},
+"legatorpbomber": {
+"cost": 480,
+"faction": "Legion",
+"health": 1900,
+"human": "Aesacus",
+"kind": "gunship",
+"tags": [
+"sonar",
+"torpedo"
+],
+"tech": "2"
+},
+"legatrans": {
+"cost": 190,
+"faction": "Legion",
+"health": 800,
+"human": "Hippotes",
+"kind": "air transport",
+"tags": [
+"transport"
+],
+"tech": "1"
+},
+"legavantinuke": {
+"cost": 1100,
+"faction": "Legion",
+"health": 720,
+"human": "Hera",
+"kind": "mobile anti-air",
+"tags": [
+"anti-nuke / interceptor",
+"stockpiled missile"
+],
+"tech": "2"
+},
+"legavjam": {
+"cost": 105,
+"faction": "Legion",
+"health": 510,
+"human": "Cicero",
+"kind": "mobile jammer",
+"tags": [
+"jammer",
+"on/off"
+],
+"tech": "2"
+},
+"legavp": {
+"cost": 2500,
+"faction": "Legion",
+"health": 5100,
+"human": "Advanced Vehicle Plant",
+"kind": "factory",
+"tags": [],
+"tech": "2"
+},
+"legavrad": {
+"cost": 125,
+"faction": "Legion",
+"health": 980,
+"human": "Pheme",
+"kind": "mobile radar",
+"tags": [
+"radar"
+],
+"tech": "2"
+},
+"legavroc": {
+"cost": 920,
+"faction": "Legion",
+"health": 1300,
+"human": "Boreas",
+"kind": "skirmisher",
+"tags": [
+"radar stealth",
+"vertical-launch missiles"
+],
+"tech": "2"
+},
+"legbal": {
+"cost": 160,
+"faction": "Legion",
+"health": 900,
+"human": "Ballista",
+"kind": "assault",
+"tags": [],
+"tech": "1"
+},
+"legbar": {
+"cost": 250,
+"faction": "Legion",
+"health": 1500,
+"human": "Barrage",
+"kind": "skirmisher",
+"tags": [],
+"tech": "1"
+},
+"legbart": {
+"cost": 550,
+"faction": "Legion",
+"health": 1780,
+"human": "Belcher",
+"kind": "skirmisher",
+"tags": [],
+"tech": "2"
+},
+"legbastion": {
+"cost": 4200,
+"faction": "Legion",
+"health": 12000,
+"human": "Bastion",
+"kind": "turret",
+"tags": [
+"radar",
+"on/off"
+],
+"tech": "2"
+},
+"legca": {
+"cost": 100,
+"faction": "Legion",
+"health": 151,
+"human": "Legion Construction Aircraft",
+"kind": "constructor",
+"tags": [],
+"tech": "1"
+},
+"legcar": {
+"cost": 550,
+"faction": "Legion",
+"health": 3600,
+"human": "Cardea",
+"kind": "hover heavy",
+"tags": [],
+"tech": "1"
+},
+"legcen": {
+"cost": 140,
+"faction": "Legion",
+"health": 840,
+"human": "Phobos",
+"kind": "assault",
+"tags": [],
+"tech": "1"
+},
+"legch": {
+"cost": 185,
+"faction": "Legion",
+"health": 1390,
+"human": "Construction Hovercraft",
+"kind": "hover constructor",
+"tags": [],
+"tech": "1"
+},
+"legcib": {
+"cost": 100,
+"faction": "Legion",
+"health": 600,
+"human": "Blindfold",
+"kind": "gunship",
+"tags": [
+"juno (kills mines, radar, jammers)"
+],
+"tech": "1"
+},
+"legck": {
+"cost": 100,
+"faction": "Legion",
+"health": 700,
+"human": "Legion Construction Bot",
+"kind": "constructor",
+"tags": [],
+"tech": "1"
+},
+"legcluster": {
+"cost": 850,
+"faction": "Legion",
+"health": 2900,
+"human": "Amputator",
+"kind": "turret",
+"tags": [
+"cluster munitions",
+"switchable weapon modes"
+],
+"tech": "1"
+},
+"legcom": {
+"cost": 2700,
+"faction": "Legion",
+"health": 3700,
+"human": "Legion Commander",
+"kind": "commander",
+"tags": [
+"capture",
+"torpedo",
+"manual fire (D-gun style)"
+],
+"tech": "1"
+},
+"legctl": {
+"cost": 240,
+"faction": "Legion",
+"health": 2200,
+"human": "Euryale",
+"kind": "turret",
+"tags": [
+"sonar",
+"torpedo"
+],
+"tech": "1"
+},
+"legcv": {
+"cost": 125,
+"faction": "Legion",
+"health": 1330,
+"human": "Legion Construction Vehicle",
+"kind": "constructor",
+"tags": [],
+"tech": "1"
+},
+"legdecom": {
+"cost": 750,
+"faction": "Legion",
+"health": 3700,
+"human": "Legion Commander",
+"kind": "constructor",
+"tags": [
+"cloak",
+"capture",
+"decoy",
+"torpedo",
+"manual fire (D-gun style)"
+],
+"tech": "2"
+},
+"legdeflector": {
+"cost": 3200,
+"faction": "Legion",
+"health": 3550,
+"human": "Soteria",
+"kind": "turret",
+"tags": [
+"on/off",
+"shield"
+],
+"tech": "2"
+},
+"legdrag": {
+"cost": 8,
+"faction": "Legion",
+"health": 2800,
+"human": "Dragon's Teeth",
+"kind": "economy",
+"tags": [],
+"tech": "1"
+},
+"legdtr": {
+"cost": 290,
+"faction": "Legion",
+"health": 1610,
+"human": "Dragon's Jaw",
+"kind": "turret",
+"tags": [
+"jammer",
+"decoy"
+],
+"tech": "1"
+},
+"legeallterrainmech": {
+"cost": 3950,
+"faction": "Legion",
+"health": 9200,
+"human": "Myrmidon",
+"kind": "artillery",
+"tags": [
+"cluster munitions",
+"stockpiled missile",
+"drone carrier",
+"switchable weapon modes"
+],
+"tech": "3"
+},
+"legeconv": {
+"cost": 1,
+"faction": "Legion",
+"health": 167,
+"human": "Energy Converter",
+"kind": "economy",
+"tags": [
+"energy converter"
+],
+"tech": "1"
+},
+"legeheatraymech": {
+"cost": 23500,
+"faction": "Legion",
+"health": 110000,
+"human": "Sol Invictus",
+"kind": "artillery",
+"tags": [],
+"tech": "3"
+},
+"legehovertank": {
+"cost": 1350,
+"faction": "Legion",
+"health": 4900,
+"human": "Charybdis",
+"kind": "hover skirmisher",
+"tags": [
+"torpedo"
+],
+"tech": "3"
+},
+"legelrpcmech": {
+"cost": 11000,
+"faction": "Legion",
+"health": 17000,
+"human": "Astraeus",
+"kind": "skirmisher",
+"tags": [
+"cluster munitions",
+"long-range artillery (2000+)"
+],
+"tech": "3"
+},
+"legerailtank": {
+"cost": 6500,
+"faction": "Legion",
+"health": 16500,
+"human": "Daedalus",
+"kind": "skirmisher",
+"tags": [],
+"tech": "3"
+},
+"legeshotgunmech": {
+"cost": 7000,
+"faction": "Legion",
+"health": 22000,
+"human": "Praetorian",
+"kind": "skirmisher",
+"tags": [],
+"tech": "3"
+},
+"legestor": {
+"cost": 175,
+"faction": "Legion",
+"health": 2000,
+"human": "Energy Storage",
+"kind": "economy",
+"tags": [],
+"tech": "1"
+},
+"legeyes": {
+"cost": 32,
+"faction": "Legion",
+"health": 280,
+"human": "Argus",
+"kind": "camera",
+"tags": [
+"cloak"
+],
+"tech": "1"
+},
+"legfdrag": {
+"cost": 15,
+"faction": "Legion",
+"health": 4450,
+"human": "Shark's Teeth",
+"kind": "economy",
+"tags": [],
+"tech": "1"
+},
+"legfeconv": {
+"cost": 1,
+"faction": "Legion",
+"health": 167,
+"human": "Naval Energy Converter",
+"kind": "economy",
+"tags": [
+"energy converter"
+],
+"tech": "1"
+},
+"legfhive": {
+"cost": 350,
+"faction": "Legion",
+"health": 1200,
+"human": "Naval Hive",
+"kind": "turret",
+"tags": [
+"stockpiled missile",
+"drone carrier"
+],
+"tech": "1"
+},
+"legfhp": {
+"cost": 670,
+"faction": "Legion",
+"health": 3750,
+"human": "Offshore Hovercraft Platform",
+"kind": "factory",
+"tags": [],
+"tech": "1.5"
+},
+"legfig": {
+"cost": 40,
+"faction": "Legion",
+"health": 220,
+"human": "Noctua",
+"kind": "fighter",
+"tags": [],
+"tech": "1"
+},
+"legflak": {
+"cost": 820,
+"faction": "Legion",
+"health": 1750,
+"human": "Pluto",
+"kind": "anti-air turret",
+"tags": [],
+"tech": "2"
+},
+"legfloat": {
+"cost": 650,
+"faction": "Legion",
+"health": 3500,
+"human": "Triton",
+"kind": "hover skirmisher",
+"tags": [],
+"tech": "2"
+},
+"legfmg": {
+"cost": 450,
+"faction": "Legion",
+"health": 3900,
+"human": "Gelasma",
+"kind": "turret",
+"tags": [],
+"tech": "1"
+},
+"legfort": {
+"cost": 5600,
+"faction": "Legion",
+"health": 16700,
+"human": "Tyrannus",
+"kind": "gunship",
+"tags": [
+"radar",
+"vertical-launch missiles"
+],
+"tech": "2"
+},
+"legforti": {
+"cost": 40,
+"faction": "Legion",
+"health": 8900,
+"human": "Fortification Wall",
+"kind": "economy",
+"tags": [],
+"tech": "2"
+},
+"legfrad": {
+"cost": 130,
+"faction": "Legion",
+"health": 110,
+"human": "Naval Radar / Sonar Tower",
+"kind": "radar",
+"tags": [
+"radar",
+"sonar"
+],
+"tech": "1"
+},
+"legfrl": {
+"cost": 80,
+"faction": "Legion",
+"health": 335,
+"human": "Polybolos",
+"kind": "anti-air turret",
+"tags": [],
+"tech": "1"
+},
+"legfus": {
+"cost": 4000,
+"faction": "Legion",
+"health": 4600,
+"human": "Fusion Reactor",
+"kind": "economy",
+"tags": [],
+"tech": "2"
+},
+"leggant": {
+"cost": 8400,
+"faction": "Legion",
+"health": 17800,
+"human": "Experimental Gantry",
+"kind": "factory",
+"tags": [],
+"tech": "3"
+},
+"leggantuw": {
+"cost": 8400,
+"faction": "Legion",
+"health": 17800,
+"human": "Experimental Gantry",
+"kind": "factory",
+"tags": [],
+"tech": "3"
+},
+"leggat": {
+"cost": 300,
+"faction": "Legion",
+"health": 2550,
+"human": "Decurion",
+"kind": "heavy",
+"tags": [],
+"tech": "1"
+},
+"leggeo": {
+"cost": 560,
+"faction": "Legion",
+"health": 2050,
+"human": "Geothermal Powerplant",
+"kind": "economy",
+"tags": [
+"geothermal"
+],
+"tech": "1"
+},
+"leggob": {
+"cost": 30,
+"faction": "Legion",
+"health": 200,
+"human": "Goblin",
+"kind": "raider",
+"tags": [],
+"tech": "1"
+},
+"leghades": {
+"cost": 65,
+"faction": "Legion",
+"health": 425,
+"human": "Alaris",
+"kind": "raider",
+"tags": [],
+"tech": "1"
+},
+"leghelios": {
+"cost": 160,
+"faction": "Legion",
+"health": 1000,
+"human": "Helios",
+"kind": "assault",
+"tags": [],
+"tech": "1"
+},
+"leghive": {
+"cost": 350,
+"faction": "Legion",
+"health": 1200,
+"human": "Hive",
+"kind": "turret",
+"tags": [
+"stockpiled missile",
+"drone carrier"
+],
+"tech": "1"
+},
+"leghp": {
+"cost": 670,
+"faction": "Legion",
+"health": 3750,
+"human": "Hovercraft Platform",
+"kind": "factory",
+"tags": [],
+"tech": "1.5"
+},
+"leghrk": {
+"cost": 750,
+"faction": "Legion",
+"health": 1200,
+"human": "Thanatos",
+"kind": "skirmisher",
+"tags": [],
+"tech": "2"
+},
+"leginc": {
+"cost": 2300,
+"faction": "Legion",
+"health": 9000,
+"human": "Incinerator",
+"kind": "skirmisher",
+"tags": [],
+"tech": "2"
+},
+"leginf": {
+"cost": 1700,
+"faction": "Legion",
+"health": 3650,
+"human": "Inferno",
+"kind": "skirmisher",
+"tags": [],
+"tech": "2"
+},
+"leginfestor": {
+"cost": 250,
+"faction": "Legion",
+"health": 1200,
+"human": "Infestor",
+"kind": "constructor",
+"tags": [
+"radar stealth"
+],
+"tech": "2"
+},
+"legjam": {
+"cost": 140,
+"faction": "Legion",
+"health": 1070,
+"human": "Nyx",
+"kind": "jammer",
+"tags": [
+"jammer",
+"on/off"
+],
+"tech": "1"
+},
+"legjav": {
+"cost": 1200,
+"faction": "Legion",
+"health": 7200,
+"human": "Javelin",
+"kind": "skirmisher",
+"tags": [],
+"tech": "3"
+},
+"legjuno": {
+"cost": 660,
+"faction": "Legion",
+"health": 2500,
+"human": "Juno",
+"kind": "long-range artillery",
+"tags": [
+"stockpiled missile",
+"manual fire (D-gun style)",
+"juno (kills mines, radar, jammers)"
+],
+"tech": "1"
+},
+"legkam": {
+"cost": 65,
+"faction": "Legion",
+"health": 160,
+"human": "Martyr",
+"kind": "bomber",
+"tags": [
+"drone carrier"
+],
+"tech": "1"
+},
+"legkark": {
+"cost": 310,
+"faction": "Legion",
+"health": 1725,
+"human": "Karkinos",
+"kind": "heavy",
+"tags": [],
+"tech": "1"
+},
+"legkeres": {
+"cost": 2600,
+"faction": "Legion",
+"health": 21000,
+"human": "Keres",
+"kind": "heavy",
+"tags": [],
+"tech": "3"
+},
+"leglab": {
+"cost": 470,
+"faction": "Legion",
+"health": 2900,
+"human": "Legion Bot Lab",
+"kind": "factory",
+"tags": [],
+"tech": "1"
+},
+"leglht": {
+"cost": 70,
+"faction": "Legion",
+"health": 550,
+"human": "Pharos",
+"kind": "turret",
+"tags": [],
+"tech": "1"
+},
+"leglob": {
+"cost": 60,
+"faction": "Legion",
+"health": 550,
+"human": "Satyr",
+"kind": "assault",
+"tags": [],
+"tech": "1"
+},
+"leglraa": {
+"cost": 1600,
+"faction": "Legion",
+"health": 1670,
+"human": "Xyston",
+"kind": "long-range artillery",
+"tags": [
+"long-range artillery (2000+)"
+],
+"tech": "2"
+},
+"leglrpc": {
+"cost": 5200,
+"faction": "Legion",
+"health": 4450,
+"human": "Olympus",
+"kind": "long-range artillery",
+"tags": [
+"cluster munitions",
+"long-range artillery (2000+)"
+],
+"tech": "2"
+},
+"leglts": {
+"cost": 68,
+"faction": "Legion",
+"health": 265,
+"human": "Aeolus",
+"kind": "air transport",
+"tags": [
+"transport"
+],
+"tech": "1"
+},
+"leglupara": {
+"cost": 900,
+"faction": "Legion",
+"health": 4000,
+"human": "Lupara",
+"kind": "anti-air turret",
+"tags": [],
+"tech": "1"
+},
+"legmed": {
+"cost": 1500,
+"faction": "Legion",
+"health": 3000,
+"human": "Medusa",
+"kind": "skirmisher",
+"tags": [
+"vertical-launch missiles"
+],
+"tech": "2"
+},
+"legmex": {
+"cost": 50,
+"faction": "Legion",
+"health": 275,
+"human": "Metal Extractor",
+"kind": "economy",
+"tags": [
+"on/off"
+],
+"tech": "1"
+},
+"legmg": {
+"cost": 380,
+"faction": "Legion",
+"health": 2200,
+"human": "Cacophony",
+"kind": "turret",
+"tags": [],
+"tech": "1"
+},
+"legmh": {
+"cost": 190,
+"faction": "Legion",
+"health": 520,
+"human": "Salacia",
+"kind": "hover skirmisher",
+"tags": [
+"vertical-launch missiles"
+],
+"tech": "1"
+},
+"legmine1": {
+"cost": 7,
+"faction": "Legion",
+"health": 11,
+"human": "Light Mine",
+"kind": "economy",
+"tags": [
+"cloak",
+"kamikaze / self-destruct bomb",
+"mine"
+],
+"tech": "1"
+},
+"legmine2": {
+"cost": 25,
+"faction": "Legion",
+"health": 11,
+"human": "Medium Mine",
+"kind": "economy",
+"tags": [
+"cloak",
+"kamikaze / self-destruct bomb",
+"mine"
+],
+"tech": "1"
+},
+"legmine3": {
+"cost": 50,
+"faction": "Legion",
+"health": 11,
+"human": "Heavy Mine",
+"kind": "economy",
+"tags": [
+"cloak",
+"kamikaze / self-destruct bomb",
+"mine"
+],
+"tech": "1"
+},
+"legmineb": {
+"cost": 300,
+"faction": "Legion",
+"health": 1110,
+"human": "Harbinger",
+"kind": "bomber",
+"tags": [
+"stockpiled missile",
+"drone carrier"
+],
+"tech": "2"
+},
+"legmlv": {
+"cost": 52,
+"faction": "Legion",
+"health": 210,
+"human": "Sapper",
+"kind": "constructor",
+"tags": [
+"radar stealth",
+"jammer",
+"minesweeper"
+],
+"tech": "1"
+},
+"legmoho": {
+"cost": 640,
+"faction": "Legion",
+"health": 3900,
+"human": "Advanced Metal Extractor",
+"kind": "economy",
+"tags": [
+"on/off"
+],
+"tech": "2"
+},
+"legmohocon": {
+"cost": 1060,
+"faction": "Legion",
+"health": 3900,
+"human": "Advanced Metal Fortifier",
+"kind": "factory",
+"tags": [
+"on/off"
+],
+"tech": "2"
+},
+"legmos": {
+"cost": 110,
+"faction": "Legion",
+"health": 415,
+"human": "Mosquito",
+"kind": "gunship",
+"tags": [
+"stockpiled missile"
+],
+"tech": "1"
+},
+"legmrv": {
+"cost": 210,
+"faction": "Legion",
+"health": 970,
+"human": "Quickshot",
+"kind": "assault",
+"tags": [],
+"tech": "2"
+},
+"legmstor": {
+"cost": 340,
+"faction": "Legion",
+"health": 2100,
+"human": "Metal Storage",
+"kind": "economy",
+"tags": [],
+"tech": "1"
+},
+"legnanotc": {
+"cost": 230,
+"faction": "Legion",
+"health": 560,
+"human": "Construction Turret",
+"kind": "constructor",
+"tags": [],
+"tech": "1"
+},
+"legnanotcplat": {
+"cost": 230,
+"faction": "Legion",
+"health": 560,
+"human": "Naval Construction Turret",
+"kind": "constructor",
+"tags": [],
+"tech": "1"
+},
+"legnavyaaship": {
+"cost": 250,
+"faction": "Legion",
+"health": 1200,
+"human": "Iapetus",
+"kind": "naval",
+"tags": [
+"radar"
+],
+"tech": "1"
+},
+"legnavyartyship": {
+"cost": 1450,
+"faction": "Legion",
+"health": 4500,
+"human": "Octeres",
+"kind": "naval",
+"tags": [
+"cluster munitions"
+],
+"tech": "1"
+},
+"legnavyconship": {
+"cost": 180,
+"faction": "Legion",
+"health": 1080,
+"human": "Construction Ship",
+"kind": "constructor",
+"tags": [],
+"tech": "1"
+},
+"legnavydestro": {
+"cost": 875,
+"faction": "Legion",
+"health": 3800,
+"human": "Syracusia",
+"kind": "naval",
+"tags": [
+"stockpiled missile",
+"drone carrier"
+],
+"tech": "1"
+},
+"legnavyfrigate": {
+"cost": 370,
+"faction": "Legion",
+"health": 2600,
+"human": "Argonaut",
+"kind": "naval",
+"tags": [
+"torpedo"
+],
+"tech": "1"
+},
+"legnavyrezsub": {
+"cost": 240,
+"faction": "Legion",
+"health": 420,
+"human": "Dionysus",
+"kind": "naval",
+"tags": [
+"resurrect"
+],
+"tech": "1"
+},
+"legnavyscout": {
+"cost": 120,
+"faction": "Legion",
+"health": 700,
+"human": "Hippocampus",
+"kind": "naval",
+"tags": [],
+"tech": "1"
+},
+"legnavysub": {
+"cost": 320,
+"faction": "Legion",
+"health": 600,
+"human": "Ketea",
+"kind": "naval",
+"tags": [
+"torpedo"
+],
+"tech": "1"
+},
+"legner": {
+"cost": 220,
+"faction": "Legion",
+"health": 1100,
+"human": "Nereus",
+"kind": "hover assault",
+"tags": [],
+"tech": "1"
+},
+"legotter": {
+"cost": 150,
+"faction": "Legion",
+"health": 950,
+"human": "Otter",
+"kind": "constructor",
+"tags": [
+"amphibious"
+],
+"tech": "1"
+},
+"legperdition": {
+"cost": 1250,
+"faction": "Legion",
+"health": 4000,
+"human": "Perdition",
+"kind": "long-range artillery",
+"tags": [
+"stockpiled missile",
+"manual fire (D-gun style)"
+],
+"tech": "2"
+},
+"legphoenix": {
+"cost": 450,
+"faction": "Legion",
+"health": 2000,
+"human": "Phoenix",
+"kind": "bomber",
+"tags": [],
+"tech": "2"
+},
+"legrad": {
+"cost": 60,
+"faction": "Legion",
+"health": 180,
+"human": "Radar Tower",
+"kind": "radar",
+"tags": [
+"radar"
+],
+"tech": "1"
+},
+"legrail": {
+"cost": 240,
+"faction": "Legion",
+"health": 1100,
+"human": "Lance",
+"kind": "skirmisher",
+"tags": [],
+"tech": "1"
+},
+"legrampart": {
+"cost": 2600,
+"faction": "Legion",
+"health": 8600,
+"human": "Rampart",
+"kind": "long-range artillery",
+"tags": [
+"radar",
+"jammer",
+"geothermal",
+"anti-nuke / interceptor",
+"stockpiled missile",
+"drone carrier"
+],
+"tech": "2"
+},
+"legrezbot": {
+"cost": 130,
+"faction": "Legion",
+"health": 220,
+"human": "Zagreus",
+"kind": "mobile radar",
+"tags": [
+"radar stealth",
+"resurrect"
+],
+"tech": "1"
+},
+"legrhapsis": {
+"cost": 280,
+"faction": "Legion",
+"health": 1900,
+"human": "Rhapsis",
+"kind": "anti-air turret",
+"tags": [],
+"tech": "1"
+},
+"legrl": {
+"cost": 80,
+"faction": "Legion",
+"health": 335,
+"human": "Bramble",
+"kind": "anti-air turret",
+"tags": [],
+"tech": "1"
+},
+"legscout": {
+"cost": 23,
+"faction": "Legion",
+"health": 75,
+"human": "Wheelie",
+"kind": "scout",
+"tags": [],
+"tech": "1"
+},
+"legsd": {
+"cost": 710,
+"faction": "Legion",
+"health": 2650,
+"human": "Ichnaea",
+"kind": "radar",
+"tags": [
+"seismic detector",
+"on/off"
+],
+"tech": "2"
+},
+"legsh": {
+"cost": 60,
+"faction": "Legion",
+"health": 220,
+"human": "Glaucus",
+"kind": "hover raider",
+"tags": [],
+"tech": "1"
+},
+"legshot": {
+"cost": 470,
+"faction": "Legion",
+"health": 3350,
+"human": "Phalanx",
+"kind": "heavy",
+"tags": [],
+"tech": "2"
+},
+"legsilo": {
+"cost": 7700,
+"faction": "Legion",
+"health": 6200,
+"human": "Supernova",
+"kind": "long-range artillery",
+"tags": [
+"stockpiled missile",
+"nuke",
+"manual fire (D-gun style)"
+],
+"tech": "2"
+},
+"legsnapper": {
+"cost": 60,
+"faction": "Legion",
+"health": 550,
+"human": "Snapper",
+"kind": "assault",
+"tags": [
+"kamikaze / self-destruct bomb",
+"torpedo"
+],
+"tech": "2"
+},
+"legsolar": {
+"cost": 150,
+"faction": "Legion",
+"health": 340,
+"human": "Solar Collector",
+"kind": "economy",
+"tags": [
+"on/off"
+],
+"tech": "1"
+},
+"legspbomber": {
+"cost": 240,
+"faction": "Legion",
+"health": 1170,
+"human": "Pyrphoros",
+"kind": "bomber",
+"tags": [
+"seaplane"
+],
+"tech": "1"
+},
+"legspcarrier": {
+"cost": 250,
+"faction": "Legion",
+"health": 1500,
+"human": "Hecatoncheir",
+"kind": "gunship",
+"tags": [
+"radar",
+"stockpiled missile",
+"drone carrier"
+],
+"tech": "1"
+},
+"legspcon": {
+"cost": 150,
+"faction": "Legion",
+"health": 405,
+"human": "Construction Seaplane",
+"kind": "constructor",
+"tags": [
+"seaplane"
+],
+"tech": "1"
+},
+"legspfighter": {
+"cost": 90,
+"faction": "Legion",
+"health": 220,
+"human": "Astrapios",
+"kind": "fighter",
+"tags": [
+"seaplane"
+],
+"tech": "1"
+},
+"legsplab": {
+"cost": 1400,
+"faction": "Legion",
+"health": 2200,
+"human": "Offshore Seaplane Platform",
+"kind": "factory",
+"tags": [
+"sonar"
+],
+"tech": "1.5"
+},
+"legspradarsonarplane": {
+"cost": 125,
+"faction": "Legion",
+"health": 580,
+"human": "Okeanos",
+"kind": "scout plane",
+"tags": [
+"radar",
+"sonar",
+"seaplane"
+],
+"tech": "1"
+},
+"legspsurfacegunship": {
+"cost": 270,
+"faction": "Legion",
+"health": 1200,
+"human": "Enyo",
+"kind": "gunship",
+"tags": [
+"seaplane"
+],
+"tech": "1"
+},
+"legsptorpgunship": {
+"cost": 190,
+"faction": "Legion",
+"health": 900,
+"human": "Ladon",
+"kind": "gunship",
+"tags": [
+"seaplane",
+"torpedo"
+],
+"tech": "1"
+},
+"legsrail": {
+"cost": 750,
+"faction": "Legion",
+"health": 2200,
+"human": "Arquebus",
+"kind": "skirmisher",
+"tags": [],
+"tech": "2"
+},
+"legstarfall": {
+"cost": 63000,
+"faction": "Legion",
+"health": 26000,
+"human": "Starfall",
+"kind": "long-range artillery",
+"tags": [
+"long-range artillery (2000+)"
+],
+"tech": "2"
+},
+"legstr": {
+"cost": 355,
+"faction": "Legion",
+"health": 1780,
+"human": "Hoplite",
+"kind": "heavy",
+"tags": [],
+"tech": "2"
+},
+"legstronghold": {
+"cost": 550,
+"faction": "Legion",
+"health": 2600,
+"human": "Stronghold",
+"kind": "air transport",
+"tags": [
+"transport"
+],
+"tech": "2"
+},
+"legsy": {
+"cost": 450,
+"faction": "Legion",
+"health": 4300,
+"human": "Shipyard",
+"kind": "factory",
+"tags": [],
+"tech": "1"
+},
+"legtarg": {
+"cost": 810,
+"faction": "Legion",
+"health": 2100,
+"human": "Pinpointer",
+"kind": "economy",
+"tags": [
+"on/off"
+],
+"tech": "2"
+},
+"legtide": {
+"cost": 85,
+"faction": "Legion",
+"health": 395,
+"human": "Tidal Generator",
+"kind": "economy",
+"tags": [],
+"tech": "1"
+},
+"legtl": {
+"cost": 170,
+"faction": "Legion",
+"health": 1300,
+"human": "Stheno",
+"kind": "turret",
+"tags": [
+"torpedo"
+],
+"tech": "1"
+},
+"leguwestore": {
+"cost": 175,
+"faction": "Legion",
+"health": 2000,
+"human": "Naval Energy Storage",
+"kind": "economy",
+"tags": [],
+"tech": "1"
+},
+"leguwgeo": {
+"cost": 540,
+"faction": "Legion",
+"health": 2050,
+"human": "Offshore Geothermal Powerplant",
+"kind": "economy",
+"tags": [
+"geothermal"
+],
+"tech": "1"
+},
+"leguwmstore": {
+"cost": 340,
+"faction": "Legion",
+"health": 2100,
+"human": "Naval Metal Storage",
+"kind": "economy",
+"tags": [],
+"tech": "1"
+},
+"legvcarry": {
+"cost": 450,
+"faction": "Legion",
+"health": 1400,
+"human": "Mantis",
+"kind": "artillery",
+"tags": [
+"stockpiled missile",
+"drone carrier"
+],
+"tech": "2"
+},
+"legvenator": {
+"cost": 110,
+"faction": "Legion",
+"health": 210,
+"human": "Venator",
+"kind": "fighter",
+"tags": [
+"radar stealth"
+],
+"tech": "2"
+},
+"legvflak": {
+"cost": 470,
+"faction": "Legion",
+"health": 2700,
+"human": "Charon",
+"kind": "mobile anti-air",
+"tags": [],
+"tech": "2"
+},
+"legvp": {
+"cost": 570,
+"faction": "Legion",
+"health": 3000,
+"human": "Legion Vehicle Plant",
+"kind": "factory",
+"tags": [],
+"tech": "1"
+},
+"legwhisper": {
+"cost": 210,
+"faction": "Legion",
+"health": 990,
+"human": "Whisper",
+"kind": "scout plane",
+"tags": [
+"radar stealth",
+"radar",
+"sonar"
+],
+"tech": "2"
+},
+"legwin": {
+"cost": 43,
+"faction": "Legion",
+"health": 230,
+"human": "Wind Turbine",
+"kind": "economy",
+"tags": [],
+"tech": "1"
+}
+}
