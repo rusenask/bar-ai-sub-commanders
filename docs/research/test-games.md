@@ -801,3 +801,16 @@ Counter matrix, flat sites (arm A of 20261015-0212-sbx-il-re-khold, 264 battles)
   power does. Next: spending the metal.
 - Energy was found by the economy report (energy near empty 598 s a game, 9.4 energy per metal at
   minute 8) and the unused doctrine value energyPerMetal.
+
+## Whole games, interleaved: safe generators (behind the base, out of known threat) — not kept
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-0411-sbx-g36-safegen-A (base) | 24 | 3 win, 15 timeout, 6 loss | 1 | 259.2k | 229 / 1048 | 0.81 | 20.1 | 11.5 / 18 | 4.2k |
+| 20261015-0411-sbx-g36-safegen-B (safe generators) | 24 | 1 win, 13 timeout, 10 loss | 3 | 191.3k | 200 / 853 | 0.75 | 20.0 | 9.5 / 15 | 3.3k |
+| 20261015-0411-force4-g36-safegen-A (base) | 12 | 2 win, 4 timeout, 6 loss | 1 | 217.6k | 209 / 966 | 0.84 | 24.8 | 11 / 15 | 3.1k |
+| 20261015-0411-force4-g36-safegen-B (safe generators) | 12 | 1 win, 5 timeout, 6 loss | 1 | 194.4k | 178 / 809 | 0.81 | 16.2 | 10.5 / 15 | 3.5k |
+
+- Wind turbines lost per game 79 -> 68 and 87 -> 46, economy buildings 192 -> 170 and 206 -> 137, but
+  sandbox score -0.12 [-0.24, +0.00], extractors at 20 min -4.2 [-9.2, +1.2]: the walk to the back of
+  the base costs the economy more than the raids did. Off. 72/72 ran.
