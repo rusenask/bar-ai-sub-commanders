@@ -189,6 +189,11 @@ out wrong.
 
 ## Process traps
 
+- **Against an opponent that wins every game, the score is saturated: rank by minutes survived and
+  income at 20 minutes** (gamereport verdicts), and don't read the economy pace past the median loss
+  time: it's a median over the games still alive (hardening looked like 16 -> 30 income at minute 25
+  but survival didn't change).
+
 - **Read the first three minutes of a test game when the economy table says we're behind from the start.**
   The scripted player's lab retry fired at 60 s in every game (its clock ran from frame 0) and moved the
   first lab while the commander was walking to it: every test since it was written opened 20-50 s late.

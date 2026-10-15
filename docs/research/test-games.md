@@ -1396,3 +1396,7 @@ Each feature on its own (arm B, per game it was used in):
   6.2k (the economy holds into the mid game). Opening kills -199 worse (noise far from where it acts).
   **Kept.** Against hard every game is still lost: the score needs a measure that isn't saturated
   (survival time, the economy at 25 min) to rank changes there.
+- Correction with the new unsaturated verdicts: minutes survived 31.6 -> 31.2 (can't tell), metal
+  income at 20 min +2.5 [-9.2, +13.6]. The minute-25 pace above is a median over the games still alive
+  then (biased). Hardening cuts extractor losses but doesn't keep us alive longer against hard; kept for
+  the losses it saves, not as a fix for hard.

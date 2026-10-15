@@ -104,6 +104,21 @@ func verdictMetrics() []metric {
 		)
 	}
 	ms = append(ms,
+		// against a stronger opponent every game is lost and the score barely moves: how long we lasted and
+		// the economy at 20 minutes still rank changes there
+		metric{"minutes survived (lost games)", true, func(g *Game) (float64, bool) {
+			if g.Result != "LOSS" || g.Battle != nil {
+				return 0, false
+			}
+			return Summarize(g).Minutes, true
+		}},
+		metric{"metal income at 20 min", true, func(g *Game) (float64, bool) {
+			e := At(g.Eco, 20)
+			if e == nil || g.Battle != nil {
+				return 0, false
+			}
+			return e.MetalIncome, true
+		}},
 		metric{"extractors at 20 min", true, func(g *Game) (float64, bool) {
 			e := At(g.Eco, 20)
 			if e == nil || g.Battle != nil {
