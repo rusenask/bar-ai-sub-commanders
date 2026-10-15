@@ -1034,3 +1034,14 @@ Counter matrix, flat sites (arm A of 20261015-0212-sbx-il-re-khold, 264 battles)
   weapon and was counted as our Juno (fixed: `junoSilo`). Note the status block reprints each
   sub-commander's last log line every 30 s: count events by distinct frames, not lines.
 - Whole-game A/B started: force-g54-strategic (Legion, all off vs all on, 24 pairs).
+
+## Armada overlay with the T2 vehicle plant fix (sandboxes, 24 pairs, vs Cortex medium)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-1148-sbx-g52-armada-overlay3-A (no overlay) | 24 | 10 win, 8 timeout, 6 loss | 0 | 168.1k | 204 / 637 | 0.82 | 18.5 | 12 / 15 | 3.8k |
+| 20261015-1148-sbx-g52-armada-overlay3-B (overlay) | 24 | 14 win, 5 timeout, 5 loss | 0 | 145.9k | 210 / 443 | 0.94 | 13.2 | 13 / 20 | 4.5k |
+
+- Score +0.12 [-0.10, +0.33]; enemy metal killed mid-game **better** +4.9k [+0.6k, +9.4k]; extractors
+  at 20 min **better** +5.7 [+2.3, +9.7]. Gremlins now in 12 of 24 games (T2 vehicle plant in 7, the
+  armcv in 19); none in A (no arm ever built the plant without the overlay). Leaning better: kept.
