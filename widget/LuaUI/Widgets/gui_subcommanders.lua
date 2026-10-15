@@ -1938,6 +1938,9 @@ function Jobs.newFactory(sub, unitID, d, ux, uz)
 	if Engine.auto(sub).factories == "overflow" then
 		-- balanced: only when metal piles up (and never the first: that's the player's)
 		want = (econ.mFrac > 0.85 and have > 0) and have + 1 or have
+		if E.secondLabIncome and have == 1 and income >= E.secondLabIncome then
+			want = 2
+		end
 	else
 		if income >= E.secondFactoryIncome then
 			want = 2 + floor((income - E.secondFactoryIncome) / E.factoryPerIncome)
@@ -1954,7 +1957,8 @@ function Jobs.newFactory(sub, unitID, d, ux, uz)
 	end
 	-- construction turrets first: another lab only once every lab has its turrets, as long as energy can
 	-- pay for turrets (3200 energy each); short of energy, a lab is the way to spend piling metal (engine-v4)
-	if have > 0 and not Engine.labsSaturated() and econ.eFrac > 0.3 and econ.eInc > 300 then
+	local earlySecond = E.secondLabIncome and have == 1 and income >= E.secondLabIncome
+	if have > 0 and not earlySecond and not Engine.labsSaturated() and econ.eFrac > 0.3 and econ.eInc > 300 then
 		return false
 	end
 	for _, p in pairs(planned) do
@@ -1995,7 +1999,7 @@ function Jobs.newFactory(sub, unitID, d, ux, uz)
 			o, best = opt, rank(opt)
 		end
 	end
-	if not o or (have > 0 and not canSpend(sub, defs[o])) or econ.m < defs[o].cost * 0.25 then
+	if not o or (have > 0 and not canSpend(sub, defs[o], earlySecond and "essential" or nil)) or econ.m < defs[o].cost * 0.25 then
 		return false
 	end
 	-- behind home, away from the enemy

@@ -167,6 +167,10 @@ D.economy = {
 	escorts = 2, -- combat units the economy keeps with the commander before it feeds the Army
 	secondFactoryIncome = 25, -- strong players run one lab until about minute 8-10
 	factoryPerIncome = 22, -- then about one more lab per this much metal income
+	-- balanced autonomy: a second factory (a vehicle plant) from this metal income without waiting for
+	-- overflow or construction turrets (false: only on overflow). Strong Cortex players: 114 of 162 have a
+	-- vehicle plant by minute 10; ours keep one lab, always busy, with metal storage full 420+ s a game
+	secondLabIncome = false,
 	maxFactories = 5, -- tunable by the strategist (e.g. 1 to stop new labs)
 	builders = function(income) -- constructor target (BARb buildpower 1.2; strong players 5-8)
 		return math.min(12, math.floor(3 + income / 10))
