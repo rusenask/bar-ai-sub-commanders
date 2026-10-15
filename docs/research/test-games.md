@@ -1383,3 +1383,16 @@ Each feature on its own (arm B, per game it was used in):
   everything -0.03 [-0.23, +0.16]: can't tell.
 - Across the factions (Armada +0.21, Legion +0.07, Cortex -0.03; against hard the early-army drop did
   not hold up as the factory fixes alone, g74): **kept**.
+
+## Hardened expansions against hard (force, Cortex vs Armada hard, 24 pairs)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-2153-force-g77-harden-hard-A (off) | 24 | 24 loss | 4 | 43.9k | 64 / 330 | 0.48 | 22.3 | 12 / 10 | 3.5k |
+| 20261015-2153-force-g77-harden-hard-B (raided spots get two turrets first) | 24 | 24 loss | 6 | 48.3k | 60 / 332 | 0.47 | 19.8 | 11.5 / 11 | 3.9k |
+
+- Score 0.00 (all lost: saturated). Extractors lost in minutes 10-25 968 -> 783; "hardening a raided
+  metal spot" 306x. Economy pace at minute 25: income 16.1 -> 30.5, extractors 5.5 -> 11, army 3.8k ->
+  6.2k (the economy holds into the mid game). Opening kills -199 worse (noise far from where it acts).
+  **Kept.** Against hard every game is still lost: the score needs a measure that isn't saturated
+  (survival time, the economy at 25 min) to rank changes there.
