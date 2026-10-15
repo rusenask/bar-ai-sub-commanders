@@ -233,7 +233,9 @@ D.turrets = {
 D.firebase = {
 	on = true,
 	minute = 4, -- the first from here
-	max = 3, -- firebases at once
+	max = 1, -- firebases unfinished at once (v1-v4: 3 standing in all, which stalled the creep)
+	maxTotal = 8, -- firebases standing (v5)
+	armyRatio = 1, -- v5: a new one only while army value >= turret value x this (false: no check)
 	step = 450, -- past the frontier picket toward the enemy
 	spacing = 900, -- between firebases
 	reach = 0.55, -- no further than this share of the way to their base

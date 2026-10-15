@@ -1818,7 +1818,19 @@ function Jobs.firebase(sub, unitID, d, ux, uz)
 		end
 	end
 	if not todo then
-		if #bases >= C.max or (C.cover and Engine.team.plan.phase == "defend") then
+		-- v5: `max` firebases unfinished at once, `maxTotal` standing (v1-v4 capped standing ones at 3, so
+		-- three complete ones froze the line for the rest of the game: the LLM review of g62 saw the creep
+		-- stall after 1-3 sites in 6 of 6 games); and the army keeps up: none while our turrets outweigh it
+		local unfinished = 0
+		for _, b in ipairs(bases) do
+			if FB.nextLayer((Engine.firebaseHave(b)), air, minute, income) then
+				unfinished = unfinished + 1
+			end
+		end
+		if unfinished >= C.max or #bases >= (C.maxTotal or C.max) or (C.cover and Engine.team.plan.phase == "defend") then
+			return false
+		end
+		if C.armyRatio and (Engine.armyValue or 0) < (Engine.turretValue or 0) * C.armyRatio then
 			return false
 		end
 		local A = Engine.approach
@@ -1835,7 +1847,7 @@ function Jobs.firebase(sub, unitID, d, ux, uz)
 		todo = { x = site.x, z = site.z, n = Engine.firebaseCount, started = frame }
 		bases[#bases + 1] = todo
 		role = FB.nextLayer({}, air, minute, income)
-		log(sub, sformat("founding firebase %d at %d,%d (%d of %d)", todo.n, todo.x, todo.z, #bases, C.max))
+		log(sub, sformat("founding firebase %d at %d,%d (%d standing)", todo.n, todo.x, todo.z, #bases))
 	end
 	-- what to build for the role
 	local o
