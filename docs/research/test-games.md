@@ -1119,3 +1119,13 @@ Counter matrix, flat sites (arm A of 20261015-0212-sbx-il-re-khold, 264 battles)
   in g54). Juno built in 10 games, fired in 7; resurrection in 17; anti-nuke 1, shield 0. **Default:**
   the reactive anti-nuke and shield on (they only answer a seen silo / cannons / air); Juno,
   resurrection and long-range cannons off until one shows a gain alone.
+
+## Second factory from 18 metal/s, Legion (sandboxes, 24 pairs, vs Armada medium)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261015-1345-sbx-g59-legion-secondlab-A (overflow only) | 24 | 13 win, 7 timeout, 4 loss | 1 | 254.2k | 263 / 794 | 0.73 | 12.4 | 13.5 / 22 | 4.0k |
+| 20261015-1345-sbx-g59-legion-secondlab-B (from 18 metal/s) | 24 | 4 win, 12 timeout, 8 loss | 0 | 223.3k | 230 / 801 | 0.71 | 16.4 | 12 / 17 | 4.2k |
+
+- **Worse**: -0.27 [-0.47, -0.05], wins 13 -> 4; extractors at 20 min **worse** -6.4 [-9.2, -3.5],
+  late enemy metal killed -39k. Same as Armada: the early plant starves expansion. Cortex only.
