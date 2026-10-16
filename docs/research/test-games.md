@@ -1611,3 +1611,15 @@ Each feature on its own (arm B, per game it was used in):
 
 - Score +0.15 [-0.07, +0.35], leaning better; losses 8 -> 3, none by minute 25; aircraft lost (planes
   built, roughly) median 259 -> 352. A second aircraft plant in 6 of 24 games. Kept.
+
+## Air Force v4 vs v3 on Cortex (force, Cortex vs Armada medium, 24 pairs)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261016-0722-force-g90-airforce-v4-cortex-A (v3) | 24 | 6 win, 3 timeout, 15 loss | 3 | 111.3k | 140 / 525 | 0.66 | 21.2 | 11 / 14 | 3.3k |
+| 20261016-0722-force-g90-airforce-v4-cortex-B (v4) | 24 | 5 win, 4 timeout, 15 loss | 1 | 154.1k | 172 / 656 | 0.67 | 25.8 | 10 / 14 | 3.7k |
+
+- Score -0.02 [-0.22, +0.20], every verdict can't tell. Cortex flies little (aircraft lost median
+  39 -> 48, a second plant in 2 games): v4 does no harm where the air war is small. Kept on all factions.
+- Cortex is the weak faction against Armada medium (6 of 24 won; Legion 13-16): extractors at 20 min 14.6
+  vs Legion's ~20, income at 20 min 36 vs ~50. Its economy is the next thing to look at.
