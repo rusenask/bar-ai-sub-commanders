@@ -14,9 +14,6 @@ D.retreat = {
 	minCost = 60, -- cheaper units fight on
 	back = 0.9, -- health at which a retreated unit returns
 	maxFrames = 30 * 45, -- give up waiting for repairs after this
-	-- a constructor falls back to the nearest point with this many threat-free cells around it (the
-	-- commander's two cells ended its early deaths: g94, g95)
-	builderDepth = 1,
 }
 
 -- squad decisions, as ratios of our local power to the enemy's local threat (metal value; our turrets

@@ -7002,10 +7002,7 @@ function Tactics.builderSafety(sub, unitID, d, st)
 	if not hurt and tm.enemyPower(x, z, 700, frame) <= 0 then
 		return false
 	end
-	local sx, sz = tm.safePoint(x, z, Engine.homeX, Engine.homeZ, nil, nil, Engine.D.retreat.builderDepth)
-	if not sx then
-		sx, sz = tm.safePoint(x, z, Engine.homeX, Engine.homeZ)
-	end
+	local sx, sz = tm.safePoint(x, z, Engine.homeX, Engine.homeZ)
 	if not sx then
 		sx, sz = Engine.homeX, Engine.homeZ
 	end
