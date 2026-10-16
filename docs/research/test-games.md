@@ -1601,3 +1601,13 @@ Each feature on its own (arm B, per game it was used in):
   (the spies cost early metal). On its own: Juno killed 48 -> 792 metal a game (return 0.05 -> 0.96,
   spotters find it targets, as on Armada), but long-range cannons 2.4k -> 1.0k and nukes 5.3k -> 3.1k.
   Kept (neutral overall, Juno helped); next: spotters on cannon and nuke targets' value, not just near.
+
+## Air Force v4 vs v3 (force, Legion vs Armada medium, 24 pairs)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261016-0628-force-g89-airforce-v4-A (v3) | 24 | 13 win, 3 timeout, 8 loss | 2 | 191.5k | 203 / 860 | 0.74 | 20.5 | 12 / 20 | 3.8k |
+| 20261016-0628-force-g89-airforce-v4-B (v4: a plant keeper, a second plant on overflow) | 24 | 16 win, 5 timeout, 3 loss | 0 | 213.7k | 253 / 877 | 0.87 | 18.0 | 11.5 / 21 | 4.5k |
+
+- Score +0.15 [-0.07, +0.35], leaning better; losses 8 -> 3, none by minute 25; aircraft lost (planes
+  built, roughly) median 259 -> 352. A second aircraft plant in 6 of 24 games. Kept.
