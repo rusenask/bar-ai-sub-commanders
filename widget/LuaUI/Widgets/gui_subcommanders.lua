@@ -2726,13 +2726,18 @@ function Jobs.cameras(sub, unitID, d, ux, uz)
 end
 
 function Jobs.jammer(sub, unitID, d, ux, uz)
+	-- the cheapest unarmed one: the first jammer in the list was Cortex's Dragon's Maw and Legion's Dragon's
+	-- Jaw (290-metal pop-up flamethrower turrets that also jam) instead of the Castro (100)
 	local options = buildableBy(d, function(od)
-		return od.jammer > 0 and not od.mobile
+		return od.jammer > 0 and not od.mobile and not od.armed
 	end)
 	local zone = zoneFor(sub, ux, uz)
 	if #options == 0 or not zone then
 		return false
 	end
+	tsort(options, function(a, b)
+		return defs[a].cost < defs[b].cost
+	end)
 	local o = options[1]
 	-- jammers cost a lot of energy: only with a healthy grid
 	if econ.eInc < defs[o].energyCost / 40 or not canSpend(sub, defs[o]) then
