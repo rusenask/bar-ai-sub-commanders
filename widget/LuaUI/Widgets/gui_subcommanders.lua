@@ -84,9 +84,13 @@ local ROLE_INFO = {
 	intelligence = { label = "Intelligence", short = "INTEL" },
 	air = { label = "Air Force", short = "AIR" },
 }
-local ROLE_ALIASES = { airdefense = "air", aa = "air", ["air defense"] = "air", ["air force"] = "air", intel = "intelligence" }
-local function canonicalRole(role)
-	return ROLE_ALIASES[role] or role
+-- old and spoken role names (Air Defense became the Air Force); the table is canonicalRole's own (main-chunk locals are near BAR's 200)
+local canonicalRole
+do
+	local aliases = { airdefense = "air", aa = "air", ["air defense"] = "air", ["air force"] = "air", intel = "intelligence" }
+	canonicalRole = function(role)
+		return aliases[role] or role
+	end
 end
 
 -- minM/minE: don't start new spending below this fraction of storage
@@ -1985,7 +1989,10 @@ function Jobs.airPlant(sub, unitID, d, ux, uz)
 			return false -- one factory at a time
 		end
 	end
-	local wantTier = (have == 0 and 1) or ((not haveT2 and max(econ.mInc, 0) >= Engine.D.air.t2Income) and 2) or nil
+	-- a second plant while metal overflows (doctrine.air.secondPlant: the storage share)
+	local second = Engine.D.air.secondPlant
+	local wantTier = (have == 0 and 1) or ((not haveT2 and max(econ.mInc, 0) >= Engine.D.air.t2Income) and 2)
+		or ((second and have == 1 and econ.mFrac >= second) and 1) or nil
 	if not wantTier then
 		return false
 	end
@@ -2438,6 +2445,23 @@ function Jobs.extractorCover(sub, unitID, d, ux, uz)
 		end
 	end
 	return false
+end
+
+-- the Air Force's first doctrine.air.plantKeepers constructors (by unit id, not the commander) stay on its
+-- aircraft plant rather than build anti-air turrets or radar (v2 sent them all to turrets: fewer planes)
+function Engine.plantKeeper(sub, unitID)
+	local n = Engine.D.air.plantKeepers or 0
+	if n <= 0 then
+		return false
+	end
+	local below = 0
+	for u in pairs(sub.units) do
+		local ud = unitDef(u)
+		if u < unitID and ud and ud.builder and not ud.commander and not ud.factory then
+			below = below + 1
+		end
+	end
+	return below < n
 end
 
 -- their aircraft in this sub-commander's areas now
@@ -3156,12 +3180,14 @@ local BUILDER_PLANS = {
 			or Jobs.goToZone(sub, u, d, x, z)
 	end,
 	-- the Air Force: anti-air turrets first while their aircraft are in its areas, its air plant (tier 2
-	-- later), anti-air turrets once they field aircraft, then radar for its planes to see by
+	-- later, a second on overflow), its first constructor helping the plant, anti-air turrets once they
+	-- field aircraft, then radar for its planes to see by
 	air = function(sub, u, d, x, z)
 		return Jobs.removeMarked(sub, u, d, x, z)
 			or Jobs.repair(sub, u, d, x, z)
 			or (Engine.airThreatened(sub) and Jobs.airDefense(sub, u, d, x, z))
 			or Jobs.airPlant(sub, u, d, x, z)
+			or (not d.commander and Engine.plantKeeper(sub, u) and Jobs.assistFactory(sub, u, d, x, z))
 			or (Engine.airDefenseNeeded(sub) and Jobs.airDefense(sub, u, d, x, z))
 			or Jobs.radarNet(sub, u, d, x, z)
 			or Jobs.helpBuild(sub, u, d, x, z)

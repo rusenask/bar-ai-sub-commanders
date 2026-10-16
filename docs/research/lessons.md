@@ -189,6 +189,9 @@ out wrong.
 
 ## Process traps
 
+- **Read `make lint`'s exit status, not a grep of its output.** `make lint | grep passed` showed "87
+  passed" while the main-chunk locals check failed (196 of BAR's 200) for three commits.
+
 - **A rejected Lightning key looked like a busy pool.** batch.py retried "Authentication failed" like a
   503 and seqtest captures batch.py's output, so seq9 sat in round 1 for 1.5 hours with 2 games. Auth
   errors now end the batch at once; when a sandbox run seems stuck, run `sbx.py list` first.
