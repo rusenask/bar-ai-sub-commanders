@@ -1589,3 +1589,15 @@ Each feature on its own (arm B, per game it was used in):
   late kills a little lower (-1.4k, -9.2k, can't tell). Kept: one Air Force role with attack, defence
   and cover areas at no measured cost. Next: keep a constructor on the plant, a second plant on overflow.
 - The tracker upload failed (Lightning rejected the credentials, see below).
+
+## Intelligence v2 on Legion (force, Legion vs Armada medium, 24 pairs; the sandbox seqtest died with the key)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261016-0534-force-g88-intel2-legion-A (Intelligence v1) | 24 | 13 win, 6 timeout, 5 loss | 2 | 216.2k | 246 / 817 | 0.97 | 19.2 | 12 / 18.5 | 4.3k |
+| 20261016-0534-force-g88-intel2-legion-B (v2: cloaked spotters, counter-intel) | 24 | 13 win, 4 timeout, 7 loss | 1 | 185.3k | 238 / 772 | 0.90 | 16.4 | 12.5 / 18.5 | 4.6k |
+
+- Score -0.03 [-0.22, +0.17], can't tell; every verdict can't tell. Income at 20 min -9.9 [-23.5, +2.4]
+  (the spies cost early metal). On its own: Juno killed 48 -> 792 metal a game (return 0.05 -> 0.96,
+  spotters find it targets, as on Armada), but long-range cannons 2.4k -> 1.0k and nukes 5.3k -> 3.1k.
+  Kept (neutral overall, Juno helped); next: spotters on cannon and nuke targets' value, not just near.
