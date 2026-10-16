@@ -1623,3 +1623,16 @@ Each feature on its own (arm B, per game it was used in):
   39 -> 48, a second plant in 2 games): v4 does no harm where the air war is small. Kept on all factions.
 - Cortex is the weak faction against Armada medium (6 of 24 won; Legion 13-16): extractors at 20 min 14.6
   vs Legion's ~20, income at 20 min 36 vs ~50. Its economy is the next thing to look at.
+
+## Intelligence v3 vs v2 (force, Legion vs Armada medium, 24 pairs)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261016-0807-force-g91-intel-v3-A (v2, Air Force v4) | 24 | 16 win, 2 timeout, 6 loss | 2 | 186.5k | 225 / 804 | 0.84 | 13.3 | 12 / 21.5 | 4.3k |
+| 20261016-0807-force-g91-intel-v3-B (v3: eyes on stale cannon targets and the nuke's cluster) | 24 | 13 win, 5 timeout, 6 loss | 2 | 178.5k | 249 / 774 | 0.83 | 14.8 | 11.5 / 19 | 4.4k |
+
+- Score -0.06 [-0.23, +0.13], can't tell. Opening kills +407 [+93, +731] better, but v3 acts from the
+  cannons and nukes on (minute 20+), so that's noise for this change. The spies did watch "a cannon
+  target to see again", yet cannon kills 3.6k -> 1.6k (8-9 games each) and nukes 6.4k -> 5.0k: what the
+  cannons hit isn't limited by sight. Kept (neutral, what was asked for); the cannons' limit is elsewhere
+  (B lost 3.1k of cannons: they stand where the enemy reaches them).
