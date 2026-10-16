@@ -1649,3 +1649,18 @@ Each feature on its own (arm B, per game it was used in):
   0.54; the commit's "29 a game" was repeated log lines, about one was standing): the Maw is a strong
   base turret and the bases missed it in the mid game. Kept (a jammer should be a jammer; picking
   turrets is Defense's job), and Defense's pick of the Maw as a base turret is worth a look.
+
+## Cortex's second lab at income 28 instead of 18 (force, Cortex vs Armada medium, 24 pairs)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261016-0949-force-g93-cortex-lab28-A (second lab at income 18) | 24 | 11 win, 4 timeout, 9 loss | 2 | 166.4k | 182 / 573 | 0.71 | 17.1 | 12 / 15.5 | 3.6k |
+| 20261016-0949-force-g93-cortex-lab28-B (at income 28) | 24 | 6 win, 1 timeout, 17 loss | 7 | 132.5k | 109 / 532 | 0.53 | 26.8 | 10 / 18 | 2.1k |
+
+- Score -0.24 [-0.46, -0.03] **worse**; army at 12 min -1.3k, mid metal lost +12.3k and mid kills -6.0k
+  **worse**. Income at 20 min +10 [-1, +22] can't tell. Reverted: the early second lab is Cortex's army,
+  and the economy it costs is cheaper than the army it buys (as g56 found).
+- Arm A is the same code as g92's B: 11 wins here, 6 there. One faction's win count swings by 5 of 24
+  between batches of identical code; only paired verdicts mean anything.
+- (The collection on the laptop died with the session; the games had run on force: `RESUME=<dir>`
+  collected them.)

@@ -145,6 +145,8 @@ out wrong.
   at 12 min +1.4k), Armada -0.02, Legion -0.27: for the two that already held the early game, the plant
   drained metal from expansion (extractors at 20 min -6 to -7, total metal -15%) and the late game was
   lost. Production and expansion compete for the same metal: a second lab needs its own income. (g56, g59)
+  Moving Cortex's to 28 metal/s was clearly worse (-0.24, army at 12 min -1.3k, mid losses +12k): Cortex
+  needs the early army more than the extractors it costs; its economy gap is elsewhere. (g93)
 
 ## Engine and widget traps
 
