@@ -1636,3 +1636,16 @@ Each feature on its own (arm B, per game it was used in):
   target to see again", yet cannon kills 3.6k -> 1.6k (8-9 games each) and nukes 6.4k -> 5.0k: what the
   cannons hit isn't limited by sight. Kept (neutral, what was asked for); the cannons' limit is elsewhere
   (B lost 3.1k of cannons: they stand where the enemy reaches them).
+
+## Intelligence's base jammer: the cheapest unarmed one (force, Cortex vs Armada medium, 24 pairs)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261016-0902-force-g92-jammer-cortex-A (first jammer in the list: Dragon's Maw) | 24 | 3 win, 6 timeout, 15 loss | 1 | 126.5k | 144 / 565 | 0.63 | 20.5 | 11 / 14 | 3.0k |
+| 20261016-0902-force-g92-jammer-cortex-B (cheapest unarmed: Castro) | 24 | 6 win, 6 timeout, 12 loss | 1 | 184.4k | 190 / 664 | 0.63 | 17.5 | 10 / 15 | 3.5k |
+
+- Score +0.11 [-0.07, +0.30], leaning better (wins 3 -> 6), but mid metal lost +3.5k [+0.0k, +6.9k]
+  and mid kills -3.0k [-5.9k, -0.3k] **worse**. Dragon's Maws at 12 min 1.46 -> 0.58 (Castros 0 ->
+  0.54; the commit's "29 a game" was repeated log lines, about one was standing): the Maw is a strong
+  base turret and the bases missed it in the mid game. Kept (a jammer should be a jammer; picking
+  turrets is Defense's job), and Defense's pick of the Maw as a base turret is worth a look.
