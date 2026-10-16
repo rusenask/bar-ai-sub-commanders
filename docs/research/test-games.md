@@ -1554,3 +1554,13 @@ Each feature on its own (arm B, per game it was used in):
   ~74 a game (4.9k metal), against an opponent that barely flew: a fixed 25% fighter share, and idle
   fighters patrolling between base and army in reach of their ground anti-air. Air Force v2: 5% fighters
   while their air is under 3%, idle fighters wait over the base. (The merge stays: the player's call.)
+
+## Finisher v1 vs v2 (sequential, sandboxes, Legion vs Armada medium, 32 pairs)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261016-0250-seq-finisher-v1-v2-b-A (v1: all game) | 32 | 18 win, 2 timeout, 12 loss | 2 | 163.3k | 214 / 625 | 0.95 | 14.8 | 11.5 / 17 | 4.0k |
+| 20261016-0250-seq-finisher-v1-v2-b-B (v2: from minute 25) | 32 | 18 win, 4 timeout, 10 loss | 1 | 149.1k | 214 / 642 | 0.86 | 18.3 | 11 / 18 | 4.0k |
+
+- +0.02 [-0.13, +0.16]; mid enemy metal killed **better** +2.2k [+0.0k, +4.7k]: v2 fixes v1's mid-game cost
+  for Legion. **v2 kept.**
