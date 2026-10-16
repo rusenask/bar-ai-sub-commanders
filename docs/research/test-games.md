@@ -1684,3 +1684,16 @@ around it (was: the first cell outside their reach). 22 of 27 commander deaths i
   "falling back" (15 of 16): late, with the base overrun, there's nowhere clear to go.
 - `by=corstorm / cormist / corllt` on our commander's death in Cortex games: Armada's rez bots raise our
   wrecks (those games' kill lists have Cortex units on their side too). Not friendly fire.
+
+## Constructors' deeper retreat: one threat-free cell around the fall-back point (force, Armada medium, 24 pairs on Cortex + 24 on Legion)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261017-0215-force-g96-bld-deep-cortex-A (first safe cell) | 24 | 6 win, 9 timeout, 9 loss | 1 | 184.9k | 173 / 763 | 0.60 | 25.9 | 12 / 18 | 4.1k |
+| 20261017-0215-force-g96-bld-deep-cortex-B (one clear cell around it) | 24 | 7 win, 4 timeout, 13 loss | 0 | 145.8k | 167 / 546 | 0.66 | 16.0 | 11 / 15.5 | 2.9k |
+| 20261017-0305-force-g97-bld-deep-legion-A | 24 | 11 win, 3 timeout, 10 loss | 2 | 166.9k | 211 / 761 | 0.79 | 19.5 | 10 / 16 | 4.0k |
+| 20261017-0305-force-g97-bld-deep-legion-B | 24 | 10 win, 5 timeout, 9 loss | 0 | 160.1k | 180 / 718 | 0.79 | 18.0 | 12 / 13 | 4.1k |
+
+- Pooled (48 pairs) score -0.01 [-0.17, +0.16] can't tell; metal income at 20 min -9.5 [-19.3, -0.3]
+  **worse**. Cortex: constructors lost 25.9 -> 16.0, but army at 12 min -0.8k **worse** and opening losses
+  **worse**. Reverted: the constructors live, and spend the time walking instead of building.

@@ -101,6 +101,8 @@ out wrong.
 - A retreat to the first cell outside their reach is a retreat to where the pursuers arrive next: 22 of 27
   commander deaths came while it fell back. Two clear cells deep (and from 1100, not 800) ended the losses
   before minute 25 (7 -> 0 in 48 pairs). Retreat targets need depth, not just safety. (g94, g95)
+  Not for constructors: the same with one cell cut Cortex's constructor losses 26 -> 16 and income at 20 min
+  by 9.5 (pooled 48 pairs). A constructor's time is worth more than its 150 metal. (g96, g97)
 - Letting emergency energy pick basic solar instead of wind made every average worse. (batch E)
 - The counter-push rarely triggers: the army is seldom 1.5x what it sees. (batch B)
 - The unit value model ("pays for itself") picked the cheapest units (505 Satyrs) and lost; production
