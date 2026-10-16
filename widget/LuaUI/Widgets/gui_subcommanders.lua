@@ -6924,8 +6924,9 @@ function Tactics.guardCommander(sub, unitID, st)
 	if not x then
 		return false
 	end
+	local DC = Engine.D.commander
 	local power, tx, tz, n = 0, 0, 0, 0
-	for _, u in ipairs(spGetUnitsInCylinder(x, z, 800)) do
+	for _, u in ipairs(spGetUnitsInCylinder(x, z, DC.fleeRadius or 800)) do
 		if isEnemyUnit(u) then
 			local ud = unitDef(u) -- nil for radar blips: assume armed
 			if not ud or (ud.armed and not ud.aaOnly) then
@@ -6956,7 +6957,10 @@ function Tactics.guardCommander(sub, unitID, st)
 	end
 	-- out of known enemy reach toward home first (turrets now stand on the frontier pickets: the nearest
 	-- ones can be at the edge, closer to the enemy)
-	local sx, sz = Engine.tm.safePoint(x, z, Engine.homeX, Engine.homeZ)
+	local sx, sz = Engine.tm.safePoint(x, z, Engine.homeX, Engine.homeZ, nil, nil, DC.fleeDepth)
+	if not sx then
+		sx, sz = Engine.tm.safePoint(x, z, Engine.homeX, Engine.homeZ)
+	end
 	if sx and dist2(x, z, sx, sz) > 150 * 150 then
 		bx, bz = sx, sz
 	end

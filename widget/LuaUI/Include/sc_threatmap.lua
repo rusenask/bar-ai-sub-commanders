@@ -228,11 +228,23 @@ return function(ctx)
 	end
 
 	-- nearest point (cell centre) with no ground threat, searching outward from (x, z); with a home
-	-- point, cells closer to home win ties so units fall back rather than sideways
-	function tm.safePoint(x, z, homeX, homeZ, layer, maxRing)
+	-- point, cells closer to home win ties so units fall back rather than sideways. depth: the cells this
+	-- many around it must be clear too (a point the pursuers don't reach in the next seconds)
+	function tm.safePoint(x, z, homeX, homeZ, layer, maxRing, depth)
 		local ix, iz = tm.cellOf(x, z)
 		local g = layer == "air" and air or ground
-		if g[index(ix, iz)] <= 0 then
+		depth = depth or 0
+		local function clear(cx, cz)
+			for ez = cz - depth, cz + depth do
+				for ex = cx - depth, cx + depth do
+					if ex >= 0 and ez >= 0 and ex < W and ez < H and g[index(ex, ez)] > 0 then
+						return false
+					end
+				end
+			end
+			return true
+		end
+		if clear(ix, iz) then
 			return x, z
 		end
 		for ring = 1, maxRing or 16 do
@@ -241,7 +253,7 @@ return function(ctx)
 				for dx = -ring, ring do
 					if max(dx < 0 and -dx or dx, dz < 0 and -dz or dz) == ring then
 						local cx, cz = ix + dx, iz + dz
-						if cx >= 0 and cz >= 0 and cx < W and cz < H and g[index(cx, cz)] <= 0 then
+						if cx >= 0 and cz >= 0 and cx < W and cz < H and clear(cx, cz) then
 							local px, pz = tm.cellCenter(cx, cz)
 							local score = homeX and ((px - homeX) ^ 2 + (pz - homeZ) ^ 2) or 0
 							if not bestScore or score < bestScore then

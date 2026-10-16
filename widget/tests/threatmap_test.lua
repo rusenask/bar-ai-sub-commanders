@@ -84,6 +84,16 @@ return {
 		T.ok(x and tm.threat(x, z) == 0, "safe")
 		T.ok(x < 2000 and z < 2000, "toward home")
 	end,
+	safe_point_with_depth_keeps_clear_of_the_edge = function()
+		local tm = F.map()
+		tm.see(1, 4, 2000, 2000, 0) -- artillery, reach 1120
+		tm.update(0, {}, true)
+		local x, z = tm.safePoint(2000, 2000, 0, 0)
+		local dx, dz = tm.safePoint(2000, 2000, 0, 0, nil, nil, 2)
+		T.ok(dx and tm.threat(dx, dz) == 0, "safe")
+		T.ok(tm.threat(dx + 512, dz + 512) == 0, "two cells toward the threat are clear too")
+		T.ok((dx - 2000) ^ 2 + (dz - 2000) ^ 2 > (x - 2000) ^ 2 + (z - 2000) ^ 2, "deeper than the plain safe point")
+	end,
 	front_is_where_threat_starts = function()
 		local tm = F.map()
 		tm.see(1, 2, 3000, 3000, 0) -- turret, reach 570

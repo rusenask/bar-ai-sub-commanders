@@ -116,6 +116,11 @@ D.commander = {
 	dgunRange = 250, -- elmos (BAR's D-gun reaches about 250-300)
 	dgunEnergy = 600, -- energy needed in storage before firing (it costs ~500)
 	dgunCooldown = 30 * 2,
+	-- falling back: from armed enemies this close, to the nearest point with this many threat-free cells
+	-- (256 elmos) around it. 22 of 27 commander deaths (g91-g93) came while it fell back 800 / 0 cells:
+	-- to the edge of their reach, where the pursuers caught it
+	fleeRadius = 1100,
+	fleeDepth = 2,
 }
 
 -- threat map
