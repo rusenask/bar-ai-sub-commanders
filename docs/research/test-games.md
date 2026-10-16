@@ -1576,3 +1576,16 @@ Each feature on its own (arm B, per game it was used in):
   works), but B ordered 43 planes a game to A's 77: its constructors built anti-air turrets (their armed
   air passed 10% of what they field) instead of helping the plant. Both arms had one Air Force (the
   harness's), so it's the turrets, not the role. Air Force v3: anti-air turrets from 20% (Defense's bar).
+
+## Air Force v3 vs the pre-merge Air Force (force, Legion vs Armada medium, 24 pairs)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261016-0445-force-g87-airforce-v3-A (pre-merge widget) | 24 | 15 win, 3 timeout, 6 loss | 2 | 178.0k | 218 / 672 | 0.94 | 18.6 | 11 / 18 | 4.2k |
+| 20261016-0445-force-g87-airforce-v3-B (merged, anti-air turrets from 20%) | 24 | 16 win, 2 timeout, 6 loss | 2 | 182.1k | 214 / 714 | 0.92 | 15.5 | 11 / 20 | 4.0k |
+
+- Score +0.03 [-0.21, +0.26], can't tell: the merge no longer costs anything (v2: -0.19). Aircraft
+  lost per game (a proxy for planes built) median 82 -> 202 against the pre-merge arm's 297; mid and
+  late kills a little lower (-1.4k, -9.2k, can't tell). Kept: one Air Force role with attack, defence
+  and cover areas at no measured cost. Next: keep a constructor on the plant, a second plant on overflow.
+- The tracker upload failed (Lightning rejected the credentials, see below).

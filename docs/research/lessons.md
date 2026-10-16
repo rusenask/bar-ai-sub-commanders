@@ -189,6 +189,10 @@ out wrong.
 
 ## Process traps
 
+- **A rejected Lightning key looked like a busy pool.** batch.py retried "Authentication failed" like a
+  503 and seqtest captures batch.py's output, so seq9 sat in round 1 for 1.5 hours with 2 games. Auth
+  errors now end the batch at once; when a sandbox run seems stuck, run `sbx.py list` first.
+
 - **One game per Optuna trial is too noisy for four settings at once** (72 games: the "best" trials are
   just won games, and the defaults sat among them). Tune one or two settings, or several games per trial,
   and only settings whose range plausibly matters; confirm a candidate with a seqtest.

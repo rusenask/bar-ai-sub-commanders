@@ -58,6 +58,11 @@ def key():
     return os.environ.get("LIGHTNING_SANDBOX_API_KEY") or open(os.path.expanduser("~/.config/bar-sim/lightning-key")).read().strip()
 
 
+def auth_failed(e):
+    """A rejected key isn't a capacity or network blip: retrying it hid a revoked key for 1.5 hours (seq9)."""
+    return "Authentication failed" in str(e)
+
+
 def sh(sb, script, timeout=3 * 3600):
     r = sb.run_command(RunCommandOpts(cmd="bash", args=["-lc", script], detached=True))
     r.wait(timeout=timeout)
@@ -77,7 +82,7 @@ def sh_long(sb, script, timeout=3 * 3600, every=30):
             misses = 0
         except Exception as e:
             misses += 1
-            if misses >= 10:
+            if misses >= 10 or auth_failed(e):
                 raise
             print(f"poll failed ({e}); retrying", flush=True)
             continue
@@ -240,7 +245,9 @@ def main():
     try:
         running = sum(1 for sb in Sandbox().list(teamspace=TEAMSPACE).sandboxes
                       if (sb.name or "").startswith("bar-") and str(sb.status).lower() == "running")
-    except Exception:
+    except Exception as e:
+        if auth_failed(e):
+            sys.exit(f"Lightning rejected the key (LIGHTNING_SANDBOX_API_KEY or ~/.config/bar-sim/lightning-key): {e}")
         running = 0
     allowed = max(1, cap - running)
     if args.sandboxes > allowed:
@@ -280,6 +287,8 @@ def main():
                     print(f"sandbox {k}: {inst} (no {args.instance} capacity), {p} games at a time", flush=True)
                 return sb
             except Exception as e:
+                if auth_failed(e):
+                    raise
                 last_err = e
                 time.sleep(delay + random.random() * 10)
                 delay = min(delay * 2, 180)
