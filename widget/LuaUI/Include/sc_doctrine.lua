@@ -339,7 +339,7 @@ D.airRaid = {
 
 -- the Air Force sub-commander (sc_air.lua): its mix and where its wings go
 D.air = {
-	aaTurretShare = 0.1, -- the Air Force builds anti-air turrets once their air is this share of what they field
+	aaTurretShare = 0.2, -- the Air Force builds anti-air turrets once their armed air is this share of what they field (0.1 took its constructors off the plant: 43 planes ordered vs 77, g86)
 	bombRadius = 300, -- bombers strike with an area attack this wide around the target (a fight-move drops nothing on unarmed structures)
 	scouts = 1, -- scout (or radar) planes kept looking at the enemy's side
 	fighters = 0.25, -- share of the armed planes that are fighters (1.5x their air share when they fly)

@@ -1564,3 +1564,15 @@ Each feature on its own (arm B, per game it was used in):
 
 - +0.02 [-0.13, +0.16]; mid enemy metal killed **better** +2.2k [+0.0k, +4.7k]: v2 fixes v1's mid-game cost
   for Legion. **v2 kept.**
+
+## Air Force v2 vs the pre-merge Air Force (force, Legion vs Armada medium, 24 pairs)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261016-0350-force-g86-airforce-v2-A (pre-merge widget, Air Force only) | 24 | 11 win, 7 timeout, 6 loss | 2 | 232.7k | 246 / 1048 | 0.81 | 26.5 | 11 / 18 | 4.0k |
+| 20261016-0350-force-g86-airforce-v2-B (merged, v2 fighters) | 24 | 7 win, 3 timeout, 14 loss | 4 | 154.0k | 175 / 679 | 0.78 | 16.7 | 12 / 17 | 4.0k |
+
+- -0.19 [-0.38, +0.01], leaning worse; late kills **worse** -50k. Fighters lost 1826 -> 385 (the fix
+  works), but B ordered 43 planes a game to A's 77: its constructors built anti-air turrets (their armed
+  air passed 10% of what they field) instead of helping the plant. Both arms had one Air Force (the
+  harness's), so it's the turrets, not the role. Air Force v3: anti-air turrets from 20% (Defense's bar).
