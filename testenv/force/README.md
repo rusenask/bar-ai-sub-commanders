@@ -11,7 +11,10 @@ WIDGET_SRC=$(testenv/arm.sh v22ap <commit>) LABEL=force-v22-ap testenv/force-bat
 ```
 
 Results land in `testenv/batch/<stamp>-<label>/` like a local batch (`make compare`, `make report`); the
-games' raw output is in `remote/`. Widget errors are flagged the same way (`WIDGET CRASHED`).
+games' raw output is in `remote/`. A batch dir with only `meta.txt` (the laptop side died: a closed session,
+sleep) may have finished on force anyway: `ls ~/bar-sim/batches/<dir>` there, then collect it with
+`RESUME=<dir> WIDGET_SRC_B=<same> SIDE=<same> testenv/force-batch.sh <games>` (g93). `BAR_TRACK=0` skips
+the Lightning experiment upload. Widget errors are flagged the same way (`WIDGET CRASHED`).
 
 ## Setup (done once; redo for a new engine or game version)
 
