@@ -98,6 +98,9 @@ out wrong.
   times. Pick constructors by role (name / build options), and read the timeline of a disaster batch first:
   it showed the spam in the first minute of reading. (engine-v16)
 - The whole team dies with the commander (BAR's default end condition): keep it home. (game 10)
+- A retreat to the first cell outside their reach is a retreat to where the pursuers arrive next: 22 of 27
+  commander deaths came while it fell back. Two clear cells deep (and from 1100, not 800) ended the losses
+  before minute 25 (7 -> 0 in 48 pairs). Retreat targets need depth, not just safety. (g94, g95)
 - Letting emergency energy pick basic solar instead of wind made every average worse. (batch E)
 - The counter-push rarely triggers: the army is seldom 1.5x what it sees. (batch B)
 - The unit value model ("pays for itself") picked the cheapest units (505 Satyrs) and lost; production

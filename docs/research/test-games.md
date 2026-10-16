@@ -1664,3 +1664,23 @@ Each feature on its own (arm B, per game it was used in):
   between batches of identical code; only paired verdicts mean anything.
 - (The collection on the laptop died with the session; the games had run on force: `RESUME=<dir>`
   collected them.)
+
+## Commander's deeper retreat (force, Armada medium, 24 pairs on Cortex + 24 on Legion)
+
+Falls back from armed enemies within 1100 elmos (was 800), to the nearest point with two threat-free cells
+around it (was: the first cell outside their reach). 22 of 27 commander deaths in g91-g93 came while it fell back.
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261017-0030-force-g94-com-flee-cortex-A (800, edge of reach) | 24 | 5 win, 8 timeout, 11 loss | 4 | 201.2k | 198 / 797 | 0.62 | 20.3 | 11.5 / 15 | 3.9k |
+| 20261017-0030-force-g94-com-flee-cortex-B (1100, two cells deep) | 24 | 7 win, 5 timeout, 12 loss | 0 | 158.6k | 185 / 535 | 0.73 | 16.9 | 10 / 14.5 | 3.9k |
+| 20261017-0123-force-g95-com-flee-legion-A | 24 | 15 win, 4 timeout, 5 loss | 3 | 192.0k | 233 / 760 | 0.89 | 14.4 | 11 / 18 | 4.0k |
+| 20261017-0123-force-g95-com-flee-legion-B | 24 | 18 win, 2 timeout, 4 loss | 0 | 167.3k | 219 / 590 | 0.97 | 11.9 | 13 / 19 | 4.4k |
+
+- Cortex +0.07 [-0.13, +0.29], Legion +0.11 [-0.07, +0.28]; pooled (48 pairs, `testenv/pool-pairs.sh`)
+  +0.09 [-0.05, +0.23], late metal lost -52k [-86k, -21k] **better**, minutes survived in lost games
+  32 -> 41 [-0.2, +18.6], nothing worse. Lost by 25 min 7 -> 0. Kept.
+- Commander deaths are as many (16 / 16) but later: none before minute 25 (A: 7). They still die
+  "falling back" (15 of 16): late, with the base overrun, there's nowhere clear to go.
+- `by=corstorm / cormist / corllt` on our commander's death in Cortex games: Armada's rez bots raise our
+  wrecks (those games' kill lists have Cortex units on their side too). Not friendly fire.
