@@ -22,6 +22,9 @@ D.engage = {
 	attack = 1.2, -- start a fight away from home only this much stronger
 	hold = 0.8, -- keep fighting while at least this strong
 	defend = 0.5, -- inside our base, with turret support, fight down to this
+	-- and when they're at a factory or the commander (Engine.nearVital): half of Cortex's mid-game factory
+	-- losses came while the army fell back from the intruders at 0.3-0.5x (g93)
+	defendVital = 0.3,
 	radius = 700, -- "local": around the target / the squad
 	-- their mobile forces within `radius` (but beyond the local one) count at `weight` in the odds: they join
 	-- the fight (false: only what's within the local radius)

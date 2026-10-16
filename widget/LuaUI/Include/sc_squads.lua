@@ -67,6 +67,7 @@ return function(ctx)
 
 	-- what the squad should do about a target.
 	-- opts.home: the target is in our base (we defend with turret support, down to doctrine.engage.defend)
+	-- opts.vital: and at a factory or the commander (down to doctrine.engage.defendVital)
 	-- opts.engaged: the squad is already fighting it (it holds down to doctrine.engage.hold)
 	-- opts.support: our turrets' value near the target
 	-- returns action ("engage", "regroup", "hold", "fallback"), ratio
@@ -77,6 +78,9 @@ return function(ctx)
 		end
 		local ratio = S.ratio(squad, tx, tz, frame, opts.support)
 		local need = opts.home and E.defend or (opts.engaged and E.hold or E.attack)
+		if opts.home and opts.vital and E.defendVital then
+			need = E.defendVital
+		end
 		if ratio >= need then
 			-- spread out and not yet fighting: gather first, then go in together
 			if not opts.engaged and not opts.home and squad.together < squad.power * 0.7 then

@@ -5975,7 +5975,7 @@ function Tactics.squad(sub)
 		return
 	end
 	local engaged = prev and prev.id == target.id and prev.action == "engage"
-	local action, ratio = S.decide(sq, target.x, target.z, frame, { home = home, engaged = engaged, support = turretSupport(target.x, target.z, 700) })
+	local action, ratio = S.decide(sq, target.x, target.z, frame, { home = home, vital = home and Engine.nearVital(target.x, target.z), engaged = engaged, support = turretSupport(target.x, target.z, 700) })
 	-- outmatched with them already on us: holding means standing where they arrive (lab, retreat specs:
 	-- half the army lost in the open at 0.1x); fall back instead (doctrine.engage.contactFallback, elmos
 	-- from the squad's centre that count as on us)
