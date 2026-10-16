@@ -259,6 +259,9 @@ D.intel = {
 	retarget = 30 * 20,
 	seismicMinute = 8,
 	jammerFollow = true,
+	-- v3: watch their richest structures in our cannons' reach not seen for `stale` s (the `cannon` best),
+	-- and the richest cluster a nuke could hit, while we have cannons / a nuke silo (nil: off)
+	strategicEyes = { stale = 240, cannon = 2 },
 }
 
 -- forward firebases (sc_firebase.lua): Defense grows layered turret groups just past our frontier

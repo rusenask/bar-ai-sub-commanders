@@ -2823,7 +2823,12 @@ end
 -- where eyes help most: our cannons', strikes' and the army's targets, their factories (nearest our base
 -- first), their start when no factory of theirs is known. { x, z, why }, a point per 800 elmos
 function Engine.watchPoints()
+	local W = Engine.watchCache
+	if W and frame - W.frame < 30 then
+		return W.pts
+	end
 	local pts = {}
+	Engine.watchCache = { frame = frame, pts = pts }
 	local function add(x, z, why)
 		for _, p in ipairs(pts) do
 			if dist2(p.x, p.z, x, z) < 800 * 800 then
@@ -2834,6 +2839,52 @@ function Engine.watchPoints()
 	end
 	for _, p in ipairs(Engine.operationPoints()) do
 		add(p.x, p.z, "our target")
+	end
+	-- v3 (doctrine.intel.strategicEyes): the cannons and nukes fire only on what was seen in the last 10
+	-- minutes, so eyes go to their richest structures in our cannons' reach that are going stale, and to the
+	-- richest cluster a nuke could hit (anti-nukes near it are then seen too)
+	local SE = Engine.D.intel.strategicEyes
+	if SE then
+		local C = Engine.ourStrategic()
+		local stale = {}
+		for _, e in pairs(Enemy.units) do
+			local ed = defs[e.defID]
+			if ed and not ed.mobile and frame - e.last > 30 * SE.stale then
+				stale[#stale + 1] = { x = e.x, z = e.z, cost = ed.cost }
+			end
+		end
+		if #C.lrpc > 0 then
+			local reach = {}
+			for _, t in ipairs(stale) do
+				for _, u in ipairs(C.lrpc) do
+					local ud = unitDef(u)
+					local ux, _, uz = spGetUnitPosition(u)
+					if ud and ux and dist2(ux, uz, t.x, t.z) <= (ud.range or 0) ^ 2 then
+						reach[#reach + 1] = t
+						break
+					end
+				end
+			end
+			tsort(reach, function(a, b)
+				return a.cost > b.cost
+			end)
+			for i = 1, min(#reach, SE.cannon) do
+				add(reach[i].x, reach[i].z, "a cannon target to see again")
+			end
+		end
+		if #C.nukeSilo > 0 then
+			local cands = {}
+			for _, e in pairs(Enemy.units) do
+				local ed = defs[e.defID]
+				if ed and not ed.mobile then
+					cands[#cands + 1] = { x = e.x, z = e.z, cost = ed.cost }
+				end
+			end
+			local x, z = Engine.strategic.nukeTarget(cands, 640, {}, Engine.D.strategic.nuke.minValue)
+			if x then
+				add(x, z, "a nuke target")
+			end
+		end
 	end
 	local facs = {}
 	for _, e in pairs(Enemy.units) do
