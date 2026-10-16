@@ -82,9 +82,12 @@ On the force host (default: headless, 6 at a time, 16 games of 60 minutes in abo
 harness is copied at the start, so local edits don't leak):
 
 ```sh
-WIDGET_SRC=$(testenv/arm.sh mine) LABEL=force-my-change testenv/force-batch.sh 16
-WIDGET_SRC=$(testenv/arm.sh base <commit>) LABEL=force-baseline testenv/force-batch.sh 16
+testenv/force-ab.sh my-change <base commit>      # interleaved, 24 pairs on Cortex then Legion, pooled
+make compare ARMS="/tmp/pool-my-change-A /tmp/pool-my-change-B"
 ```
+
+One faction can mislead: Cortex and Legion often move differently, and identical code swung 6 -> 11 wins
+of 24 between Cortex batches (g92, g93). Read each faction's verdict as well as the pooled one.
 
 Compare force arms with force arms (100x headless vs 15x windowed may differ). Locally, when you want
 to watch:
