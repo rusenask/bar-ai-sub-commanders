@@ -58,3 +58,7 @@ widget reconnects by itself within a few seconds. Sub-commanders survive `/luaui
   `pgrep -fl "[b]atch.sh|[r]eplays.sh|[c]ollect.sh"` first, and don't edit `testenv/run.sh`,
   `batch.sh` or the harness while a batch runs.
 - `MAPVIEW_OUT=/tmp/x go test ./internal/mapview` writes sample map pictures to look at.
+- `testenv/*` is git-ignored: a new script there needs a `!testenv/<name>` line in `.gitignore`, or the
+  commit silently leaves it out (force-ab.sh was missing from its own commit). Check `git show --stat`.
+- `force` is on the personal tailnet; with Tailscale on another tailnet it doesn't resolve and batches
+  stop (`testenv/force-ab.sh` checks first). Don't switch tailnets without asking.
