@@ -1795,3 +1795,17 @@ around it (was: the first cell outside their reach). 22 of 27 commander deaths i
   [-0.03, +0.15], late enemy metal killed +11.3k [+0.6k, +22.9k] **better**, nothing worse. Kept.
 - Cortex's turret value at 25 min 915 -> 2.2k (at 30: 1.3k -> 2.9k); Legion's didn't rise (its turrets
   weren't held back by the budget), so the change is Cortex's in effect.
+
+## A factory's cover turret is a heavy one (force, Cortex vs Armada medium, 24 pairs; the Legion half was cut off)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261017-1854-force-g107-facheavy-cortex-A (cheapest) | 24 | 6 win, 4 timeout, 14 loss | 2 | 111.6k | 136 / 468 | 0.68 | 17.9 | 12 / 13 | 4.1k |
+| 20261017-1854-force-g107-facheavy-cortex-B (heavy) | 24 | 6 win, 7 timeout, 11 loss | 1 | 187.8k | 181 / 814 | 0.62 | 26.1 | 11 / 19 | 3.1k |
+
+- Score +0.03 [-0.19, +0.26], every verdict can't tell. Reverted as a no-op: Wardens at 15 min 0.6 -> 0.5,
+  factories lost 4.2 -> 4.4. The cover job rarely reaches a factory: other turrets (firebases, defense
+  zones, the factory's first Guard) already stand within 450 of it. Heavier factory defence would have to
+  come from Defense's own mix, not the cover job.
+- The Legion half (20261017-1946-...-legion) stopped when the laptop lost the force host (Tailscale on
+  another tailnet); its games may have finished on force: collect with RESUME once it's reachable.
