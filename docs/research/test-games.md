@@ -1779,3 +1779,19 @@ around it (was: the first cell outside their reach). 22 of 27 commander deaths i
   The squad acted (interceptions before minute 12: 2.5 -> 4.2 a game) but extractors lost by 12 min didn't
   fall (8.1 -> 9.2): slow responders arrive after the extractor is gone, and the 30% they take from the
   main army costs it the mid game.
+
+## Turret budget 60 metal a minute faster from minute 15 (force, Armada medium, 24 + 48 pairs on Cortex, 24 on Legion)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261017-1512-force-g105-turrets15-cortex-A (300 + 90/min) | 24 | 6 win, 4 timeout, 14 loss | 0 | 145.6k | 173 / 605 | 0.65 | 21.4 | 10.5 / 10.5 | 3.7k |
+| 20261017-1512-force-g105-turrets15-cortex-B (+60/min from 15) | 24 | 9 win, 8 timeout, 7 loss | 1 | 235.0k | 243 / 737 | 0.68 | 16.7 | 12.5 / 18 | 3.7k |
+| 20261017-1615-force-g105-turrets15-legion-A | 24 | 14 win, 4 timeout, 6 loss | 0 | 164.6k | 205 / 680 | 0.87 | 18.1 | 12 / 22 | 3.6k |
+| 20261017-1615-force-g105-turrets15-legion-B | 24 | 14 win, 5 timeout, 5 loss | 0 | 206.9k | 249 / 827 | 0.73 | 15.8 | 11.5 / 20 | 3.9k |
+| 20261017-1710-force-g106-turrets15-rep-cortex-A (repeat) | 48 | 10 win, 11 timeout, 27 loss | 0 | 160.1k | 169 / 640 | 0.61 | 21.4 | 11 / 13 | 3.5k |
+| 20261017-1710-force-g106-turrets15-rep-cortex-B | 48 | 13 win, 10 timeout, 25 loss | 2 | 175.9k | 174 / 610 | 0.63 | 18.5 | 11 / 14 | 3.9k |
+
+- Cortex +0.14 [-0.05, +0.32], repeated +0.04 [-0.09, +0.16]; Legion +0.01. All 96 pairs: score +0.06
+  [-0.03, +0.15], late enemy metal killed +11.3k [+0.6k, +22.9k] **better**, nothing worse. Kept.
+- Cortex's turret value at 25 min 915 -> 2.2k (at 30: 1.3k -> 2.9k); Legion's didn't rise (its turrets
+  weren't held back by the budget), so the change is Cortex's in effect.
