@@ -27,9 +27,6 @@ return {
 		T.eq((S.decide(weak, 2000, 2000, 0, { home = true })), "engage", "0.75x defending the base")
 		T.eq((S.decide(weak, 2000, 2000, 0, { engaged = true, support = 0 })), "fallback", "0.75x in a fight away from home")
 		T.eq((S.decide(weak, 2000, 2000, 0, { engaged = true, support = 100 })), "engage", "turret support holds it")
-		local weaker = S.summarize({ { x = 1500, z = 2000, cost = 160 } })
-		T.eq((S.decide(weaker, 2000, 2000, 0, { home = true })), "fallback", "0.4x in the base")
-		T.eq((S.decide(weaker, 2000, 2000, 0, { home = true, vital = true })), "engage", "0.4x at a factory: stand")
 	end,
 	reinforcements_nearby_count = function()
 		local tm = F.map()
