@@ -11,7 +11,11 @@ description: Analyse BAR test games and batches in this repo - run gamereport, r
 make report                                    # newest batch (testenv/batch/latest)
 make report BATCH=testenv/batch/<dir>          # a given batch, or a single log: BATCH=testenv/sctest_out.txt
 make compare ARMS="testenv/batch/<A> testenv/batch/<B>"   # A/B arms side by side
+python3 scripts/spend_breakdown.py testenv/batch/<dir> 12   # where the metal went by minute 12
 ```
+
+Strong players start ~10k of combat units by minute 12 (pro-playbook.md); ours ~4.2k, 28% of our metal
+(g99). Late metal overflow is mostly lost games with every factory dead: a symptom, not a cause.
 
 Every `make test-batch` already writes `testenv/batch/<date>-<label>/report.md` (with `meta.txt`: commit,
 widgets, opponent, map, speed). The report has:
