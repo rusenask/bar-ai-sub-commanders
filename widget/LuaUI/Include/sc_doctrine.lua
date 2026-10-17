@@ -551,6 +551,10 @@ D.factions = {
 	-- Cortex players do, was better: +0.10 [+0.00, +0.21], army at 12 min +1.4k (g56)
 	cortex = {
 		{ "economy.secondLabIncome", 18 },
+		-- the vehicle plant's assault unit is the Incisor (speed 85, 120 metal), strong players' most built
+		-- after the Grunt; by cost it built Garpikes and Pounders (58 / 40) and nothing of Cortex's was fast
+		-- enough (70) for the response squad that keeps raids off the extractors (8-10 lost by minute 12)
+		{ "production.prefer", { corgator = 2 } },
 	},
 	legion = {
 		-- the swarm and siege faction: Mantis drone carriers (450, T2 vehicles) and Cleaver cluster
