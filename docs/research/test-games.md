@@ -1739,3 +1739,20 @@ around it (was: the first cell outside their reach). 22 of 27 commander deaths i
   the fast unit of each kind in place of the second strongest. Incisors were built (about 2 standing), but
   extractor losses didn't fall (9.2 -> 10.4 on Cortex). If the Incisor is worth trying again, as a
   vehicle-plant preference (production.prefer), not a rule for all labs.
+
+## The Air Force's first aircraft plant from income 30 (about minute 15, was at once: minute 8 Legion / 11 Cortex) (force, Armada medium)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261017-0906-force-g101-airlater-cortex-A (at once) | 24 | 6 win, 9 timeout, 9 loss | 0 | 153.6k | 171 / 634 | 0.71 | 23.9 | 10.5 / 14 | 3.3k |
+| 20261017-0906-force-g101-airlater-cortex-B (from income 30) | 24 | 6 win, 5 timeout, 13 loss | 2 | 105.1k | 141 / 419 | 0.70 | 17.4 | 11 / 12 | 3.0k |
+| 20261017-0955-force-g101-airlater-legion-A | 24 | 12 win, 7 timeout, 5 loss | 0 | 239.0k | 282 / 985 | 0.81 | 16.4 | 12 / 23 | 4.0k |
+| 20261017-0955-force-g101-airlater-legion-B | 24 | 18 win, 2 timeout, 4 loss | 0 | 206.7k | 233 / 747 | 0.83 | 14.3 | 11 / 19 | 3.2k |
+| 20261017-1053-force-g102-airlater-rep-legion-A (repeat) | 24 | 9 win, 7 timeout, 8 loss | 0 | 158.4k | 189 / 736 | 0.87 | 19.6 | 12 / 15.5 | 3.8k |
+| 20261017-1053-force-g102-airlater-rep-legion-B | 24 | 12 win, 8 timeout, 4 loss | 1 | 205.1k | 244 / 940 | 0.84 | 19.5 | 12 / 18 | 3.6k |
+
+- Cortex -0.06 [-0.26, +0.16] can't tell. Legion +0.15 [+0.01, +0.31] **better**, repeated +0.13
+  [-0.07, +0.33]; Legion's 48 pairs +0.14 [+0.01, +0.27] **better**, late enemy metal killed +26k [+2k,
+  +50k] **better**. Kept for Legion only (faction overlay `air.plantIncome = 30`).
+- Not the expected way: army at 12 min didn't grow (Legion -0.4k). The gain is late; Legion's first air
+  plant is the drone plant, and a later start may simply get it to a stronger plant / wing when it matters.
