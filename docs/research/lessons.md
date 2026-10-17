@@ -157,6 +157,9 @@ out wrong.
   medium; without them our counts would sit at strong players' median. A third of production as raiders
   (and raiders answering raiders) made it worse for Cortex (6.6 -> 9.4 lost): which units we make isn't
   where the raids are stopped; where they stand is. (g98, g99)
+  Nor answering faster after the raid starts: Incisors at the vehicle plant (g103) and a response squad from
+  speed 45 (interceptions 2.5 -> 4.2 a game, g104) didn't cut Cortex's extractor losses and cost the army.
+  An extractor dies in seconds; what saves it has to be there before the raid (a turret, a picket).
 
 - A change that helps one faction and not the other is a faction overlay, not a revert: the later
   aircraft plant was neutral on Cortex and +0.14 on Legion (48 pairs, repeated before keeping). A borderline

@@ -1767,3 +1767,15 @@ around it (was: the first cell outside their reach). 22 of 27 commander deaths i
 - Score -0.10 [-0.23, +0.04], every verdict can't tell, leaning worse. Reverted. The mechanism never
   happened: about one Incisor standing at 12 min (the vehicle plant makes few assault units then), and
   response squad interceptions before minute 12 unchanged (2.3 a game in both arms).
+
+## Cortex overlay: response squad from speed 45 (was 70) (force, Cortex vs Armada medium, 48 pairs)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261017-1326-force-g104-resp45-cortex-A (speed 70) | 48 | 10 win, 19 timeout, 19 loss | 0 | 172.8k | 175 / 657 | 0.64 | 22.2 | 11 / 16 | 3.4k |
+| 20261017-1326-force-g104-resp45-cortex-B (speed 45) | 48 | 6 win, 13 timeout, 29 loss | 2 | 127.1k | 115 / 544 | 0.55 | 23.4 | 10.5 / 11 | 3.0k |
+
+- Score -0.12 [-0.24, +0.02], minutes survived in lost games -6.7 [-10.2, -2.7] **worse**. Reverted.
+  The squad acted (interceptions before minute 12: 2.5 -> 4.2 a game) but extractors lost by 12 min didn't
+  fall (8.1 -> 9.2): slow responders arrive after the extractor is gone, and the 30% they take from the
+  main army costs it the mid game.
