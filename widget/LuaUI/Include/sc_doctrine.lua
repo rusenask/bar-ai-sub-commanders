@@ -155,7 +155,9 @@ D.production = {
 		{ income = 0, constructor = 0.25, raider = 0.45, assault = 0.30 },
 		-- past the opening raiders are a small share: cheap ones feed the enemy kills (engine-v1 vs hard:
 		-- 500 Goblins lost after minute 12); BARb hard's Legion mix drops them after its first tiers
-		{ income = 12, constructor = 0.2, raider = 0.15, assault = 0.5, skirmisher = 0.15 },
+		-- (until income 25 a raider in three: the slow assault bots never caught Pawn raids, which took 8.5
+		-- extractors a game by minute 12, g98; strong players' openings are half raiders)
+		{ income = 12, constructor = 0.2, raider = 0.3, assault = 0.35, skirmisher = 0.15 },
 		{ income = 25, constructor = 0.15, raider = 0.05, assault = 0.4, skirmisher = 0.2, heavy = 0.2 },
 		-- from 40 a few mobile anti-air with the army (v21c armies had none: one bomber wing would have
 		-- walked over them), and more artillery later for their turret lines (76 turrets killed after 35 min)
@@ -172,7 +174,7 @@ D.production = {
 -- counter-response (BARb hard response.json): our kind -> enemy kinds it answers, with weights, and the
 -- most of our army it may make up
 D.response = {
-	raider = { vs = { scout = 2.0, raider = 0.5, artillery = 1.2 }, max = 0.3 },
+	raider = { vs = { scout = 2.0, raider = 1.0, artillery = 1.2 }, max = 0.3 },
 	assault = { vs = { raider = 0.9, skirmisher = 0.4, turret = 0.3 }, max = 0.8 },
 	skirmisher = { vs = { assault = 0.8, heavy = 0.5, skirmisher = 0.7, artillery = 0.6 }, max = 0.8 },
 	heavy = { vs = { assault = 0.5, skirmisher = 0.7, heavy = 1.5, turret = 0.3 }, max = 0.6 },
