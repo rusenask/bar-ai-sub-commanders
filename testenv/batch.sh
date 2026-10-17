@@ -30,10 +30,13 @@ ln -sfn "$DIR" "$T/batch/latest"
 	echo "started: $(date '+%Y-%m-%d %H:%M')"
 } > "$DIR/meta.txt"
 
-# one game on one worker: up to two tries; appends "<n>|<line>" to results
+# one game on one worker: up to two tries; appends "<n>|<line>" to results. An engine that crashes while
+# loading (exit 139 within a minute: the Mac engine's SIGSEGV at "Loading Sound Definitions", ~4% of starts,
+# more with several at once) doesn't use up a try, up to 3 such crashes: nothing of the game had run, so
+# retrying it doesn't bias the sample
 play() { # play <game> <worker>
-	local i="$1" w="$2" start try out
-	for try in 1 2; do
+	local i="$1" w="$2" start try=1 loadcrashes=0 out
+	while [ "$try" -le 2 ]; do
 		start=$(date +%s)
 		local rc wdir
 		if [ "$WORKERS" -gt 1 ]; then
@@ -67,6 +70,12 @@ play() { # play <game> <worker>
 		cp "$wdir/run.log" "$DIR/failed/$i-try$try-run.log" 2>/dev/null
 		[ -f "$out" ] && cp "$out" "$DIR/failed/$i-try$try-harness.txt"
 		echo "$i try $try: $rc after $(( $(date +%s) - start ))s, worker $w" >> "$DIR/failed/README.txt"
+		if [ "$rc" = "exit=139" ] && [ $(( $(date +%s) - start )) -lt 60 ] && [ "$loadcrashes" -lt 3 ]; then
+			loadcrashes=$((loadcrashes + 1))
+			mv "$DIR/failed/$i-try$try-run.log" "$DIR/failed/$i-try$try-loadcrash$loadcrashes-run.log" 2>/dev/null
+			continue
+		fi
+		try=$((try + 1))
 	done
 	echo "game $i: did not run twice (see the run.log of worker $w)"
 	echo "$i|game $i: did not run twice" >> "$DIR/results.txt"

@@ -65,9 +65,25 @@ gadgets ~12% (synced 6.6%, unsynced 5.3%). The rest of Sim is the engine and BAR
 | End decided games early (mercy rule) | | idea: check the call against the real result first |
 | Force: FAST's widget pruning + threads + no sound in headless | | todo (needs the personal tailnet) |
 
+## Does FAST change results?
+
+Laptop, duelrules vs medium, 60 minutes, 12 games per arm, 6 at a time, SPEED=100 (`make compare`):
+
+| Arm | Wall time | Games | Results | Metal | Dealt / taken | Score |
+|---|---|---|---|---|---|---|
+| default (`20261017-2324-speed-nofast`) | 20 min | 11 | 6 win, 2 timeout, 3 loss | 152k | 0.80 | 0.70 |
+| FAST (`20261017-2314-speed-fast`) | 10 min | 11 | 5 win, 1 timeout, 5 loss | 112k | 0.87 | 0.60 |
+
+Score difference -0.10 [-0.44, +0.23]: can't tell; every other metric "can't tell" too. Second pair
+running to pool. Same batch, half the wall time.
+
 ## Failures seen
 
 - ~4% of engine starts crash at "Loading Sound Definitions" (SIGSEGV in a worker thread), with or without
-  sound, one game or six: a Mac engine bug; batch.sh tries a game twice.
+  sound, one game or six (4 of 16 starts in the FAST batch, 3 in the default one; one game crashed on both
+  tries and dropped out of each batch): a Mac engine bug. batch.sh now retries such a load crash (exit 139
+  within a minute) without using up one of the game's two tries, up to 3 times.
+- run.sh's wall-clock limit counted SPEED up to 10x (900 s for 60 minutes): a default-settings game, 6 at
+  once, ran out of it (games took up to 820 s). Counted at 6x at most now (1380 s).
 - Engines started at the same moment can hang in window setup (watchdog after 30 s, run.sh's LOADMAX kills
   them at 150 s): 2 of 12 starts with sound on and games 5 s apart; none with `Sound=0` and 3-12 s apart.

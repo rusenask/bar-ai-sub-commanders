@@ -95,10 +95,10 @@ if [ "${FAST:-0}" = 1 ] && [ -f "$CFG" ]; then
 	python3 "$T/speed_widgets.py" "$W" minimal 2>/dev/null
 fi
 # wall-clock limit: twice the game at the requested speed plus loading, unless given
-# (counted at 10x at most: late games with hundreds of units run at 10-15x whatever SPEED asks for, slower
+# (counted at 6x at most: late games with hundreds of units run at 10-15x whatever SPEED asks for, slower
 # with several games at once, and a tight limit kills the long even games: a biased batch)
 SPEEDX="${SPEED:-3}"
-[ "$SPEEDX" -gt 10 ] && SPEEDX=10
+[ "$SPEEDX" -gt 6 ] && SPEEDX=6
 LIMIT="${2:-$(( ${DUEL_MINUTES:-60} * 60 * 2 / SPEEDX + 180 ))}"
 [ "${LOCKSTEP:-0}" = 1 ] && [ -z "$2" ] && LIMIT=$((LIMIT * 4))
 STALL="${STALL:-$([ "${LOCKSTEP:-0}" = 1 ] && echo 600 || echo 120)}"
