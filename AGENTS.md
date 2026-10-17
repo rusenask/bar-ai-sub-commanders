@@ -43,7 +43,8 @@ widget reconnects by itself within a few seconds. Sub-commanders survive `/luaui
 
 - Batches run on the `force` host by default now (`testenv/force-batch.sh`, headless, 6 games at a time at
   up to 100x: [testenv/force/README.md](testenv/force/README.md)); the laptop stays free. Local batches
-  (`testenv/batch.sh`) are for watching games.
+  (`testenv/batch.sh`) are for watching games; when the laptop has to run a batch, `FAST=1 WORKERS=6
+  SPEED=100` is ~5x the old default ([docs/research/speed.md](docs/research/speed.md)).
 
 - Micro (targeting, focus fire, kiting, movement, retreats) is measured in the **battle lab**: one
   engagement in isolation, ~16 s each (`SCENARIO=battle testenv/force-batch.sh 72 battle`, specs in

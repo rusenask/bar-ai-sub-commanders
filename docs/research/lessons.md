@@ -68,6 +68,10 @@ out wrong.
 - Even working, game-level learning is noisy: mid-game metal net ranged -18k to +1k between games of
   nearly the same rules, so 24 games a generation barely moves a 0.08-sigma search. Learn micro in the
   battle lab; keep game-level search for a few rules with large effects.
+- Game speed (docs/research/speed.md): live games aren't repeatable (same settings, different game) and
+  the laptop's other load swings batch speed 2x, so judge speed settings on a replay
+  (`speedbench.sh DEMO=...`), several at once for parallel throughput, and confirm with game-minutes per
+  wall-minute. A thread-pool cap looked like +60% on three live games and was -60% on the replay.
 
 ## Playing BAR (what the games showed)
 

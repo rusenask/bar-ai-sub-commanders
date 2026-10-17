@@ -1809,3 +1809,18 @@ around it (was: the first cell outside their reach). 22 of 27 commander deaths i
   come from Defense's own mix, not the cover job.
 - The Legion half (20261017-1946-...-legion) stopped when the laptop lost the force host (Tailscale on
   another tailnet); its games may have finished on force: collect with RESUME once it's reachable.
+
+## FAST=1 (faster test games) vs default (laptop, 6 at a time, SPEED=100, duelrules vs medium)
+
+Pooled: default (20261017-2324-speed-nofast, 20261017-2356-speed-nofast2) vs FAST
+(20261017-2314-speed-fast, 20261017-2345-speed-fast2 with a 2-thread cap, 20261018-0039-speed-fast3):
+
+| Arm | Games | Results | Metal | Killed / lost | Dealt / taken | Constructors lost |
+|---|---|---|---|---|---|---|
+| default | 23 | 16 win, 3 timeout, 4 loss | 172.8k | 235 / 724 | 0.84 | 16.8 |
+| FAST | 35 | 23 win, 3 timeout, 9 loss | 147.5k | 222 / 570 | 0.94 | 18.0 |
+
+- Score -0.04 [-0.24, +0.15], every verdict can't tell: FAST doesn't change results as far as this shows.
+- FAST (uncapped threads) played 69 game seconds per wall second against 43 for default at the same
+  parallelism. Details in speed.md.
+

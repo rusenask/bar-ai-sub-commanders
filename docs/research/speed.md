@@ -3,10 +3,16 @@
 Goal: double or triple how fast test games run, first on the laptop (M4 Max, 16 cores, windowed engine
 through zink), then carry what works to force (headless).
 
-**Status (2026-10-17):** `FAST=1` (run.sh, batch.sh) bundles what works. Laptop, 15-minute duels: one game
-40x -> 80x; six at once ~55x each (~300 game seconds per wall second, against ~40 for one default game).
-Late game (300-800 units) gains less: 17x -> 25x on the replay benchmark. Open: does FAST change results
-(A/B below), and the force host (untested: off the tailnet this session).
+**Status (2026-10-18):** `FAST=1` (run.sh, batch.sh) bundles what works: `MinSimDrawBalance=0`, `Sound=0`,
+BAR's interface widgets off. Use `FAST=1 WORKERS=6 SPEED=100 testenv/batch.sh <n>` on the laptop.
+
+- One game: 15-minute duel 40x -> 80x; late game (replay, 300-800 units) 17x -> 25x.
+- Six at once: late-game replay 15-18x -> 32-33x each; a live 60-minute batch of 12 games played 69 game
+  seconds per wall second (7 minutes) against 43 for the same batch with default settings (1.6x), and
+  against at most 15 for the old local default (`SPEED=15 WORKERS=1`): ~5x.
+- Results unchanged as far as 58 games can tell (below).
+- Force (headless) untested: off the tailnet this session. Drawing doesn't apply there; widget pruning and
+  `Sound=0` should.
 
 ## How to measure
 
@@ -56,14 +62,14 @@ gadgets ~12% (synced 6.6%, unsynced 5.3%). The rest of Sim is the engine and BAR
 | Camera at an empty corner, `hideinterface` | no effect (replay 24.0x vs 23.8x) | dropped |
 | BAR's interface widgets off (`speed_widgets.py minimal`: keeps APIs and widgets that give orders) | 10-minute: 72x -> 87x; replay 19.2x -> 24.9x (incl. 37 widgets the saved config doesn't list) | **in FAST** |
 | All widgets but ours off | no better than minimal (80x vs 87x) | dropped (riskier) |
-| `WorkerThreadCount=2-3` (default: one per core; every engine spins its pool) | one game: no change; 3 at once: 40x -> 65x each; 6 at once with 2: ~55x each | **in FAST** |
+| `WorkerThreadCount` cap (default: one per core) | one game: no change; six late-game replays at once: 2 threads 13.8x, 4 threads 22.9x, uncapped 33.3x / 31.8x (default settings 17.8x / 14.6x). An early live test (3 at once: 40x -> 65x with 3) was noise, and the second live pair with 2 threads ran no faster than default | **dropped** (`FAST_THREADS=n` still caps) |
 | `Sound=0` | 6 at once: no load hangs in 36 starts (2 of 12 hung before) | **in FAST** |
 | Gadget profiler (`luarules profile`) | replay 24x -> 36x (!), live 78x -> 53x: replay-only quirk | dropped |
 | Disable BAR's visual gadgets (`disablegadget`, needs cheats; synced halves share names) | at most ~5% late | not tried: risky, small |
 | Our widget's per-frame cost (11% late) | | todo: profile by callin (`zz_speedprof` writes it) |
 | Loading (~16 s a game) and shutdown (~3 s) | | todo |
 | End decided games early (mercy rule) | | idea: check the call against the real result first |
-| Force: FAST's widget pruning + threads + no sound in headless | | todo (needs the personal tailnet) |
+| Force: FAST's widget pruning + no sound in headless (and check its 6-on-12-cores load) | | todo (needs the personal tailnet) |
 
 ## Does FAST change results?
 
@@ -72,10 +78,18 @@ Laptop, duelrules vs medium, 60 minutes, 12 games per arm, 6 at a time, SPEED=10
 | Arm | Wall time | Games | Results | Metal | Dealt / taken | Score |
 |---|---|---|---|---|---|---|
 | default (`20261017-2324-speed-nofast`) | 20 min | 11 | 6 win, 2 timeout, 3 loss | 152k | 0.80 | 0.70 |
-| FAST (`20261017-2314-speed-fast`) | 10 min | 11 | 5 win, 1 timeout, 5 loss | 112k | 0.87 | 0.60 |
+| FAST, 2 threads (`20261017-2314-speed-fast`) | 10 min | 11 | 5 win, 1 timeout, 5 loss | 112k | 0.87 | 0.60 |
+| FAST, 2 threads (`20261017-2345-speed-fast2`) | 11 min | 12 | 10 win, 1 timeout, 1 loss | | | |
+| default (`20261017-2356-speed-nofast2`) | 11 min | 12 | 10 win, 1 timeout, 1 loss | | | |
+| FAST (`20261018-0039-speed-fast3`) | 7 min | 12 | 8 win, 1 timeout, 3 loss | | | |
 
-Score difference -0.10 [-0.44, +0.23]: can't tell; every other metric "can't tell" too. Second pair
-running to pool. Same batch, half the wall time.
+Pooled (games renumbered into one dir each, `gamereport -compare`): default 23 games 16 win, 3 timeout, 4
+loss; FAST 35 games 23 win, 3 timeout, 9 loss. Score -0.04 [-0.24, +0.15], every metric "can't tell".
+
+Wall time is a poor speed measure across batches (game lengths and the laptop's other load differ; a node
+process used ~4.5 cores throughout, load average 20-60): compare game-minutes per wall-minute, or speed by
+unit count. By unit count (<100 / 100-200 / 200-300 / 300+): default 28.5 / 14.9 / 11.0 / 7.5x, FAST 39.2 /
+22.6 / 16.3 / 10.0x. The first default batch ran at half the second's speed at every unit count: other load.
 
 ## Failures seen
 
@@ -86,4 +100,7 @@ running to pool. Same batch, half the wall time.
 - run.sh's wall-clock limit counted SPEED up to 10x (900 s for 60 minutes): a default-settings game, 6 at
   once, ran out of it (games took up to 820 s). Counted at 6x at most now (1380 s).
 - Engines started at the same moment can hang in window setup (watchdog after 30 s, run.sh's LOADMAX kills
-  them at 150 s): 2 of 12 starts with sound on and games 5 s apart; none with `Sound=0` and 3-12 s apart.
+  them at 150 s): 2 of 12 starts with sound on and games 5 s apart. run.sh now launches one engine at a
+  time, 8 s apart (`LAUNCH_GAP`, a lock dir `testenv/.launch.lock`).
+- Replays on several workers at once: all but the first hung, because every replay's local server binds
+  port 8452 (`bind: Address already in use`). run.sh gives each worker its own `HostPortDefault`.

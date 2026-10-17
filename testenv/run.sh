@@ -39,12 +39,15 @@ setcfg WindowPosY $((40 + ${WORKER:-0} / 3 % 2 * 300))
 # test games talk to the test bridge (make test-bridge), never to the one a real game uses; workers to
 # ports of their own (nothing listens there: rules-only games don't need a bridge)
 setcfg SubCommandersBridge "127.0.0.1:$((17878 + ${WORKER:-0} * 2))"
-# FAST=1 runs the game faster (docs/research/speed.md): no minimum share of time for drawing, a small
-# engine thread pool (FAST_THREADS, default 2: games in parallel don't fight over cores), no sound, and BAR's
-# interface widgets off (testenv/speed_widgets.py; those that give orders stay). Without FAST the defaults
-# come back, so a write dir can switch between the two.
+# a replay's local server listens on HostPortDefault (8452): replays on several workers at once each need
+# their own, or all but the first hang ("bind: Address already in use")
+setcfg HostPortDefault "$((8452 + ${WORKER:-0}))"
+# FAST=1 runs the game faster (docs/research/speed.md): no minimum share of time for drawing, no sound, and
+# BAR's interface widgets off (testenv/speed_widgets.py; those that give orders stay). FAST_THREADS=n caps
+# the engine's thread pool (off by default: with 2 or 4, six late games at once ran slower, 14x and 23x
+# against 33x uncapped). Without FAST the defaults come back, so a write dir can switch between the two.
 if [ "${FAST:-0}" = 1 ]; then
-	SPRING_CFG="MinSimDrawBalance=0 WorkerThreadCount=${FAST_THREADS:-2} Sound=0 ${SPRING_CFG:-}"
+	SPRING_CFG="MinSimDrawBalance=0 WorkerThreadCount=${FAST_THREADS:--1} Sound=0 ${SPRING_CFG:-}"
 else
 	SPRING_CFG="MinSimDrawBalance=0.15 WorkerThreadCount=-1 Sound=1 ${SPRING_CFG:-}"
 fi
@@ -102,6 +105,15 @@ SPEEDX="${SPEED:-3}"
 LIMIT="${2:-$(( ${DUEL_MINUTES:-60} * 60 * 2 / SPEEDX + 180 ))}"
 [ "${LOCKSTEP:-0}" = 1 ] && [ -z "$2" ] && LIMIT=$((LIMIT * 4))
 STALL="${STALL:-$([ "${LOCKSTEP:-0}" = 1 ] && echo 600 || echo 120)}"
+# engines started within seconds of each other can hang in window setup (watchdog at 30 s, nothing after;
+# 5 of 6 replays started 4 s apart): one launch at a time, LAUNCH_GAP (8) seconds apart, whoever runs them
+LOCK="$T/.launch.lock"
+while ! mkdir "$LOCK" 2>/dev/null; do
+	# a lock left by a killed run.sh
+	[ $(( $(date +%s) - $(stat -f %m "$LOCK" 2>/dev/null || date +%s) )) -gt 60 ] && rmdir "$LOCK" 2>/dev/null
+	sleep 1
+done
+( sleep "${LAUNCH_GAP:-8}"; rmdir "$LOCK" 2>/dev/null ) &
 # at lower priority (NICE, default 10): the machine stays usable for other work while tests run
 SPRING_DATADIR="$RES:$BAR" BAR_INFOLOG="$W/infolog.txt" nice -n "${NICE:-10}" perl -e 'alarm shift; exec @ARGV' "$LIMIT" \
 	"$APP/MacOS/spring" --window ${SPRING_ARGS:-} --write-dir "$W" "$SCRIPT" > "$W/run.log" 2>&1 &
