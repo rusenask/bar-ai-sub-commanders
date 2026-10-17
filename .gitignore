@@ -42,3 +42,4 @@ play/*
 !testenv/battles-tactics/
 !testenv/battles-counter/
 __pycache__/
+!testenv/force-ab.sh
