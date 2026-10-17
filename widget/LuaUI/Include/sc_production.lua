@@ -163,10 +163,21 @@ return function(ctx)
 			-- the strongest that fits the budget
 			return da.cost > db.cost
 		end)
-		-- variety among the strongest two of a fighting category (BARb mixes, e.g. Ballista and Centaur)
+		-- variety: the strongest and the fastest of a fighting category in turn (BARb mixes, e.g. Ballista
+		-- and Centaur). The two dearest left Cortex's vehicle plant on Garpike and Pounder (speed 58 / 40)
+		-- and never built the Incisor (85), strong players' most built unit after the Grunt
 		if cat ~= "raider" and cat ~= "constructor" and #list > 1 then
+			local fastest = list[1]
+			for _, o in ipairs(list) do
+				if (defs[o].speed or 0) > (defs[fastest].speed or 0) then
+					fastest = o
+				end
+			end
 			P.turn = (P.turn or 0) + 1
-			return list[(P.turn % 2) + 1], cat
+			if P.turn % 2 == 0 then
+				return list[1], cat
+			end
+			return fastest ~= list[1] and fastest or list[2], cat
 		end
 		return list[1], cat
 	end
