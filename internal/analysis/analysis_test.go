@@ -272,6 +272,9 @@ func TestVerdicts(t *testing.T) {
 	if got["mid: metal lost"] != "better" || !strings.HasPrefix(got["score (win 1+, alive 0.5, loss by time; trades)"], "better") {
 		t.Errorf("verdicts %v", got)
 	}
+	if got["extractors lost by 12 min"] != "can't tell" {
+		t.Errorf("extractors lost by 12 min: %v", got["extractors lost by 12 min"])
+	}
 	if got["opening: metal lost"] != "can't tell" {
 		t.Errorf("no difference in the opening: %v", got["opening: metal lost"])
 	}
@@ -432,5 +435,13 @@ func TestFeatures(t *testing.T) {
 	FeatureTable(&buf, []Arm{{Label: "a", Games: []*Game{g}}})
 	if !strings.Contains(buf.String(), "| firebase | a | 1 of 1 |") {
 		t.Fatalf("table:\n%s", buf.String())
+	}
+}
+
+func TestIsExtractor(t *testing.T) {
+	for name, want := range map[string]bool{"cormex": true, "legmex": true, "armmoho": true, "armmex": true, "corwin": false, "cormakr": false} {
+		if IsExtractor(name) != want {
+			t.Errorf("IsExtractor(%q) = %v", name, !want)
+		}
 	}
 }

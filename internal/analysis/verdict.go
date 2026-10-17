@@ -126,6 +126,20 @@ func verdictMetrics() []metric {
 			}
 			return e.Value("mex"), true
 		}},
+		// raids on the metal: Armada medium took 8-10 extractors a game by minute 12 (g98), the gap to strong
+		// players' extractor counts
+		metric{"extractors lost by 12 min", false, func(g *Game) (float64, bool) {
+			if g.Battle != nil || g.Seconds < 12*60 {
+				return 0, false
+			}
+			n := 0
+			for _, d := range g.Lost {
+				if d.Minute < 12 && IsExtractor(d.Name) {
+					n++
+				}
+			}
+			return float64(n), true
+		}},
 		metric{"army at 12 min", true, func(g *Game) (float64, bool) {
 			e := At(g.Eco, 12)
 			if e == nil || g.Battle != nil {
@@ -338,4 +352,9 @@ func WriteVerdicts(w io.Writer, arms []Arm) {
 				r.Arm-r.Base, r.Lo, r.Hi, r.NBase, r.NArm, r.Verdict)
 		}
 	}
+}
+
+// IsExtractor: a metal extractor's unit name (armmex, cormex, legmex; the advanced ones *moho)
+func IsExtractor(name string) bool {
+	return strings.HasSuffix(name, "mex") || strings.HasSuffix(name, "moho")
 }
