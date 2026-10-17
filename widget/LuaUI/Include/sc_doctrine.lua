@@ -241,6 +241,7 @@ D.turrets = {
 	-- heavy one) before the economy rebuilds there (false: one cheap turret, rebuild at once). Against hard we
 	-- lost ~42 extractors a game in minutes 10-25 to Blitz / Stumpy / Jeffy raids (g73)
 	harden = { memory = 300, turrets = 2 },
+	factoryHeavy = true, -- a factory's cover turret is a heavy one (else the cheapest, like an extractor's)
 	-- Defense's constructors answer intruders in its zone with a cheap turret by the structure nearest them
 	-- (Jobs.guardTurret, as the economy does; false: they stood "nothing to do" through raids)
 	defenseGuard = false, -- off: opening metal lost +750 against hard, and Defense idled as often (g80)

@@ -2432,6 +2432,15 @@ function Jobs.extractorCover(sub, unitID, d, ux, uz)
 			covered = covered or (defs[p.defID].staticDef and dist2(p.x, p.z, m.x, m.z) < r * r)
 		end
 		if not covered and Engine.tm.threat(m.x, m.z) <= Engine.tm.influence(m.x, m.z) then
+			-- a factory gets a heavy turret (doctrine.turrets.factoryHeavy): Guards covered them and Maces
+			-- (range 380) took 3-4 factories a game; a Warden (range 620) outranges them
+			local o = o
+			if m.factory and T.factoryHeavy then
+				local ho = pickDefense(sub, d, false, "heavy")
+				if ho and canSpend(sub, defs[ho], "essential") and Engine.turretBudget(defs[ho].cost) then
+					o = ho
+				end
+			end
 			local ex, ez = enemyDirectionRef(m.x, m.z)
 			local dx, dz = ex - m.x, ez - m.z
 			local len = max(sqrt(dx * dx + dz * dz), 1)
