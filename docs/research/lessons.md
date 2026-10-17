@@ -158,6 +158,10 @@ out wrong.
   (and raiders answering raiders) made it worse for Cortex (6.6 -> 9.4 lost): which units we make isn't
   where the raids are stopped; where they stand is. (g98, g99)
 
+- A change that helps one faction and not the other is a faction overlay, not a revert: the later
+  aircraft plant was neutral on Cortex and +0.14 on Legion (48 pairs, repeated before keeping). A borderline
+  "better" on one faction gets a second batch before it's kept. (g101, g102)
+
 ## Engine and widget traps
 
 - Widgets get no attacker in `UnitDamaged` (they do in `UnitDestroyed`); use `Spring.GetUnitExperience`
