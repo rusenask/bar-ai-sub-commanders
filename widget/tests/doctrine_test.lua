@@ -21,6 +21,7 @@ return {
 		T.eq(D.economy.builders(500), 12, "capped")
 		T.eq(D.turrets.budget(6, 1000), 840, "~5 light turrets by minute 6")
 		T.eq(D.turrets.budget(12, 6000), 2400, "army share once the army is big")
+		T.eq(D.turrets.budget(25, 1000), 3150, "faster from minute 15")
 	end,
 	autonomy_levels_complete = function()
 		for _, level in ipairs(D.autonomy.levels) do

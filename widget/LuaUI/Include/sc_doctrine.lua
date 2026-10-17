@@ -230,8 +230,10 @@ D.economy = {
 
 -- turrets: a budget instead of filling zones (strong players: ~5 turrets by minute 6, ~1.7k metal at 12)
 D.turrets = {
+	-- from minute 15 it grows faster: our turret value fell under strong players' lower quartile from minute
+	-- 25 (2.0k vs 2.4-6.2k; 2.2k vs 3.4-12k at 30) while Mace and T2 pushes took every factory (g104)
 	budget = function(minute, armyValue)
-		return math.max(300 + 90 * minute, 0.4 * armyValue)
+		return math.max(300 + 90 * minute + 60 * math.max(0, minute - 15), 0.4 * armyValue)
 	end,
 	extractorCoverFrom = 30 * 150, -- first turret at exposed extractors from about minute 2.5
 	extractorCoverRadius = 450,
