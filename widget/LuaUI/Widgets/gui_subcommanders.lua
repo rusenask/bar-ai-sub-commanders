@@ -1991,6 +1991,10 @@ function Jobs.airPlant(sub, unitID, d, ux, uz)
 	end
 	-- a second plant while metal overflows (doctrine.air.secondPlant: the storage share)
 	local second = Engine.D.air.secondPlant
+	local first = Engine.D.air.plantIncome
+	if have == 0 and first and max(econ.mInc, 0) < first then
+		return false
+	end
 	local wantTier = (have == 0 and 1) or ((not haveT2 and max(econ.mInc, 0) >= Engine.D.air.t2Income) and 2)
 		or ((second and have == 1 and econ.mFrac >= second) and 1) or nil
 	if not wantTier then

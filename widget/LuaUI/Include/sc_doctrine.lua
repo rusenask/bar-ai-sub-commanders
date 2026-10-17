@@ -349,6 +349,9 @@ D.airRaid = {
 D.air = {
 	aaTurretShare = 0.2, -- the Air Force builds anti-air turrets once their armed air is this share of what they field (0.1 took its constructors off the plant: 43 planes ordered vs 77, g86)
 	plantKeepers = 1, -- its first constructors that stay helping the aircraft plant (v4)
+	-- its first plant from this metal income (about minute 15; nil: at once). It stood at minute 8 (Legion) /
+	-- 11 (Cortex) while the army was 28% of our spending at 12 min and Mace pushes took the factories (g100)
+	plantIncome = 30,
 	secondPlant = 0.85, -- a second aircraft plant while metal storage is this full (v4; nil: one)
 	bombRadius = 300, -- bombers strike with an area attack this wide around the target (a fight-move drops nothing on unarmed structures)
 	scouts = 1, -- scout (or radar) planes kept looking at the enemy's side
