@@ -1756,3 +1756,14 @@ around it (was: the first cell outside their reach). 22 of 27 commander deaths i
   +50k] **better**. Kept for Legion only (faction overlay `air.plantIncome = 30`).
 - Not the expected way: army at 12 min didn't grow (Legion -0.4k). The gain is late; Legion's first air
   plant is the drone plant, and a later start may simply get it to a stronger plant / wing when it matters.
+
+## Cortex overlay: the Incisor as the vehicle plant's assault unit (force, Cortex vs Armada medium, 48 pairs)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261017-1148-force-g103-incisor-cortex-A (Garpike / Pounder by cost) | 48 | 14 win, 12 timeout, 22 loss | 0 | 156.5k | 185 / 582 | 0.69 | 17.3 | 10 / 15.5 | 3.6k |
+| 20261017-1148-force-g103-incisor-cortex-B (Incisor preferred) | 48 | 10 win, 10 timeout, 28 loss | 3 | 125.4k | 147 / 584 | 0.58 | 22.0 | 11 / 13 | 3.4k |
+
+- Score -0.10 [-0.23, +0.04], every verdict can't tell, leaning worse. Reverted. The mechanism never
+  happened: about one Incisor standing at 12 min (the vehicle plant makes few assault units then), and
+  response squad interceptions before minute 12 unchanged (2.3 a game in both arms).
