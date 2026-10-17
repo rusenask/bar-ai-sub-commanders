@@ -1697,3 +1697,17 @@ around it (was: the first cell outside their reach). 22 of 27 commander deaths i
 - Pooled (48 pairs) score -0.01 [-0.17, +0.16] can't tell; metal income at 20 min -9.5 [-19.3, -0.3]
   **worse**. Cortex: constructors lost 25.9 -> 16.0, but army at 12 min -0.8k **worse** and opening losses
   **worse**. Reverted: the constructors live, and spend the time walking instead of building.
+
+## The army stands at a factory or the commander down to 0.3x (was 0.5x) (force, Armada medium, 24 pairs on Cortex + 24 on Legion)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261017-0357-force-g98-vital-cortex-A (0.5x in the whole base) | 24 | 9 win, 4 timeout, 11 loss | 0 | 169.2k | 195 / 557 | 0.69 | 17.3 | 10 / 17 | 3.2k |
+| 20261017-0357-force-g98-vital-cortex-B (0.3x at a factory / the commander) | 24 | 7 win, 5 timeout, 12 loss | 1 | 138.4k | 149 / 607 | 0.62 | 21.8 | 11 / 16 | 3.9k |
+| 20261017-0446-force-g98-vital-legion-A | 24 | 11 win, 3 timeout, 10 loss | 2 | 160.4k | 193 / 676 | 0.89 | 20.1 | 10.5 / 16.5 | 3.4k |
+| 20261017-0446-force-g98-vital-legion-B | 24 | 15 win, 4 timeout, 5 loss | 1 | 182.0k | 228 / 739 | 0.89 | 12.8 | 12 / 17 | 3.6k |
+
+- Pooled +0.04 [-0.11, +0.20], every verdict can't tell. The factions split: Legion +0.16 [-0.07, +0.38]
+  with factories lost 4.0 -> 1.8 a game, Cortex -0.07 [-0.28, +0.14] with 3.6 -> 4.7. Reverted (a long
+  shot that didn't show on both). Standing doesn't save Cortex's factories: its army at the factory is
+  simply smaller than the Mace push.
