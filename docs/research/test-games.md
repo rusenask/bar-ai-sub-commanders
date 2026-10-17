@@ -1724,3 +1724,18 @@ around it (was: the first cell outside their reach). 22 of 27 commander deaths i
 - Pooled +0.00 [-0.15, +0.15]. Its target, extractors lost by 12 min: Cortex 6.6 -> 9.4 [+0.5, +5.0]
   **worse**, Legion 7.6 -> 7.4. Reverted. More Grunts didn't keep Pawns off the metal: they don't stay
   where the raids come (they join the army or raid themselves), and Cortex's assault share fell.
+
+## Production alternates the strongest and the fastest of a kind (was the two dearest) (force, Armada medium, 24 pairs on Cortex + 24 on Legion)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261017-0725-force-g100-fastest-cortex-A (the two dearest) | 24 | 8 win, 6 timeout, 10 loss | 0 | 179.5k | 194 / 661 | 0.66 | 20.8 | 11 / 16 | 3.3k |
+| 20261017-0725-force-g100-fastest-cortex-B (strongest and fastest) | 24 | 5 win, 4 timeout, 15 loss | 1 | 103.3k | 125 / 464 | 0.64 | 21.8 | 10 / 11.5 | 3.4k |
+| 20261017-0814-force-g100-fastest-legion-A | 24 | 12 win, 5 timeout, 7 loss | 1 | 185.5k | 227 / 848 | 0.78 | 16.1 | 11 / 20 | 3.9k |
+| 20261017-0814-force-g100-fastest-legion-B | 24 | 14 win, 2 timeout, 8 loss | 0 | 158.3k | 201 / 706 | 0.79 | 18.8 | 11 / 18 | 3.9k |
+
+- Pooled -0.04 [-0.18, +0.10]; late enemy metal killed -27.6k [-46.9k, -7.3k] **worse** (Legion alone
+  too), Cortex -0.13 [-0.33, +0.06]. Reverted. It changed every lab, the T2 ones too: the late army got
+  the fast unit of each kind in place of the second strongest. Incisors were built (about 2 standing), but
+  extractor losses didn't fall (9.2 -> 10.4 on Cortex). If the Incisor is worth trying again, as a
+  vehicle-plant preference (production.prefer), not a rule for all labs.
