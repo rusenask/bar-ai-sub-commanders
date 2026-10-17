@@ -551,6 +551,10 @@ D.factions = {
 	-- Cortex players do, was better: +0.10 [+0.00, +0.21], army at 12 min +1.4k (g56)
 	cortex = {
 		{ "economy.secondLabIncome", 18 },
+		-- the response squad from speed 45 (was 70): Cortex's bot lab has nothing that fast but the Grunt, so
+		-- the squad that keeps raids off the extractor ring (1000-2000 from home, 8-10 lost by minute 12)
+		-- rarely formed; fastest first still, up to its share of the army
+		{ "responders.speed", 45 },
 	},
 	legion = {
 		-- the swarm and siege faction: Mantis drone carriers (450, T2 vehicles) and Cleaver cluster
