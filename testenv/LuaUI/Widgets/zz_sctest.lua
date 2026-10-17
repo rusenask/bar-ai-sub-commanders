@@ -1370,7 +1370,41 @@ function widget:Update()
 	end
 end
 
+-- wall-clock speed, once a game minute: "speed minute=<m> x=<game s per wall s> wall=<s> units=<all>"
+-- (docs/research/speed.md; testenv/speedbench.sh averages them)
+local speedTimer, speedFrame
+local function speedLine(n)
+	if n % 1800 ~= 0 then
+		return
+	end
+	local now = Spring.GetTimer()
+	if speedTimer then
+		local wall = Spring.DiffTimers(now, speedTimer)
+		out(string.format("speed minute=%d x=%.1f wall=%.2f units=%d", n / 1800, (n - speedFrame) / 30 / math.max(wall, 0.001), wall, #Spring.GetAllUnits()))
+	end
+	speedTimer, speedFrame = now, n
+	-- SPEED_PROFILE=1: the engine's profiler table into the infolog every 5 minutes
+	if (loadInput("sctest_profile.txt") or "noengine"):find("noengine") == nil and n % 9000 == 0 then
+		Spring.SendCommands("debuginfo profiling")
+	end
+end
+
+-- LuaUI/Config/sctest_fast.txt (speedbench.sh PREP): draw as little as possible (docs/research/speed.md):
+-- "camera" looks at an empty map corner from close up, "hide" hides the interface
+local fastMode = loadInput("sctest_fast.txt") or ""
+local function fastView()
+	if fastMode:find("camera") then
+		Spring.SetCameraState({ name = "ta", mode = 1, px = 10, py = 0, pz = 10, height = 200, angle = 1.2, flipped = -1 }, 0)
+	end
+	if fastMode:find("hide") then
+		Spring.SendCommands("hideinterface 1")
+	end
+end
+
 function widget:GameFrame(n)
+	if n == 45 or n == 1800 then
+		fastView()
+	end
 	if deselectAt and n >= deselectAt then
 		deselectAt = nil
 		Spring.SelectUnitArray({})
@@ -1385,6 +1419,7 @@ function widget:GameFrame(n)
 	if speedOverride and n - startOffset == 30 then
 		Spring.SendCommands("setmaxspeed " .. (speedOverride + 5), "setspeed " .. speedOverride)
 	end
+	speedLine(n)
 	local ok, err = pcall(gameFrame, n - startOffset)
 	if not ok then
 		out("HARNESS ERROR: " .. tostring(err))

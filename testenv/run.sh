@@ -39,6 +39,17 @@ setcfg WindowPosY $((40 + ${WORKER:-0} / 3 % 2 * 300))
 # test games talk to the test bridge (make test-bridge), never to the one a real game uses; workers to
 # ports of their own (nothing listens there: rules-only games don't need a bridge)
 setcfg SubCommandersBridge "127.0.0.1:$((17878 + ${WORKER:-0} * 2))"
+# FAST=1 runs the game faster (docs/research/speed.md): no minimum share of time for drawing, a small
+# engine thread pool (FAST_THREADS, default 2: games in parallel don't fight over cores), no sound, and BAR's
+# interface widgets off (testenv/speed_widgets.py; those that give orders stay). Without FAST the defaults
+# come back, so a write dir can switch between the two.
+if [ "${FAST:-0}" = 1 ]; then
+	SPRING_CFG="MinSimDrawBalance=0 WorkerThreadCount=${FAST_THREADS:-2} Sound=0 ${SPRING_CFG:-}"
+else
+	SPRING_CFG="MinSimDrawBalance=0.15 WorkerThreadCount=-1 Sound=1 ${SPRING_CFG:-}"
+fi
+# SPRING_CFG="WorkerThreadCount=4 VSync=0" sets engine settings for this game (testenv/speedbench.sh)
+for kv in ${SPRING_CFG:-}; do setcfg "${kv%%=*}" "${kv#*=}"; done
 # AI_PROFILE=easy|medium|hard|hard_aggressive overrides the BARbarian profile in the script
 SCRIPT="$1"
 # MAP="Altair Crossing v4.1" overrides the map
@@ -61,6 +72,10 @@ echo "${SPEED:-} ${LOCKSTEP:-0}" > "$W/sctest_speed.txt" && cp "$W/sctest_speed.
 # duels last DUEL_MINUTES (default 60: at 45 games were still being decided, some won after 40)
 echo "${DUEL_MINUTES:-60}" > "$W/sctest_minutes.txt" && cp "$W/sctest_minutes.txt" "$W/LuaUI/Config/"
 cd "$W"
+# FAST: BAR's interface widgets off for this game (below); the full widget config is kept aside and comes
+# back first thing in every game
+CFG="$W/LuaUI/Config/BYAR.lua"
+[ -f "$CFG.full" ] && mv "$CFG.full" "$CFG"
 # fresh widget state each run: re-enable and forget saved sub-commanders
 python3 - "$W/LuaUI/Config/BYAR.lua" <<'PY'
 import re, sys
@@ -75,14 +90,21 @@ s = re.sub(r'\["Sub-Commanders"\] = 0,', '["Sub-Commanders"] = 1001,', s)
 s = re.sub(r'\n\s*\["Sub-Commanders Autopilot"\] = \d+,', '', s)
 open(p, "w").write(s)
 PY
+if [ "${FAST:-0}" = 1 ] && [ -f "$CFG" ]; then
+	cp "$CFG" "$CFG.full"
+	python3 "$T/speed_widgets.py" "$W" minimal 2>/dev/null
+fi
 # wall-clock limit: twice the game at the requested speed plus loading, unless given
+# (counted at 10x at most: late games with hundreds of units run at 10-15x whatever SPEED asks for, slower
+# with several games at once, and a tight limit kills the long even games: a biased batch)
 SPEEDX="${SPEED:-3}"
+[ "$SPEEDX" -gt 10 ] && SPEEDX=10
 LIMIT="${2:-$(( ${DUEL_MINUTES:-60} * 60 * 2 / SPEEDX + 180 ))}"
 [ "${LOCKSTEP:-0}" = 1 ] && [ -z "$2" ] && LIMIT=$((LIMIT * 4))
 STALL="${STALL:-$([ "${LOCKSTEP:-0}" = 1 ] && echo 600 || echo 120)}"
 # at lower priority (NICE, default 10): the machine stays usable for other work while tests run
 SPRING_DATADIR="$RES:$BAR" BAR_INFOLOG="$W/infolog.txt" nice -n "${NICE:-10}" perl -e 'alarm shift; exec @ARGV' "$LIMIT" \
-	"$APP/MacOS/spring" --window --write-dir "$W" "$SCRIPT" > "$W/run.log" 2>&1 &
+	"$APP/MacOS/spring" --window ${SPRING_ARGS:-} --write-dir "$W" "$SCRIPT" > "$W/run.log" 2>&1 &
 pid=$!
 # watchdog: the harness writes a line at least every 30 game seconds; nothing new for STALL seconds
 # (once the game has started) means it hung
@@ -111,5 +133,7 @@ while kill -0 "$pid" 2>/dev/null; do
 done
 wait "$pid" 2>/dev/null
 code=$?
+# the game saved its (FAST: pruned) widget config on exit: the full one comes back
+[ -f "$CFG.full" ] && mv "$CFG.full" "$CFG"
 [ "$stalled" = 1 ] && code=124
 echo "exit=$code"

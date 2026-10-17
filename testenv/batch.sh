@@ -1,5 +1,5 @@
 #!/bin/bash
-# usage: [LABEL=name] [WORKERS=3] [AI_PROFILE=medium] [MAP="..."] [SPEED=15] [LOCKSTEP=1] [DUEL_MINUTES=60]
+# usage: [LABEL=name] [WORKERS=3] [AI_PROFILE=medium] [MAP="..."] [SPEED=15] [LOCKSTEP=1] [DUEL_MINUTES=60] [FAST=1]
 #        [WIDGET_SRC=dir] batch.sh <games> [scenario] [script]
 # Plays several test games and prints one line per game plus a summary. Games run in parallel on WORKERS
 # separate write dirs (testenv/workers/<n>, default 3; 1 for the duel scenario, whose strategist needs
@@ -24,7 +24,7 @@ ln -sfn "$DIR" "$T/batch/latest"
 	echo "label: ${LABEL:-$SCENARIO}"
 	echo "commit: $(git -C "$T/.." rev-parse --short HEAD)$(git -C "$T/.." diff --quiet -- widget testenv/LuaUI || echo ' (+ uncommitted widget changes)')"
 	echo "widgets: ${WIDGET_SRC:-widget/LuaUI/Widgets}"
-	echo "scenario: $SCENARIO  script: $SCRIPT  opponent: $AI_PROFILE  map: ${MAP:-All That Simmers}  speed: $SPEED  lockstep: $LOCKSTEP  minutes: $DUEL_MINUTES  workers: $WORKERS"
+	echo "scenario: $SCENARIO  script: $SCRIPT  opponent: $AI_PROFILE  map: ${MAP:-All That Simmers}  speed: $SPEED  lockstep: $LOCKSTEP  minutes: $DUEL_MINUTES  workers: $WORKERS$([ "${FAST:-0}" = 1 ] && echo "  fast: threads ${FAST_THREADS:-2}")"
 	# the test bridge serves the decision models: they change how the rules play, so record them
 	echo "test bridge: $(docker inspect scbridge-test --format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | grep -E '^SCBRIDGE_DECIDER_(URL|ROUTES)=.' | tr '\n' ' ' || true)$(docker inspect scbridge-test >/dev/null 2>&1 && { docker inspect scbridge-test --format '{{range .Config.Env}}{{println .}}{{end}}' | grep -qE '^SCBRIDGE_DECIDER_(URL|ROUTES)=.' || echo 'no decision models'; } || echo 'not running')"
 	echo "started: $(date '+%Y-%m-%d %H:%M')"

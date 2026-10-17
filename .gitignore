@@ -11,6 +11,7 @@ testenv/LuaUI/Widgets/*
 !testenv/LuaUI/Widgets/zz_sctest.lua
 !testenv/LuaUI/Widgets/zz_datalog.lua
 !testenv/LuaUI/Widgets/zz_defsdump.lua
+!testenv/LuaUI/Widgets/zz_speedprof.lua
 !testenv/collect.sh
 !testenv/replays.sh
 !testenv/pro_replays.py
@@ -43,3 +44,5 @@ play/*
 !testenv/battles-counter/
 __pycache__/
 !testenv/force-ab.sh
+!testenv/speedbench.sh
+!testenv/speed_widgets.py
