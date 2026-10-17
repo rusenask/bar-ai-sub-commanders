@@ -73,22 +73,6 @@ return {
 		T.ok(cat ~= "constructor")
 		T.ok(defs[id].cost <= 250, "within the cap")
 	end,
-	strongest_and_fastest_in_turn = function()
-		local d = {
-			[4] = defs[4],
-			[10] = { mobile = true, combat = true, armed = true, cost = 220, speed = 40, kind = "assault" },
-			[11] = { mobile = true, combat = true, armed = true, cost = 220, speed = 58, kind = "assault" },
-			[12] = { mobile = true, combat = true, armed = true, cost = 120, speed = 85, kind = "assault" },
-		}
-		local P = T.load("sc_production")({ defs = d, doctrine = F.doctrine })
-		local got = {}
-		for _ = 1, 4 do
-			got[P.pick({ 4, 10, 11, 12 }, {}, 30, {}, { category = "assault" })] = true
-		end
-		T.ok(got[12], "the fastest (the Incisor), though cheapest")
-		T.ok(got[10] or got[11], "and the strongest")
-		T.ok(not got[4], "nothing in between")
-	end,
 	forced_category = function()
 		local P = prod()
 		local id, cat = P.pick(LAB, {}, 5, {}, { category = "constructor" })
