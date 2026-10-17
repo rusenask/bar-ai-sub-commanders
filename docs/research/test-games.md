@@ -1711,3 +1711,16 @@ around it (was: the first cell outside their reach). 22 of 27 commander deaths i
   with factories lost 4.0 -> 1.8 a game, Cortex -0.07 [-0.28, +0.14] with 3.6 -> 4.7. Reverted (a long
   shot that didn't show on both). Standing doesn't save Cortex's factories: its army at the factory is
   simply smaller than the Mace push.
+
+## A raider in three from income 12 to 25, raiders answer raiders at 1.0 (force, Armada medium, 24 pairs on Cortex + 24 on Legion)
+
+| Arm | Games | Results | Lost by 25 min | Metal | Killed / lost | Dealt / taken | Constructors lost | Extractors at 8 / 20 min | Army at 12 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 20261017-0538-force-g99-raiders-cortex-A (raiders 15%, vs raiders 0.5) | 24 | 7 win, 6 timeout, 11 loss | 1 | 187.0k | 182 / 751 | 0.64 | 24.5 | 12 / 17 | 3.9k |
+| 20261017-0538-force-g99-raiders-cortex-B (raiders 30%, vs raiders 1.0) | 24 | 4 win, 9 timeout, 11 loss | 0 | 145.7k | 157 / 681 | 0.59 | 27.0 | 12 / 12.5 | 3.6k |
+| 20261017-0633-force-g99-raiders-legion-A | 24 | 16 win, 1 timeout, 7 loss | 0 | 169.4k | 215 / 704 | 0.87 | 14.7 | 11.5 / 18 | 3.9k |
+| 20261017-0633-force-g99-raiders-legion-B | 24 | 18 win, 3 timeout, 3 loss | 0 | 182.1k | 230 / 672 | 0.97 | 13.9 | 11.5 / 19.5 | 4.1k |
+
+- Pooled +0.00 [-0.15, +0.15]. Its target, extractors lost by 12 min: Cortex 6.6 -> 9.4 [+0.5, +5.0]
+  **worse**, Legion 7.6 -> 7.4. Reverted. More Grunts didn't keep Pawns off the metal: they don't stay
+  where the raids come (they join the army or raid themselves), and Cortex's assault share fell.

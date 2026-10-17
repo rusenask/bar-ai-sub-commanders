@@ -153,6 +153,11 @@ out wrong.
   Moving Cortex's to 28 metal/s was clearly worse (-0.24, army at 12 min -1.3k, mid losses +12k): Cortex
   needs the early army more than the extractors it costs; its economy gap is elsewhere. (g93)
 
+- Raids on the metal are the extractor gap: 8-10 extractors lost a game by minute 12 against Armada
+  medium; without them our counts would sit at strong players' median. A third of production as raiders
+  (and raiders answering raiders) made it worse for Cortex (6.6 -> 9.4 lost): which units we make isn't
+  where the raids are stopped; where they stand is. (g98, g99)
+
 ## Engine and widget traps
 
 - Widgets get no attacker in `UnitDamaged` (they do in `UnitDestroyed`); use `Spring.GetUnitExperience`
