@@ -63,7 +63,9 @@ if [ "${FAST:-0}" = 1 ]; then
 	mkdir -p "$STAGE/LuaUI/Config"
 	# FAST_WIDGETS=0 keeps the widgets, FAST_THREADS=-1 the engine's own thread count (to test each part)
 	[ "${FAST_WIDGETS:-1}" = 1 ] && python3 "$T/speed_widgets.py" --new "$STAGE/LuaUI/Config/BYAR.lua" minimal 2>/dev/null
-	echo "WorkerThreadCount = ${FAST_THREADS:-2}" >> "$STAGE/springsettings.cfg"
+	# headless still runs draw frames (SwapBuffers, drawer updates): no time kept for them (+16% on a replay;
+	# MinDrawFPS=0 hangs every game at the end of loading)
+	printf "WorkerThreadCount = %s\nMinSimDrawBalance = 0\n" "${FAST_THREADS:-2}" >> "$STAGE/springsettings.cfg"
 	echo "fast: widgets $([ "${FAST_WIDGETS:-1}" = 1 ] && echo minimal || echo all), threads ${FAST_THREADS:-2}" >> "$DIR/meta.txt"
 fi
 # SIDE / ENEMY_SIDE: the factions (team 0 ours, team 1 BARbarian's; default Legion vs Armada)

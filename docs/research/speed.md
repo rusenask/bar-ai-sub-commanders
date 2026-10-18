@@ -80,6 +80,40 @@ gadgets ~12% (synced 6.6%, unsynced 5.3%). The rest of Sim is the engine and BAR
 | Force: thread cap (unlike the laptop, 6 engines on 12 cores fight) | 6 at once: 2 threads 17.3x, 4 threads 16.2x; 8 at once: 1 thread 13.1x, 2 threads 12.2x; 4 at once with 2: 26.4x | **in force FAST** (2) |
 | Force: more games at once | throughput (game s per wall s) 4: 106, 6: 104, 8: 98-105 (12: ran force out of memory, see Failures) | keep PARALLEL=4 |
 
+## The engine itself (force, perf)
+
+`perf record -g` on one live 20-minute duel, headless, FAST settings (needs
+`sudo sysctl kernel.perf_event_paranoid=1`; force keeps 4, set it back). The official binary is stripped,
+so only libraries and threads are named:
+
+| Thread | Share of samples | Of which |
+|---|---|---|
+| recoil-main (the simulation) | 55% | engine 40%, **clock reads (vdso) 8%**, BARbarian (libSkirmishAI.so) 4%, kernel 2%, libc 1% |
+| worker1 (the one helper thread with 2 threads) | 33% | engine 25%, clock reads 6% |
+| pregame (loading) | 10% | |
+
+With a build from source at the same tag (symbols; same speed as the official binary: 41.3x vs 42.1x),
+the main thread (51.5% of samples): clock reads/timers 8.9, drawing work 7.6 (headless still runs draw
+frames: feature drawer updates, SwapBuffers, model uniforms, camera culling), Lua 7.4, pathing 6.6,
+loading/decompression 3.1. BARbarian ~2-4%.
+
+Who reads the clock (branch records, `perf record -j any_call,u`, callers of `spring_clock::GetTicks`):
+the per-scope profiler (`ScopedTimer`, `ScopedMtTimer`, `CTimeProfiler::AddTime`) ~55% of calls, draw-frame
+pacing (`SwapBuffers`, `UpdateTimer`) ~16%, archive reads while loading 12%, the thread pool's waits ~9%,
+the watchdog 6%.
+
+| Change | Result | Status |
+|---|---|---|
+| `MinSimDrawBalance=0` headless (force, 4 replays at once) | 21.9x -> 25.3x | **in force FAST** |
+| `MinDrawFPS=0` | every game hangs at the end of loading | dropped |
+| Build without the per-scope timers (`-DRECOIL_NO_SCOPED_TIMERS`, testenv/force/engine/recoil-no-scoped-timers.patch) | 4 replays at once, alternating builds: 29.3 -> 30.7x, 28.2 -> 29.5x (+4.7%) | kept for the test engine |
+| `-DLTO=ON` | the build fails linking lunasvg's svg2png example (gold) | not yet |
+| `-DMARCH_FLAG=znver4` (official builds: generic x86-64) | | building |
+
+Tools and builds: testenv/force/engine/README.md (`perf_game.sh`, `brcallers.py`, the patch;
+`ENGINE=<dir> testenv/force-speedbench.sh`). Builds on force: `~/bar-sim/engine-src-base` (unpatched, same
+speed as official), `engine-src-notimers`.
+
 ## Does FAST change results?
 
 Laptop, duelrules vs medium, 60 minutes, 12 games per arm, 6 at a time, SPEED=100 (`make compare`):

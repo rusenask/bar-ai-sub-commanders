@@ -1,0 +1,29 @@
+diff --git a/rts/System/TimeProfiler.h b/rts/System/TimeProfiler.h
+index dedebd6..13cf5d0 100644
+--- a/rts/System/TimeProfiler.h
++++ b/rts/System/TimeProfiler.h
+@@ -20,13 +20,24 @@
+ // disable these for minimal profiling; all special
+ // timers contribute even when profiler is disabled
+ // NB: names are assumed to be compile-time literals
++#ifdef RECOIL_NO_SCOPED_TIMERS
++// test-game builds (bar-ai-sub-commanders docs/research/speed.md): the per-scope profiler read the clock
++// ~half of all clock reads; special timers (Sim, Draw) stay for the CPU-usage report
++#define SCOPED_TIMER(      name)  ZoneScopedNC(name, tracy::Color::Goldenrod);
++#define SCOPED_TIMER_NOREG(name)  ZoneScopedNC(name, tracy::Color::Goldenrod);
++#else
+ #define SCOPED_TIMER(      name)  ZoneScopedNC(name, tracy::Color::Goldenrod); static TimerNameRegistrar __tnr(name); ScopedTimer __scopedTimer(hashString(name));
+ #define SCOPED_TIMER_NOREG(name)  ZoneScopedNC(name, tracy::Color::Goldenrod);                                        ScopedTimer __scopedTimer(hashString(name));
++#endif
+ 
+ #define SCOPED_SPECIAL_TIMER(      name)  static TimerNameRegistrar __stnr(name); ScopedTimer __scopedTimer(hashString(name), false, true);
+ #define SCOPED_SPECIAL_TIMER_NOREG(name)                                          ScopedTimer __scopedTimer(hashString(name), false, true);
+ 
++#ifdef RECOIL_NO_SCOPED_TIMERS
++#define SCOPED_MT_TIMER(name)
++#else
+ #define SCOPED_MT_TIMER(name)  ScopedMtTimer __scopedTimer(hashString(name));
++#endif
+ 
+ #define SCOPED_ONCE_TIMER(name) ZoneScopedNC(name, tracy::Color::Purple); ScopedOnceTimer __timer(name);
+ 

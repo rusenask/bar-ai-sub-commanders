@@ -1,6 +1,6 @@
 #!/bin/bash
 # usage: [PAR=6] [GAMES=PAR] [MINUTES=20] [DEMO=testenv/speeddemo/late30.sdfz | LIVE=1] [SPRING_CFG="K=V ..."]
-#        [WIDGETS=minimal|all] [FORCE_HOST=force] testenv/force-speedbench.sh <label>
+#        [WIDGETS=minimal|all] [ENGINE=<engine dir on force>] [FORCE_HOST=force] testenv/force-speedbench.sh <label>
 # How fast games run on the force host (docs/research/speed.md): GAMES games, PAR at a time, headless. By
 # default the same recorded game (DEMO) every time, so settings compare like for like; LIVE=1 plays duelrules
 # vs medium instead. WIDGETS turns BAR's interface widgets off (speed_widgets.py). Prints each game's speed
@@ -40,6 +40,6 @@ ssh -n "$HOST" "rm -rf $R && mkdir -p $R"
 rsync -a "$STAGE/" "$HOST:$R/template/"
 scp -q "$T/force/speed_game.sh" "$HOST:bar-sim/speed_game.sh"
 rm -rf "$STAGE"
-ssh -n "$HOST" "cd \$HOME/$R && seq 1 $GAMES | xargs -P $PAR -I{} bash \$HOME/bar-sim/speed_game.sh \$HOME/$R {} $(( MINUTES * 60 + 300 ))"
+ssh -n "$HOST" "cd \$HOME/$R && seq 1 $GAMES | xargs -P $PAR -I{} env ENGINE=${ENGINE:-\$HOME/bar-sim/engine} bash \$HOME/bar-sim/speed_game.sh \$HOME/$R {} $(( MINUTES * 60 + 300 ))"
 ssh -n "$HOST" "cd $R && for g in g*; do echo \"\$g \$(cat \$g/exit.txt) \$(grep 'speed minute=' \$g/sctest_out.txt | awk '{for(i=1;i<=NF;i++){split(\$i,a,\"=\");v[a[1]]=a[2]} if(v[\"minute\"]>1){w+=v[\"wall\"];n++}} END{if(w>0)printf \"x=%.1f sim-wall=%.1f\", n*60/w, w}')\"; done" |
-	tee /dev/stderr | awk -v l="$LABEL" -v cfg="${SPRING_CFG:-}${WIDGETS:+ widgets:$WIDGETS}${LIVE:+ live}" '{for(i=1;i<=NF;i++){split($i,a,"="); if(a[1]=="x"&&a[2]!=""){s+=a[2];n++}}} END{printf "%s: mean x=%.1f over %d games  [force PAR=%s %s]\n", l, (n?s/n:0), n, ENVIRON["PAR"], cfg}' | tee -a "$T/speedbench.tsv"
+	tee /dev/stderr | awk -v l="$LABEL" -v cfg="${SPRING_CFG:-}${WIDGETS:+ widgets:$WIDGETS}${LIVE:+ live}${ENGINE:+ engine:$ENGINE}" '{for(i=1;i<=NF;i++){split($i,a,"="); if(a[1]=="x"&&a[2]!=""){s+=a[2];n++}}} END{printf "%s: mean x=%.1f over %d games  [force PAR=%s %s]\n", l, (n?s/n:0), n, ENVIRON["PAR"], cfg}' | tee -a "$T/speedbench.tsv"
