@@ -45,4 +45,5 @@ play/*
 __pycache__/
 !testenv/force-ab.sh
 !testenv/speedbench.sh
+!testenv/force-speedbench.sh
 !testenv/speed_widgets.py

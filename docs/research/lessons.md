@@ -72,6 +72,10 @@ out wrong.
   the laptop's other load swings batch speed 2x, so judge speed settings on a replay
   (`speedbench.sh DEMO=...`), several at once for parallel throughput, and confirm with game-minutes per
   wall-minute. A thread-pool cap looked like +60% on three live games and was -60% on the replay.
+  The same cap is +38% on force (headless, 6 games on 12 cores): measure each host on its own.
+- Ending decided games early can't be called from our side's log: losses end within half a minute of our
+  commander's death, and earlier calls from army value / income / killed-lost were wrong >=20% of the
+  time (5926 duels). It would need the enemy's state.
 
 ## Playing BAR (what the games showed)
 

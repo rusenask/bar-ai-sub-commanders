@@ -4,6 +4,9 @@
 (so the game plays the same); drops drawing, sound and interface widgets.
 
 usage: speed_widgets.py <write dir> [minimal|all]   (all = disable everything but ours)
+       speed_widgets.py --new <BYAR.lua to write> [minimal|all]
+           a config with only the order table, every widget testenv/LuaUI/Config/BYAR.lua names plus the
+           unlisted ones (for a write dir without one: the force host's)
 """
 import re
 import sys
@@ -48,7 +51,24 @@ def keep(name, mode):
     return name in KEEP_EXACT or name.startswith("API ") or name.endswith(" API")
 
 
+def new(path, mode):
+    import os
+    src = os.path.join(os.path.dirname(os.path.abspath(__file__)), "LuaUI/Config/BYAR.lua")
+    names = set(re.findall(r'\["(.*?)"\] = \d+', re.search(r"\border\s*=\s*\{(.*?)\n\t\}", open(src).read(), re.S).group(1)))
+    names.update(UNLISTED)
+    off = sorted(n for n in names if not keep(n, mode))
+    with open(path, "w") as f:
+        f.write("-- Widget Custom data and order, order = 0 disabled widget\nreturn {\n\tallowUserWidgets = true,\n\tdata = {},\n\torder = {\n")
+        for n in off:
+            f.write('\t\t["%s"] = 0,\n' % n)
+        f.write("\t},\n}\n")
+    print("wrote %s: %d widgets off (%s)" % (path, len(off), mode), file=sys.stderr)
+
+
 def main():
+    if sys.argv[1] == "--new":
+        new(sys.argv[2], sys.argv[3] if len(sys.argv) > 3 else "minimal")
+        return
     wdir = sys.argv[1]
     mode = sys.argv[2] if len(sys.argv) > 2 else "minimal"
     p = wdir + "/LuaUI/Config/BYAR.lua"

@@ -7,8 +7,12 @@ about 25 s of wall time (12 s of it loading). The laptop stays free.
 ```sh
 WIDGET_SRC=$(testenv/arm.sh v22 <commit>) LABEL=force-v22 testenv/force-batch.sh 16            # duelrules
 WIDGET_SRC=$(testenv/arm.sh v22ap <commit>) LABEL=force-v22-ap testenv/force-batch.sh 8 autopilot
-# options: PARALLEL=6 SPEED=100 DUEL_MINUTES=60 AI_PROFILE=medium MAP="..." FORCE_HOST=force
+# options: PARALLEL=6 SPEED=100 DUEL_MINUTES=60 AI_PROFILE=medium MAP="..." FORCE_HOST=force FAST=1
 ```
+
+`FAST=1` turns BAR's interface widgets off and caps each engine at 2 threads (`FAST_THREADS`): ~1.4x the
+games per hour, and with the default PARALLEL=4 each game runs ~2x faster than six default games at once
+(docs/research/speed.md). Measure settings with `testenv/force-speedbench.sh` (the same replay N at a time).
 
 Results land in `testenv/batch/<stamp>-<label>/` like a local batch (`make compare`, `make report`); the
 games' raw output is in `remote/`. A batch dir with only `meta.txt` (the laptop side died: a closed session,
