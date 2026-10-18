@@ -55,7 +55,8 @@ go run ./cmd/gamereport -battles testenv/batch/<dir>      # efficiency per spec
 ```
 
 Better, in Lightning sandboxes and **interleaved**: both arms in one batch, odd games A, even games B,
-each pair the same spec on the same sandbox (separate batches drift +-0.2 log2 on their own):
+each pair the same spec on the same sandbox (separate batches drift +-0.2 log2 on their own; two force
+batches with identical settings scored -0.29 apart, verdict "worse": never trust a separate single baseline):
 `uvx --with lightning-sdk python testenv/sandbox/batch.py 144 --scenario battle --minutes 4 --sandboxes 3
 --instance cpu-16 --parallel 6 --widgets /tmp/arm-base/Widgets --widgets-b /tmp/arm-mine/Widgets --label
 sbx-il-mine` (keep all bar-* sandboxes under 12), then `make compare ARMS="<batch>-A <batch>-B"`: the
