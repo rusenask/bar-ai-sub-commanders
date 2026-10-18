@@ -80,6 +80,9 @@ out wrong.
   `gamereport -compare` called the second "worse" (score -0.29 [-0.47, -0.10]). Separate batches drift
   more than their intervals say (game-to-game correlation inside a batch?): compare arms interleaved in one
   batch (`WIDGET_SRC_B`), or against more than one baseline batch, never a single separate one.
+- A replay benchmark is only fair while the engine keeps the replay in sync: a -march=znver4 build ran a
+  replay 67% faster because it desynced (fewer units), and live it was no faster. Check the per-minute
+  unit counts against the official engine before believing a build's speed-up.
 - Force is shared (decision models, other services): 12 headless replays at once ran it out of memory and
   the OOM killer took other people's processes. Keep to 8 games at once there.
 

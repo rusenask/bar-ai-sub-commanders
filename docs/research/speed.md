@@ -108,7 +108,20 @@ the watchdog 6%.
 | `MinDrawFPS=0` | every game hangs at the end of loading | dropped |
 | Build without the per-scope timers (`-DRECOIL_NO_SCOPED_TIMERS`, testenv/force/engine/recoil-no-scoped-timers.patch) | 4 replays at once, alternating builds: 29.3 -> 30.7x, 28.2 -> 29.5x (+4.7%) | kept for the test engine |
 | `-DLTO=ON` | the build fails linking lunasvg's svg2png example (gold) | not yet |
-| `-DMARCH_FLAG=znver4` (official builds: generic x86-64) | | building |
+| `-DMARCH_FLAG=znver4` (official builds: generic x86-64) | replay 30 -> 50x, but **the replay desyncs** (321 units at minute 19 instead of 509: different float results, cheaper game); live, 8 games each at matched unit counts: no faster than official | **dropped** (fake gain, and the game's math differs from BAR's) |
+
+A replay is only a fair benchmark while the build keeps it in sync: compare its per-minute unit counts with
+the official engine's (the no-timers build matches minute for minute; znver4 doesn't).
+
+Live, 8 games of 30 minutes per build, 4 at a time (speed by our unit count, <100 / 100-200 / 200-300 /
+300+): official 72.6 / 27.4 / 12.0 / 10.7x, no timers 56.3 / 25.2 / 13.6 / 10.5x, znver4 52.2 / 21.5 / 13.6
+/ 12.4x: live games are too noisy to see 5%.
+
+**Verdict on a stripped engine:** the engine's own overhead that a build can remove is small: the
+per-scope timers (+4.7%, needs rebuilding with every engine update BAR takes). The rest of the main thread is
+the simulation itself (pathing, unit and feature updates, Lua gadgets, ours, BARbarian) and the draw frames
+headless still runs, which `MinSimDrawBalance=0` already cuts (+16%, a setting, no build). Not worth a
+custom engine for now; the patch and tools stay in testenv/force/engine.
 
 Tools and builds: testenv/force/engine/README.md (`perf_game.sh`, `brcallers.py`, the patch;
 `ENGINE=<dir> testenv/force-speedbench.sh`). Builds on force: `~/bar-sim/engine-src-base` (unpatched, same
