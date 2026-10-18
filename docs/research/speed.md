@@ -11,7 +11,8 @@ BAR's interface widgets off. Use `FAST=1 WORKERS=6 SPEED=100 testenv/batch.sh <n
   seconds per wall second (7 minutes) against 43 for the same batch with default settings (1.6x), and
   against at most 15 for the old local default (`SPEED=15 WORKERS=1`): ~5x.
 - Results unchanged as far as 58 games can tell (below).
-- Force (headless, 12 cores): `FAST=1 testenv/force-batch.sh` = widgets off + 2 engine threads. Six
+- Force (headless, 12 cores): `FAST=1 testenv/force-batch.sh` = widgets off + 2 engine threads. **Not
+  cleared for use**: in a live check it played worse (below); finding which part. Six
   late-game replays at once 12.5x -> 17.3x each; total throughput tops out at ~105 game seconds per wall
   second (4, 6 or 8 at once) against 75 for six default games: 1.4x. Four at once: 26x each.
 
@@ -98,6 +99,19 @@ Wall time is a poor speed measure across batches (game lengths and the laptop's 
 process used ~4.5 cores throughout, load average 20-60): compare game-minutes per wall-minute, or speed by
 unit count. By unit count (<100 / 100-200 / 200-300 / 300+): default 28.5 / 14.9 / 11.0 / 7.5x, FAST 39.2 /
 22.6 / 16.3 / 10.0x. The first default batch ran at half the second's speed at every unit count: other load.
+
+### On force (live, 24 games each, PARALLEL=4)
+
+| Arm | Wall | Game s per wall s | Results | Metal | Killed / lost | Dealt / taken |
+|---|---|---|---|---|---|---|
+| default (`20261018-1033-force-speed-default`) | 31 min | 35 | 20 win, 3 timeout, 1 loss | 245.2k | 296 / 821 | 0.87 |
+| FAST (`20261018-1008-force-speed-fast`) | 24 min | 46 | 15 win, 6 timeout, 3 loss | 187.2k | 207 / 608 | 0.96 |
+
+Score -0.14 [-0.31, +0.04]; mid metal lost **worse** (+3.0k [+0.4k, +5.4k]), late enemy metal killed
+**worse** (-35k [-67k, -2.5k]). The laptop's pooled FAST games also killed less in every phase (not
+significant). Our widget uses only the APIs FAST keeps and does no game logic in draw callins; the pruned
+widgets that give orders only react to a player's commands (CommandNotify). Running widgets-only and
+threads-only arms to find the part.
 
 ## Failures seen
 

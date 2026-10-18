@@ -61,9 +61,10 @@ cp "$T/springsettings.template.cfg" "$STAGE/springsettings.cfg"
 # them. Six late-game replays at once: 12.5x -> 17.3x each; four at once 26x each, the same total.
 if [ "${FAST:-0}" = 1 ]; then
 	mkdir -p "$STAGE/LuaUI/Config"
-	python3 "$T/speed_widgets.py" --new "$STAGE/LuaUI/Config/BYAR.lua" minimal 2>/dev/null
+	# FAST_WIDGETS=0 keeps the widgets, FAST_THREADS=-1 the engine's own thread count (to test each part)
+	[ "${FAST_WIDGETS:-1}" = 1 ] && python3 "$T/speed_widgets.py" --new "$STAGE/LuaUI/Config/BYAR.lua" minimal 2>/dev/null
 	echo "WorkerThreadCount = ${FAST_THREADS:-2}" >> "$STAGE/springsettings.cfg"
-	echo "fast: widgets minimal, threads ${FAST_THREADS:-2}" >> "$DIR/meta.txt"
+	echo "fast: widgets $([ "${FAST_WIDGETS:-1}" = 1 ] && echo minimal || echo all), threads ${FAST_THREADS:-2}" >> "$DIR/meta.txt"
 fi
 # SIDE / ENEMY_SIDE: the factions (team 0 ours, team 1 BARbarian's; default Legion vs Armada)
 sed -e "s/profile=[a-z_]*;/profile=$AI_PROFILE;/" -e "s/mapname=[^;]*;/mapname=${MAP:-All That Simmers v1.1.1};/" "$T/script_vsai.txt" |
