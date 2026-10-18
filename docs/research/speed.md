@@ -11,8 +11,8 @@ BAR's interface widgets off. Use `FAST=1 WORKERS=6 SPEED=100 testenv/batch.sh <n
   seconds per wall second (7 minutes) against 43 for the same batch with default settings (1.6x), and
   against at most 15 for the old local default (`SPEED=15 WORKERS=1`): ~5x.
 - Results unchanged as far as 58 games can tell (below).
-- Force (headless, 12 cores): `FAST=1 testenv/force-batch.sh` = widgets off + 2 engine threads. **Not
-  cleared for use**: in a live check it played worse (below); finding which part. Six
+- Force (headless, 12 cores): `FAST=1 testenv/force-batch.sh` = widgets off + 2 engine threads; live 46
+  game seconds per wall second against 35 (1.3x), results unchanged against two default batches (below). Six
   late-game replays at once 12.5x -> 17.3x each; total throughput tops out at ~105 game seconds per wall
   second (4, 6 or 8 at once) against 75 for six default games: 1.4x. Four at once: 26x each.
 
@@ -105,13 +105,16 @@ unit count. By unit count (<100 / 100-200 / 200-300 / 300+): default 28.5 / 14.9
 | Arm | Wall | Game s per wall s | Results | Metal | Killed / lost | Dealt / taken |
 |---|---|---|---|---|---|---|
 | default (`20261018-1033-force-speed-default`) | 31 min | 35 | 20 win, 3 timeout, 1 loss | 245.2k | 296 / 821 | 0.87 |
+| default again (`20261018-1200-force-speed-default2`) | 26 min | | 11 win, 7 timeout, 6 loss | 157.2k | 184 / 648 | 0.85 |
 | FAST (`20261018-1008-force-speed-fast`) | 24 min | 46 | 15 win, 6 timeout, 3 loss | 187.2k | 207 / 608 | 0.96 |
+| widgets off only (`...-1106-force-speed-widgetsonly`) | 24 min | 44 | 13 win, 5 timeout, 6 loss | 189.8k | 223 / 727 | 0.81 |
+| 2 threads only (`...-1131-force-speed-threadsonly`) | 28 min | 38 | 17 win, 4 timeout, 3 loss | 226.4k | 242 / 783 | 0.90 |
 
-Score -0.14 [-0.31, +0.04]; mid metal lost **worse** (+3.0k [+0.4k, +5.4k]), late enemy metal killed
-**worse** (-35k [-67k, -2.5k]). The laptop's pooled FAST games also killed less in every phase (not
-significant). Our widget uses only the APIs FAST keeps and does no game logic in draw callins; the pruned
-widgets that give orders only react to a player's commands (CommandNotify). Running widgets-only and
-threads-only arms to find the part.
+Against the first default batch alone all three looked worse (FAST: score -0.14, late kills "worse").
+But the second default batch, the same settings, came out **"worse" than the first** (score -0.29
+[-0.47, -0.10], mid metal lost and late kills "worse"): the first was a lucky batch. Against both
+pooled (48 games): FAST +0.01 [-0.17, +0.18], widgets only -0.09 [-0.29, +0.10], threads only +0.05
+[-0.12, +0.22], every metric can't tell. FAST is cleared. The speed is mostly the widgets (44 vs 35).
 
 ## Failures seen
 

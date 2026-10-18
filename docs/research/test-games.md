@@ -1824,3 +1824,16 @@ Pooled: default (20261017-2324-speed-nofast, 20261017-2356-speed-nofast2) vs FAS
 - FAST (uncapped threads) played 69 game seconds per wall second against 43 for default at the same
   parallelism. Details in speed.md.
 
+## FAST on force (24 games per arm, PARALLEL=4, Legion vs Armada medium)
+
+| Arm | Games | Results | Metal | Killed / lost | Dealt / taken |
+|---|---|---|---|---|---|
+| default 20261018-1033-force-speed-default | 24 | 20 win, 3 timeout, 1 loss | 245.2k | 296 / 821 | 0.87 |
+| default 20261018-1200-force-speed-default2 | 24 | 11 win, 7 timeout, 6 loss | 157.2k | 184 / 648 | 0.85 |
+| FAST 20261018-1008-force-speed-fast | 24 | 15 win, 6 timeout, 3 loss | 187.2k | 207 / 608 | 0.96 |
+| widgets off 20261018-1106-force-speed-widgetsonly | 24 | 13 win, 5 timeout, 6 loss | 189.8k | 223 / 727 | 0.81 |
+| 2 threads 20261018-1131-force-speed-threadsonly | 24 | 17 win, 4 timeout, 3 loss | 226.4k | 242 / 783 | 0.90 |
+
+- The two default batches differ by score -0.29 [-0.47, -0.10] ("worse") with nothing changed. Against
+  both pooled, every FAST variant is can't tell (FAST +0.01). FAST: 1.3x the games per hour.
+

@@ -76,6 +76,10 @@ out wrong.
 - Ending decided games early can't be called from our side's log: losses end within half a minute of our
   commander's death, and earlier calls from army value / income / killed-lost were wrong >=20% of the
   time (5926 duels). It would need the enemy's state.
+- Two 24-game force batches with identical settings and code came out 20-3-1 and 11-7-6, and
+  `gamereport -compare` called the second "worse" (score -0.29 [-0.47, -0.10]). Separate batches drift
+  more than their intervals say (game-to-game correlation inside a batch?): compare arms interleaved in one
+  batch (`WIDGET_SRC_B`), or against more than one baseline batch, never a single separate one.
 - Force is shared (decision models, other services): 12 headless replays at once ran it out of memory and
   the OOM killer took other people's processes. Keep to 8 games at once there.
 
