@@ -12,6 +12,9 @@ PAR="${PAR:-6}"
 GAMES="${GAMES:-$PAR}"
 MINUTES="${MINUTES:-20}"
 HOST="${FORCE_HOST:-force}"
+# 12 full-view replays at once ran force out of memory (60 GB; the OOM killer took other services with it
+# and the host dropped off the network for ~25 minutes): at most 8 unless asked
+[ "$PAR" -gt 8 ] && [ -z "$FORCE_PAR_OK" ] && { echo "force-speedbench.sh: PAR=$PAR > 8 ran force out of memory; FORCE_PAR_OK=1 to insist" >&2; exit 1; }
 ssh -n -o ConnectTimeout=5 "$HOST" true 2>/dev/null || { echo "force-speedbench.sh: $HOST unreachable (tailnet?)" >&2; exit 1; }
 STAGE="$(mktemp -d)"
 mkdir -p "$STAGE/LuaUI/Widgets" "$STAGE/LuaUI/Include" "$STAGE/LuaUI/Config"

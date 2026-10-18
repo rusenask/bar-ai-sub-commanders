@@ -76,6 +76,8 @@ out wrong.
 - Ending decided games early can't be called from our side's log: losses end within half a minute of our
   commander's death, and earlier calls from army value / income / killed-lost were wrong >=20% of the
   time (5926 duels). It would need the enemy's state.
+- Force is shared (decision models, other services): 12 headless replays at once ran it out of memory and
+  the OOM killer took other people's processes. Keep to 8 games at once there.
 
 ## Playing BAR (what the games showed)
 
