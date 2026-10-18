@@ -47,7 +47,7 @@ func run() error {
 		opencodeBin = flag.String("opencode-bin", "opencode", "opencode binary")
 		port        = flag.Int("opencode-port", 4517, "port for the opencode server scbridge starts")
 		dir         = flag.String("strategist-dir", "strategist", "opencode project directory with the subcommander agent")
-		model       = flag.String("model", cmp.Or(os.Getenv("SCBRIDGE_MODEL"), "lightning/deepseek-v4.1-flash"), "provider/model as configured in opencode")
+		model       = flag.String("model", cmp.Or(os.Getenv("SCBRIDGE_MODEL"), "node06/glm-5.3-flash"), "provider/model as configured in opencode")
 		variant     = flag.String("variant", "", "model variant (reasoning effort), e.g. low")
 		agent       = flag.String("agent", "subcommander", "opencode agent")
 		interval    = flag.Duration("interval", 30*time.Second, "game time between routine reviews of one sub-commander")

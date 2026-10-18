@@ -9,7 +9,7 @@ services:
       - "127.0.0.1:7878:7878" # game widget (Sub-Commanders AI link)
       - "127.0.0.1:4517:4517" # opencode server: `opencode attach http://127.0.0.1:4517`
     environment:
-      SCBRIDGE_MODEL: ${MODEL:-lightning/deepseek-v4.1-flash}
+      SCBRIDGE_MODEL: ${MODEL:-node06/glm-5.3-flash}
       # optional decision model for the widget's fast choices (Kev / Clef on a GPU host), e.g. http://100.108.100.25:8009
       SCBRIDGE_DECIDER_URL: ${DECIDER_URL:-}
       SCBRIDGE_DECIDER_MODEL: ${DECIDER_MODEL:-kev-latest}
@@ -41,7 +41,7 @@ services:
       - "127.0.0.1:7879:7878"
       - "127.0.0.1:4518:4517"
     environment:
-      SCBRIDGE_MODEL: ${MODEL:-lightning/deepseek-v4.1-flash}
+      SCBRIDGE_MODEL: ${MODEL:-node06/glm-5.3-flash}
     secrets:
       - llm_api_key
     volumes:

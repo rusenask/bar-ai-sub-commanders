@@ -3,11 +3,41 @@
   "autoupdate": false,
   "share": "disabled",
   "enabled_providers": [
+    "node06",
     "lightning"
   ],
-  "model": "lightning/deepseek-v4.1-flash",
-  "small_model": "lightning/deepseek-v4.1-flash",
+  "model": "node06/glm-5.3-flash",
+  "small_model": "node06/glm-5.3-flash",
   "provider": {
+    "node06": {
+      "name": "Ramjet node06",
+      "npm": "@ai-sdk/openai-compatible",
+      "options": {
+        "baseURL": "https://node06.lukemarsden.net/v1",
+        "apiKey": "{file:/run/secrets/llm_api_key}",
+        "timeout": 600000
+      },
+      "models": {
+        "glm-5.3-flash": {
+          "name": "GLM-5.3 Flash (node06)",
+          "reasoning": true,
+          "tool_call": true,
+          "interleaved": "reasoning_content",
+          "modalities": {
+            "input": [
+              "text"
+            ],
+            "output": [
+              "text"
+            ]
+          },
+          "limit": {
+            "context": 253952,
+            "output": 32768
+          }
+        }
+      }
+    },
     "lightning": {
       "name": "code.lightning.ai",
       "npm": "@ai-sdk/openai-compatible",

@@ -163,7 +163,7 @@ The game widget connects to `127.0.0.1:7878`. Run the bridge there, with Docker 
 
    ```sh
    mkdir -p secrets && printf '%s' 'YOUR_API_KEY' > secrets/llm_api_key
-   cp .env.example .env        # LLM_API_KEY_FILE=./secrets/llm_api_key, MODEL=lightning/deepseek-v4.1-flash
+   cp .env.example .env        # LLM_API_KEY_FILE=./secrets/llm_api_key, MODEL=node06/glm-5.3-flash
    ```
 
    The key is mounted read-only into the container as a Docker secret; it is never baked into the image.

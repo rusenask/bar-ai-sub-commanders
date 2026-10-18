@@ -1,5 +1,5 @@
 BAR_DIR ?= $(HOME)/Library/Application Support/Beyond-All-Reason-mac
-MODEL ?= lightning/deepseek-v4.1-flash
+MODEL ?= node06/glm-5.3-flash
 BAR_REF ?= 8247b61
 
 .PHONY: build install run up down restart logs test-game test-batch test-bridge play-vs report compare track timeline benchmarks test-lua decider-deploy decider-eval ref lint
