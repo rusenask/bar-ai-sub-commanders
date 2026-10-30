@@ -163,6 +163,21 @@ local myPlayer = Spring.GetMyPlayerID()
 local frame = 0
 local canControl = true
 
+-- error protection (sc_guard.lua): a step or callin that raises an error is logged (infolog, and through the
+-- AI widget to the bridge's logs/widget-errors.jsonl) and skipped; BAR would remove the whole widget
+Engine.guard = VFS.Include("LuaUI/Include/sc_guard.lua", nil, VFS.RAW_FIRST)({
+	echo = Spring.Echo,
+	report = function(e)
+		local ai = WG.SubCommandersAI
+		if ai and ai.reportError then
+			ai.reportError(e)
+		end
+	end,
+	frame = function()
+		return frame
+	end,
+})
+
 local subs = {} -- ordered list of sub-commanders
 local nextSubID = 1
 local owner = {} -- unitID -> sub
@@ -6153,7 +6168,11 @@ function Tactics.squad(sub)
 	-- the team asks: a sub-commander's area outgunned (sc_team.lua defend requests)
 	if not target and auto.help then
 		local r, rd = Engine.team.nearest("defend", sq.x, sq.z)
-		local rx, rz = r and Engine.shorePoint(sq.depth, r.x, r.z)
+		-- not `r and Engine.shorePoint(...)`: an and-expression keeps only the first value, rz was nil
+		local rx, rz
+		if r then
+			rx, rz = Engine.shorePoint(sq.depth, r.x, r.z)
+		end
 		if rx and rd < 5000 and Engine.inBase(r.x, r.z) then
 			target = { id = "req:" .. r.id, x = rx, z = rz, name = "a call for help (" .. (r.note or "defend") .. ")" }
 		end
@@ -7277,11 +7296,10 @@ local function thinkNano(sub, unitID, st)
 	end
 end
 
-local function runSub(sub, budget, combatPass)
-	if sub.paused then
-		return budget
-	end
-	for unitID in pairs(sub.units) do
+local runSub
+do
+	-- one unit's think; returns what is left of the builder think budget
+	local function thinkUnit(sub, unitID, budget, combatPass)
 		if not isAlive(unitID) then
 			releaseUnit(unitID, true)
 		else
@@ -7327,8 +7345,19 @@ local function runSub(sub, budget, combatPass)
 				end
 			end
 		end
+		return budget
 	end
-	return budget
+
+	function runSub(sub, budget, combatPass)
+		if sub.paused then
+			return budget
+		end
+		local run = Engine.guard.run
+		for unitID in pairs(sub.units) do
+			budget = run("unit think", thinkUnit, sub, unitID, budget, combatPass) or budget
+		end
+		return budget
+	end
 end
 
 --------------------------------------------------------------------------------
@@ -9724,23 +9753,24 @@ end
 
 function widget:GameFrame(n)
 	frame = n
+	local run = Engine.guard.run
 	if n - Engine.tm.builtFrame >= Engine.D.threat.every then
-		Engine.refreshWorld(n)
+		run("Engine.refreshWorld", Engine.refreshWorld, n)
 	end
 	if n % THINK_EVERY ~= 0 then
 		return
 	end
 	local combatPass = n % COMBAT_EVERY == 0
-	econUpdate()
-	Player.refresh()
+	run("econUpdate", econUpdate)
+	run("Player.refresh", Player.refresh)
 	if n % 60 == 0 then
-		Player.refreshPriorities()
+		run("Player.refreshPriorities", Player.refreshPriorities)
 	end
 	if n % 300 == 0 then
-		Engine.adoptFactories()
-		Enemy.prune()
+		run("Engine.adoptFactories", Engine.adoptFactories)
+		run("Enemy.prune", Enemy.prune)
 		for _, sub in ipairs(subs) do
-			Engine.updateAutoZones(sub)
+			run("Engine.updateAutoZones", Engine.updateAutoZones, sub)
 		end
 	end
 	-- forget stale plans
@@ -9753,44 +9783,47 @@ function widget:GameFrame(n)
 		-- threats everywhere first: armies also answer raids on the other sub-commanders' zones
 		baseThreats = {}
 		for _, sub in ipairs(subs) do
-			updateCounts(sub)
-			sub.threats = scanThreats(sub)
-			Decider.refreshTurrets(sub)
+			run("scanThreats", function()
+				updateCounts(sub)
+				sub.threats = scanThreats(sub)
+				Decider.refreshTurrets(sub)
+			end)
+			sub.threats = sub.threats or {}
 			for _, t in ipairs(sub.threats) do
 				baseThreats[#baseThreats + 1] = t
 			end
 		end
-		Engine.noteApproaches(baseThreats)
-		Engine.refreshTeam()
-		Engine.refreshStyle()
-		Engine.learnedStage()
+		run("Engine.noteApproaches", Engine.noteApproaches, baseThreats)
+		run("Engine.refreshTeam", Engine.refreshTeam)
+		run("Engine.refreshStyle", Engine.refreshStyle)
+		run("Engine.learnedStage", Engine.learnedStage)
 	end
 	if combatPass then
 		for _, sub in ipairs(subs) do
-			Tactics.updatePush(sub)
-			Tactics.raid(sub)
-			Tactics.airRaid(sub)
-			Tactics.air(sub)
-			Tactics.responders(sub)
-			Tactics.squad(sub)
+			run("Tactics.updatePush", Tactics.updatePush, sub)
+			run("Tactics.raid", Tactics.raid, sub)
+			run("Tactics.airRaid", Tactics.airRaid, sub)
+			run("Tactics.air", Tactics.air, sub)
+			run("Tactics.responders", Tactics.responders, sub)
+			run("Tactics.squad", Tactics.squad, sub)
 		end
 	end
 	local F = Engine.D.micro.focus
 	if F.on and F.mode == "settarget" and n % (F.fireEvery or 15) == 0 then
 		for _, sub in ipairs(subs) do
-			Engine.fireControl(sub)
+			run("Engine.fireControl", Engine.fireControl, sub)
 		end
 	end
 	if n % 60 == 30 then
-		Engine.strategicControl()
+		run("Engine.strategicControl", Engine.strategicControl)
 	end
 	if n % 30 == 15 then
-		Engine.nukeClear()
+		run("Engine.nukeClear", Engine.nukeClear)
 	end
 	local G = Engine.D.micro.dodge
 	if G and G.on and n % (G.every or 6) == 0 then
 		for _, sub in ipairs(subs) do
-			Engine.dodge(sub)
+			run("Engine.dodge", Engine.dodge, sub)
 		end
 	end
 	local budget = MAX_THINKS_PER_PASS
@@ -9951,3 +9984,6 @@ function widget:Shutdown()
 	end
 	WG.SubCommanders = nil
 end
+
+-- last: every callin but loading and unloading runs under the error guard (GameFrame's steps have their own)
+Engine.guard.widget(widget, "Sub-Commanders", "gui_subcommanders.lua")

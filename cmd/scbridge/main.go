@@ -55,6 +55,7 @@ func run() error {
 		calm        = flag.Float64("calm-factor", 2, "calm sub-commanders are reviewed every calm-factor x interval")
 		maxReviews  = flag.Int("max-reviews", 4, "most strategist reviews running at once (0 = no cap)")
 		record      = flag.String("record", os.Getenv("SCBRIDGE_RECORD"), "append every strategist review (report, reply, tools) to this JSONL file")
+		errorLog    = flag.String("errors-log", cmp.Or(os.Getenv("SCBRIDGE_ERRORS_LOG"), "logs/widget-errors.jsonl"), "append the widget's caught Lua errors to this JSONL file (make errors reads it; empty = off)")
 		turnTimeout = flag.Duration("turn-timeout", 3*time.Minute, "limit for one review")
 		host        = flag.String("opencode-host", "127.0.0.1", "interface for the opencode server scbridge starts (0.0.0.0 in a container)")
 		deciderURL  = flag.String("decider-url", os.Getenv("SCBRIDGE_DECIDER_URL"), "optional System One decision model (Kev, Clef: /v1/systemone) for the widget's fast choices, e.g. http://100.108.100.25:8009")
@@ -80,6 +81,7 @@ func run() error {
 	defer stop()
 
 	g := game.NewServer(*gameAddr, log)
+	g.ErrorLog = *errorLog
 	router := &decider.Router{}
 	if *deciderURL != "" {
 		router.Default = decider.New(*deciderURL, *deciderName)

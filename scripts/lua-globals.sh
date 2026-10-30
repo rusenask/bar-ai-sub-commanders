@@ -4,7 +4,7 @@
 # function above its definition compiles to a global read and is nil at run time: BAR then removes the
 # widget ("attempt to call global 'addUnit'"), and the games go on without it (v15-v17 lost that way).
 ALLOWED=" _ CMD GL Game GameCMD Json Spring UnitDefNames UnitDefs VFS WG WeaponDefs gl widget widgetHandler socket
- ipairs pairs next select type tonumber tostring pcall error assert print setmetatable getmetatable rawget rawset unpack
+ ipairs pairs next select type tonumber tostring pcall xpcall debug error assert print setmetatable getmetatable rawget rawset unpack
  math string table os io "
 ALLOWED=" $(echo $ALLOWED) "
 fail=0

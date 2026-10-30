@@ -18,6 +18,8 @@ testenv/LuaUI/Widgets/*
 # BAR source checkout used as API reference (make ref)
 ref/
 /bin/
+# the bridge's widget error log (make errors)
+/logs/
 # local secrets / settings
 .env
 secrets/
@@ -33,6 +35,7 @@ play/*
 !testenv/force-replays.sh
 !testenv/sandbox/
 !testenv/collect-results.sh
+!testenv/widget-check.sh
 !testenv/split-arms.sh
 !testenv/pool-pairs.sh
 !testenv/unit-catalogue.sh

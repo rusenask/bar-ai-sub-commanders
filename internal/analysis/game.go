@@ -59,7 +59,8 @@ type Game struct {
 	Killed  []Death
 	Player  []string       // the scripted player's actions, in order
 	Errors  []string       // harness errors
-	Crashed []string       // our widget's Lua errors (batch.sh's [widget-error] lines): BAR removed it
+	Crashed []string       // our widget's Lua errors nothing caught (batch.sh's [widget-error] lines): BAR removed it
+	Caught  []string       // errors sc_guard.lua caught and skipped ("Sub-Commanders ERROR"): the game ran on
 	Logs    map[string]int // sub-commander log messages (numbers stripped) -> times seen
 	Events  []Event        // sub-commander log messages as they appeared (first sighting of each)
 	Battle  *Battle        // scenario battle: the engagement's outcome (battle.go)
@@ -113,7 +114,12 @@ func ParseGame(source string, r io.Reader) (*Game, error) {
 	for sc.Scan() {
 		line := sc.Text()
 		if strings.HasPrefix(line, "[widget-error] ") {
-			g.Crashed = append(g.Crashed, strings.TrimPrefix(line, "[widget-error] "))
+			e := strings.TrimPrefix(line, "[widget-error] ")
+			if strings.Contains(e, "Sub-Commanders ERROR (") {
+				g.Caught = append(g.Caught, e)
+			} else {
+				g.Crashed = append(g.Crashed, e)
+			}
 			continue
 		}
 		m := reFrame.FindStringSubmatch(line)

@@ -162,6 +162,8 @@ type Server struct {
 	// this matchup, internal/learn); OnGameOver gets the game's summary (won, minutes, dealt, taken).
 	OnHello    func(info *Info) map[string]any
 	OnGameOver func(info *Info, summary map[string]any)
+	// ErrorLog, when set, is the JSONL file the widget's caught Lua errors are appended to (errorlog.go).
+	ErrorLog string
 
 	mu      sync.Mutex
 	conn    Conn // the widget's link (transport.go)
@@ -171,6 +173,7 @@ type Server struct {
 	pending map[int64]chan result
 
 	writeMu sync.Mutex
+	errMu   sync.Mutex // one error log append at a time
 	nextID  atomic.Int64
 }
 
@@ -256,6 +259,18 @@ func (s *Server) handle(msg message) {
 		if s.OnGameOver != nil && msg.Args != nil {
 			info := s.info
 			go s.OnGameOver(info, msg.Args)
+		}
+	case "widgeterror":
+		e := widgetError(s.info, msg.Args, time.Now())
+		s.log.Warn("widget error", "where", e.Where, "count", e.Count, "frame", e.Frame, "message", e.Message)
+		if s.ErrorLog != "" {
+			go func() {
+				s.errMu.Lock()
+				defer s.errMu.Unlock()
+				if err := appendWidgetError(s.ErrorLog, e); err != nil {
+					s.log.Warn("widget error log", "err", err)
+				}
+			}()
 		}
 	case "result":
 		if ch, ok := s.pending[msg.ID]; ok {

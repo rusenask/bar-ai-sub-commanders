@@ -18,7 +18,7 @@ Results land in `testenv/batch/<stamp>-<label>/` like a local batch (`make compa
 games' raw output is in `remote/`. A batch dir with only `meta.txt` (the laptop side died: a closed session,
 sleep) may have finished on force anyway: `ls ~/bar-sim/batches/<dir>` there, then collect it with
 `RESUME=<dir> WIDGET_SRC_B=<same> SIDE=<same> testenv/force-batch.sh <games>` (g93). `BAR_TRACK=0` skips
-the Lightning experiment upload. Widget errors are flagged the same way (`WIDGET CRASHED`).
+the Lightning experiment upload. Widget errors are flagged the same way (`WIDGET CRASHED`, or `WIDGET ERRORS n` for caught ones: `testenv/widget-check.sh`).
 
 ## Setup (done once; redo for a new engine or game version)
 

@@ -2,7 +2,7 @@ BAR_DIR ?= $(HOME)/Library/Application Support/Beyond-All-Reason-mac
 MODEL ?= node06/glm-5.3-flash
 BAR_REF ?= 8247b61
 
-.PHONY: build install run up down restart logs test-game test-batch test-bridge play-vs report compare track timeline benchmarks test-lua decider-deploy decider-eval ref lint
+.PHONY: build install run up down restart logs test-game test-batch test-bridge play-vs report compare track timeline benchmarks test-lua decider-deploy decider-eval ref lint errors
 
 build:
 	go build -o bin/scbridge ./cmd/scbridge
@@ -83,6 +83,7 @@ test-bridge:
 		-v "$(CURDIR)/strategist:/app/strategist:ro" -v "$$(sed -n 's/^LLM_API_KEY_FILE=//p' .env):/run/secrets/llm_api_key:ro" \
 		-e SCBRIDGE_MODEL=$${MODEL:-$$(sed -n 's/^MODEL=//p' .env)} -e SCBRIDGE_DECIDER_URL=$(DECIDER_URL) \
 		-v "$(CURDIR)/testenv/records:/app/records" -e SCBRIDGE_RECORD=/app/records/reviews.jsonl \
+		-e SCBRIDGE_ERRORS_LOG=/app/records/widget-errors.jsonl \
 		$(TEST_BRIDGE_ARGS) bar-scbridge:test
 
 lint: test-lua
@@ -90,6 +91,10 @@ lint: test-lua
 	scripts/lua-globals.sh widget/LuaUI/Widgets/*.lua widget/LuaUI/Include/*.lua testenv/LuaUI/Widgets/zz_*.lua
 	scripts/lua-locals.sh widget/LuaUI/Widgets/*.lua widget/LuaUI/Include/*.lua testenv/LuaUI/Widgets/zz_*.lua
 	go vet ./...
+
+# the widgets' Lua errors, caught (sc_guard.lua: logs/widget-errors*.jsonl, the infolog) or not; DAYS=7
+errors:
+	python3 scripts/widget_errors.py --days $(or $(DAYS),7)
 
 # unit tests of the widget's engine modules (widget/LuaUI/Include) under plain Lua
 test-lua:

@@ -1837,3 +1837,11 @@ Pooled: default (20261017-2324-speed-nofast, 20261017-2356-speed-nofast2) vs FAS
 - The two default batches differ by score -0.29 [-0.47, -0.10] ("worse") with nothing changed. Against
   both pooled, every FAST variant is can't tell (FAST +0.01). FAST: 1.3x the games per hour.
 
+
+## Error guard check (2026-10-30, force, 2 games x 10 min, `20261030-1136-guard-check`)
+
+Not a measurement: does `sc_guard.lua` work in BAR's Lua 5.1? Arm A the working tree, arm B the same with
+two injected errors (one in `Tactics.raid` from minute 2, one in the `UnitIdle` callin). Both games ran the
+full 10 minutes; B logged both injected errors at 1x/10x/100x with tracebacks and played on. Both arms also
+caught a real error: `Tactics.squad`'s defend-request target had no z (`local rx, rz = r and
+Engine.shorePoint(...)`, from 069e2b3), which would have removed the widget. Fixed in the same commit.

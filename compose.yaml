@@ -26,6 +26,8 @@ services:
       - ${BAR_FILES:-${HOME}/Library/Application Support/Beyond-All-Reason-mac/LuaUI/Config/scbridge}:/bar-files
       # learned doctrine per matchup (internal/learn): sent to each game; real results are recorded in it
       - ./learn:/app/learn
+      # the widget's caught Lua errors (logs/widget-errors.jsonl, sc_guard.lua): make errors
+      - ./logs:/app/logs
       - ./widget/LuaUI/Include:/app/widget/LuaUI/Include:ro
       # opencode sessions and provider package cache survive restarts
       - opencode-data:/root/.local/share/opencode
@@ -42,10 +44,12 @@ services:
       - "127.0.0.1:4518:4517"
     environment:
       SCBRIDGE_MODEL: ${MODEL:-node06/glm-5.3-flash}
+      SCBRIDGE_ERRORS_LOG: /app/logs/widget-errors-bot.jsonl
     secrets:
       - llm_api_key
     volumes:
       - ./strategist:/app/strategist:ro
+      - ./logs:/app/logs
       - opencode-bot-data:/root/.local/share/opencode
       - opencode-cache:/root/.cache/opencode
 

@@ -445,3 +445,23 @@ func TestIsExtractor(t *testing.T) {
 		}
 	}
 }
+
+// An error sc_guard.lua caught is reported, but not as a crash: the game ran on.
+func TestWidgetCaughtFinding(t *testing.T) {
+	log := harnessLog + "\n[widget-error] [t=00:00:23][f=0006630] Sub-Commanders ERROR (Tactics.squad, 1x): [string \"LuaUI/Widgets/gui_subcommanders.lua\"]:210: attempt to perform arithmetic on local 'z1' (a nil value)\n"
+	g, err := ParseGame("1.txt", strings.NewReader(log))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(g.Crashed) != 0 || len(g.Caught) != 1 {
+		t.Fatalf("crashed %v caught %v", g.Crashed, g.Caught)
+	}
+	for _, f := range Findings([]*Game{g}, &Benchmark{}) {
+		if f.Area == "crash" {
+			t.Errorf("a caught error is not a crash: %+v", f)
+		}
+		if f.Area == "widget-error" && !strings.Contains(f.Text, "Tactics.squad") {
+			t.Errorf("finding %+v", f)
+		}
+	}
+}

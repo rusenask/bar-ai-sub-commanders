@@ -216,7 +216,14 @@ out wrong.
   `p = type(a) == "table" and tonumber(a.noul)`: any failed answer (model error, timeout, bridge
   disconnect) stored `false`, the counter-push's `p ~= nil and p < 0.6` compared it with a number, and the
   widget was removed 3 hours into a live game. Values that are later compared or added end in `or nil`
-  (or a number); test them with `if p then`, not `~= nil`.
+  (or a number); test them with `if p then`, not `~= nil`. Its twin: `local x, z = r and f()` keeps only
+  f's first value (z is always nil): the Army's "call for help" targets had no z and inBase raised (found
+  by sc_guard.lua in its first test batch, the commit before had added it).
+- **The widgets catch their own Lua errors now** (`sc_guard.lua`): each GameFrame step, each unit's think
+  and every callin runs under xpcall; an error is logged as `Sub-Commanders ERROR (<where>, <n>x)`, sent
+  to the bridge (`logs/widget-errors.jsonl`) and skipped. Batches mark such games `WIDGET ERRORS n`; `make
+  errors` lists them all. Whole-callin protection alone would not do: a deterministic error in one step
+  would skip every later step of GameFrame every pass.
 - Spring buffers its log (testenv/run.log) until it exits; the infolog stops after loading. Lua errors
   only show up in run.log after the game, which the next game overwrites.
 

@@ -87,6 +87,19 @@ func Findings(games []*Game, b *Benchmark) []Finding {
 	if crashed > 0 {
 		out = append(out, Finding{10, "crash", fmt.Sprintf("the Sub-Commanders widget crashed in %d of %d games: those results are invalid", crashed, len(games))})
 	}
+	// caught errors (sc_guard.lua): the step was skipped and the game ran on, but something didn't happen
+	caught, first := 0, ""
+	for _, g := range games {
+		if len(g.Caught) > 0 {
+			if caught == 0 {
+				first = g.Caught[0]
+			}
+			caught++
+		}
+	}
+	if caught > 0 {
+		out = append(out, Finding{2, "widget-error", fmt.Sprintf("caught widget errors in %d of %d games (the step was skipped; make errors): %s", caught, len(games), first)})
+	}
 	// economy pace: the worst minute per metric, where we're below the strong players' lower quartile
 	for _, m := range []string{"mex", "metalIncome", "factories", "builders", "army", "energyIncome"} {
 		var worst *Finding

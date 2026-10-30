@@ -31,7 +31,9 @@ widget reconnects by itself within a few seconds. Sub-commanders survive `/luaui
 - **Check for failures first, and understand each one before using the results.** Games that "did not
   run", replays with "no data", `WIDGET CRASHED`, sandboxes that failed, a batch with fewer games than
   asked: read the kept log (`failed/`, `remote/g<i>/run.log`, `~/bar-sim/replay-failed/` on force),
-  name the cause, fix it or write down why it's harmless. A silent failure is usually a skewed sample
+  name the cause, fix it or write down why it's harmless. `WIDGET ERRORS n` is a Lua error the widgets caught
+  and skipped (`widget/LuaUI/Include/sc_guard.lua`): the game ran on, the error still needs fixing. `make
+  errors` lists every one from real games (the bridge's `logs/widget-errors*.jsonl`), test games and the infolog. A silent failure is usually a skewed sample
   (17 "failed" team replays were every game of one new BAR version: the small-team data was missing).
 
 - Results (arm tables from `make compare`) go into `docs/research/test-games.md`, durable lessons into

@@ -5,7 +5,7 @@
 -- sc_link.lua: TCP, or files in LuaUI/Config/scbridge/ where BAR takes sockets away). The bridge runs the LLM strategist through opencode; this
 -- widget only reports state and applies the high-level actions it sends back.
 --
---   widget -> bridge: hello, state (every 3 game seconds), result, gameover
+--   widget -> bridge: hello, state (every 3 game seconds), result, gameover, widgeterror (sc_guard.lua)
 --   bridge -> widget: action { id, sub, op, args }
 --
 -- Address: springsettings.cfg "SubCommandersBridge" (default 127.0.0.1:7878).
@@ -55,6 +55,24 @@ end
 local function linkStatus()
 	return link and link.status() or "offline"
 end
+
+-- our widgets' Lua errors (sc_guard.lua) go to the bridge, which keeps them in logs/widget-errors.jsonl;
+-- the ones raised while it is offline wait here (a few) and go when it connects
+local errorQueue = {}
+local function reportError(e)
+	if linkStatus() == "online" and send({ type = "widgeterror", args = e }) then
+		return
+	end
+	if #errorQueue < 20 then
+		errorQueue[#errorQueue + 1] = e
+	end
+end
+
+local guard = VFS.Include("LuaUI/Include/sc_guard.lua", nil, VFS.RAW_FIRST)({
+	echo = Spring.Echo,
+	report = reportError,
+	frame = Spring.GetGameFrame,
+})
 
 local function gameInfo()
 	local myTeam = Spring.GetMyTeamID()
@@ -301,7 +319,8 @@ local function onMessage(msg)
 		local cb = decider.pending[msg.id]
 		decider.pending[msg.id] = nil
 		if cb then
-			cb.fn(msg.ok and msg.data or nil, msg.error)
+			-- the Sub-Commanders widget's code: an error in it shouldn't lose the messages after this one
+			guard.run("decision answer", cb.fn, msg.ok and msg.data or nil, msg.error)
 		end
 	elseif msg.type == "action" then
 		local okApply, data, err = pcall(apply, msg)
@@ -316,12 +335,17 @@ local function onConnect()
 	announcedOffline = false
 	Spring.Echo("Sub-Commanders AI: connected to the bridge (" .. link.transport() .. ")")
 	sendState()
+	local queued = errorQueue
+	errorQueue = {}
+	for _, e in ipairs(queued) do
+		reportError(e)
+	end
 end
 
 local function onDisconnect(reason)
 	for id, cb in pairs(decider.pending) do
 		decider.pending[id] = nil
-		cb.fn(nil, "bridge disconnected")
+		guard.run("decision answer", cb.fn, nil, "bridge disconnected")
 	end
 	decider.enabled = false
 	Spring.Echo("Sub-Commanders AI: bridge disconnected (" .. tostring(reason) .. ")")
@@ -403,6 +427,8 @@ function widget:Initialize()
 	WG.SubCommandersAI = {
 		linkStatus = linkStatus,
 		address = address,
+		-- an error the Sub-Commanders widget caught (sc_guard.lua), for the bridge's log
+		reportError = reportError,
 		-- is a decision model available behind the bridge?
 		deciderReady = function()
 			return linkStatus() == "online" and decider.enabled
@@ -437,3 +463,6 @@ function widget:Shutdown()
 	end
 	WG.SubCommandersAI = nil
 end
+
+-- last: the callins run under the error guard, like the Sub-Commanders widget's
+guard.widget(widget, "Sub-Commanders AI link", "gui_subcommanders_ai.lua")
