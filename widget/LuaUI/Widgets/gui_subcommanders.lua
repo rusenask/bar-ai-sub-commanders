@@ -3217,19 +3217,33 @@ function Engine.withMarks(cands)
 	return cands
 end
 
--- the strike under way: the Air Force's, or an air raid wing's (with where the wing is)
-function Intel.currentStrike()
+-- operations a spy can open the way for (v4.1): the Air Force's or an air raid wing's strike (their anti-air
+-- around the target), and an Army's assault outside our base (their turrets there). Each with where the
+-- wing or the squad is, and how close that is when the spy goes off
+function Intel.operations()
+	local SB = Engine.D.intel.sabotage
+	local ops = {}
 	for _, s in ipairs(subs) do
 		local o = (s.airOrders and s.airOrders.strike) or s.airOrder
 		if o and o.action == "strike" and o.wx then
+			ops[#ops + 1] = { key = "air:" .. tostring(o.id) .. ":" .. tostring(o.seq or 0), id = o.id, x = o.x, z = o.z, wx = o.wx, wz = o.wz, kind = "air", trigger = SB.trigger }
+		end
+		local q = s.squadOrder
+		local sq = s.squad
+		if SB.ground and s.role == "army" and q and q.action == "engage" and sq and sq.x and not Engine.inBase(q.x, q.z) then
+			ops[#ops + 1] = { key = "army:" .. s.id .. ":" .. tostring(q.id), id = q.id, x = q.x, z = q.z, wx = sq.x, wz = sq.z, kind = "ground", trigger = SB.ground.trigger }
+		end
+	end
+	return ops
+end
+
+function Intel.operation(key)
+	for _, o in ipairs(Intel.operations()) do
+		if o.key == key then
 			return o
 		end
 	end
 	return nil
-end
-
-function Intel.strikeKey(o)
-	return tostring(o.id) .. ":" .. tostring(o.seq or 0)
 end
 
 -- does a unit's self-destruct paralyse (the spies' SPYBOMBX)? Its blast radius, or false; from the game's
@@ -3247,45 +3261,73 @@ function Intel.emp(defID)
 	return c
 end
 
--- sabotage (doctrine.intel.sabotage, v4): with a strike under way on a target worth it, the nearest spy
--- whose self-destruct paralyses waits cloaked by their anti-air around the target, and goes off as the
--- wing comes in (Intel.sabotageStep); `keep` spies stay on watch
+-- what a spy's EMP opens the way through at an operation: the centre of their anti-air around a strike's
+-- target, or of their turrets around an assault's; with its metal. nil when not worth a spy
+function Intel.sabotageSite(op)
+	local SB = Engine.D.intel.sabotage
+	local list = {}
+	for _, o in pairs(Enemy.units) do
+		local od = defs[o.defID]
+		local guard = od and not od.air and ((op.kind == "air" and od.aaOnly and frame - o.last < 30 * 120) or (op.kind == "ground" and od.staticDef and not od.aaOnly))
+		if guard then
+			list[#list + 1] = { x = o.x, z = o.z, cost = od.cost }
+		end
+	end
+	local radius = op.kind == "air" and SB.aaRadius or SB.ground.radius
+	local x, z, w = Engine.spies.sabotageSite(op.x, op.z, list, radius)
+	if not x then
+		return nil
+	end
+	if op.kind == "air" then
+		-- a strike worth it: its target's metal
+		local e = Enemy.units[op.id]
+		local ed = e and defs[e.defID]
+		if not ed or ed.cost < SB.minValue then
+			return nil
+		end
+	elseif w < SB.ground.minValue then
+		return nil
+	end
+	return x, z, w
+end
+
+-- sabotage (doctrine.intel.sabotage): with an operation under way that their guards make costly, the
+-- nearest spy whose self-destruct paralyses waits cloaked by them and goes off as the wing or squad comes
+-- in (Intel.sabotageStep); `keep` spies stay on watch, one job at a time
 function Intel.sabotage(sub)
 	local SB = Engine.D.intel and Engine.D.intel.sabotage
 	if sub.role ~= "intelligence" or sub.paused or not SB or not SB.on then
 		return
 	end
-	local strike = Intel.currentStrike()
-	local key = strike and Intel.strikeKey(strike)
+	local ops = Intel.operations()
+	local live = {}
+	for _, o in ipairs(ops) do
+		live[o.key] = true
+	end
 	local spies, onJob = {}, false
 	for u in pairs(sub.units) do
 		local d = unitDef(u)
 		local st = ustate[u]
 		if d and d.spy and not spGetUnitIsBeingBuilt(u) then
-			if st and st.sabotage and st.sabotage.key ~= key then
+			if st and st.sabotage and not live[st.sabotage.key] then
 				st.sabotage, st.post = nil, nil
 			end
 			onJob = onJob or (st and st.sabotage ~= nil) or false
 			spies[#spies + 1] = u
 		end
 	end
-	if not strike or onJob or #spies <= SB.keep then
+	if onJob or #spies <= SB.keep then
 		return
 	end
-	local e = Enemy.units[strike.id]
-	local ed = e and defs[e.defID]
-	if not ed or ed.cost < SB.minValue then
-		return
-	end
-	local aa = {}
-	for _, o in pairs(Enemy.units) do
-		local od = defs[o.defID]
-		if od and od.aaOnly and not od.air and frame - o.last < 30 * 120 then
-			aa[#aa + 1] = { x = o.x, z = o.z, cost = od.cost }
+	-- the operation where the spy opens the most: their guards' metal there
+	local op, sx, sz, sw
+	for _, o in ipairs(ops) do
+		local x, z, w = Intel.sabotageSite(o)
+		if x and (not sw or w > sw) then
+			op, sx, sz, sw = o, x, z, w
 		end
 	end
-	local ax, az, w = Engine.spies.sabotageSite(strike.x, strike.z, aa, SB.aaRadius)
-	if not ax then
+	if not op then
 		return
 	end
 	local best, bestD
@@ -3293,24 +3335,25 @@ function Intel.sabotage(sub)
 		local x, _, z = spGetUnitPosition(u)
 		local hp, maxHp = Spring.GetUnitHealth(u)
 		if x and Intel.emp(Spring.GetUnitDefID(u)) and hp and maxHp and hp >= maxHp * Engine.D.intel.spy.retreatHealth then
-			local dd = dist2(x, z, ax, az)
+			local dd = dist2(x, z, sx, sz)
 			if not bestD or dd < bestD then
 				best, bestD = u, dd
 			end
 		end
 	end
 	if best then
-		getState(best).sabotage = { key = key, x = ax, z = az }
-		log(sub, sformat("sabotage: %s waits by their anti-air (%d metal) at %d,%d to EMP it ahead of the strike on %s", unitDef(best).human, w, ax, az, ed.human))
+		local what = op.kind == "air" and "their anti-air" or "their turrets"
+		getState(best).sabotage = { key = op.key, x = sx, z = sz, what = what }
+		log(sub, sformat("sabotage: %s waits by %s (%d metal) at %d,%d to EMP them ahead of the %s", unitDef(best).human, what, sw, sx, sz, op.kind == "air" and "strike" or "army's assault"))
 	end
 end
 
--- a spy on a sabotage job: staged at a safe post by their anti-air, in when the wing is
--- doctrine.intel.sabotage.trigger out, self-destruct on the spot. Returns true when it acted
+-- a spy on a sabotage job: staged at a safe post by their guards, in when the wing or squad is the
+-- operation's trigger distance out, self-destruct on the spot. Returns true when it acted
 function Intel.sabotageStep(sub, unitID, d, st, x, z)
 	local job = st.sabotage
-	local strike = Intel.currentStrike()
-	if not strike or Intel.strikeKey(strike) ~= job.key then
+	local op = Intel.operation(job.key)
+	if not op then
 		st.sabotage = nil
 		return false
 	end
@@ -3321,19 +3364,18 @@ function Intel.sabotageStep(sub, unitID, d, st, x, z)
 		order(unitID, Engine.CMD_WANT_CLOAK, { 1 })
 		st.cloakOn = true
 	end
-	local SB = Engine.D.intel.sabotage
-	if job.go or dist2(strike.wx, strike.wz, strike.x, strike.z) <= SB.trigger * SB.trigger then
+	if job.go or dist2(op.wx, op.wz, op.x, op.z) <= op.trigger * op.trigger then
 		job.go = true
 		if dist2(x, z, job.x, job.z) <= 120 * 120 then
 			order(unitID, CMD.SELFD, {})
 			job.done = true
 			Engine.spyStats.sabotage = Engine.spyStats.sabotage + 1
-			log(sub, sformat("sabotage: %s went off on their anti-air at %d,%d", d.human, job.x, job.z))
+			log(sub, sformat("sabotage: %s went off on %s at %d,%d", d.human, job.what, job.x, job.z))
 		elseif not job.goOrder or frame - job.goOrder > 60 then
 			order(unitID, CMD.MOVE, { job.x, spGetGroundHeight(job.x, job.z), job.z })
 			job.goOrder = frame
 		end
-		setTask(unitID, "sabotage", "going in: EMP on their anti-air", true)
+		setTask(unitID, "sabotage", "going in: EMP on " .. job.what, true)
 		return true
 	end
 	local haz = Intel.hazards(d)
@@ -3347,8 +3389,70 @@ function Intel.sabotageStep(sub, unitID, d, st, x, z)
 		Intel.walk(unitID, d, job.post.x, job.post.z)
 		job.walked = frame
 	end
-	setTask(unitID, "sabotage", "waiting by their anti-air for the strike", true)
+	setTask(unitID, "sabotage", "waiting by " .. job.what .. " for the go", true)
 	return true
+end
+
+-- does a factory make submarines?
+function Engine.makesSubs(fd)
+	for _, o in ipairs(fd.options or {}) do
+		if defs[o] and defs[o].sub then
+			return true
+		end
+	end
+	return false
+end
+
+-- the spy-chief's shipyard (doctrine.intel.shipyard, v4.1): on a water map with no shipyard of ours, the
+-- cheapest one that makes submarines, at the nearest deep water to home
+function Jobs.intelShipyard(sub, unitID, d, ux, uz)
+	local Y = Engine.D.intel and Engine.D.intel.shipyard
+	if not Y or not Engine.homeX or Engine.minute() < Y.minute or max(econ.mInc, 0) < Y.income or not Engine.waterMap() then
+		return false
+	end
+	for _, u in ipairs(Spring.GetTeamUnits(myTeam) or {}) do
+		local ud = unitDef(u)
+		if ud and ud.factory and Engine.makesSubs(ud) then
+			return false
+		end
+	end
+	for _, p in pairs(planned) do
+		if defs[p.defID].factory and Engine.makesSubs(defs[p.defID]) then
+			return false
+		end
+	end
+	local options = buildableBy(d, function(od)
+		return od.factory and Engine.makesSubs(od)
+	end)
+	tsort(options, function(a, b)
+		return defs[a].cost < defs[b].cost
+	end)
+	local o = options[1]
+	if not o or not canSpend(sub, defs[o]) or econ.m < defs[o].cost * 0.25 then
+		return false
+	end
+	local wx, wz
+	for r = 300, 3000, 300 do
+		for a = 0, 11 do
+			local x, z = Engine.homeX + cos(a * pi / 6) * r, Engine.homeZ + sin(a * pi / 6) * r
+			if x > 64 and z > 64 and x < MAP_X - 64 and z < MAP_Z - 64 and spGetGroundHeight(x, z) < -30 then
+				wx, wz = x, z
+				break
+			end
+		end
+		if wx then
+			break
+		end
+	end
+	if not wx then
+		return false
+	end
+	local x, z = findBuildSpot(sub, o, wx, wz, { gap = 48, rings = 8, anywhere = true })
+	if x and issueBuild(sub, unitID, o, x, z, 0, "shipyard (submarines to watch their coast)") then
+		getState(unitID).rebuildFor, getState(unitID).newFactory = sub.id, true
+		return true
+	end
+	return false
 end
 
 -- counter-intelligence: their scouts, spies, cameras and unarmed units in our zones or base, seen lately
@@ -3644,6 +3748,7 @@ local BUILDER_PLANS = {
 		return Jobs.removeMarked(sub, u, d, x, z)
 			or Jobs.strategic(sub, u, d, x, z)
 			or Jobs.radarNet(sub, u, d, x, z)
+			or Jobs.intelShipyard(sub, u, d, x, z)
 			or Jobs.cameras(sub, u, d, x, z)
 			or Jobs.sonar(sub, u, d, x, z)
 			or Jobs.jammer(sub, u, d, x, z)
@@ -4494,10 +4599,17 @@ function Engine.strategicControl()
 	end
 	if G.lrpc.on and #C.lrpc > 0 then
 		local targets, shields = {}, {}
+		-- Intelligence's marks (v4.1) count doctrine.intel.marks.bonus x: fresh eyes are on them
+		local marked, M = {}, Engine.D.intel and Engine.D.intel.marks
+		for _, r in ipairs(M and Engine.team.open("strike") or {}) do
+			if r.target then
+				marked[r.target] = M.bonus
+			end
+		end
 		for u, e in pairs(Enemy.units) do
 			local ed = defs[e.defID]
 			if ed and not ed.mobile and frame - e.last < 30 * 600 then
-				targets[#targets + 1] = { id = u, x = e.x, z = e.z, cost = ed.cost, role = Engine.strategicRole(ed) }
+				targets[#targets + 1] = { id = u, x = e.x, z = e.z, cost = ed.cost * (marked[u] or 1), role = Engine.strategicRole(ed) }
 				if ed.shieldGen then
 					shields[#shields + 1] = { x = e.x, z = e.z, r = 550 }
 				end
@@ -4514,7 +4626,7 @@ function Engine.strategicControl()
 					st.lrpcTarget = t.id
 					local td = Enemy.units[t.id] and defs[Enemy.units[t.id].defID]
 					if owner[u] then
-						log(owner[u], sformat("%s fires on their %s (%s, %d metal)", ud.human, td and td.human or "structure", t.role, t.cost or 0))
+						log(owner[u], sformat("%s fires on their %s (%s, %d metal%s)", ud.human, td and td.human or "structure", t.role, td and td.cost or t.cost or 0, marked[t.id] and ", marked" or ""))
 					end
 				end
 			end

@@ -299,7 +299,13 @@ D.intel = {
 	-- sabotage: a spy whose self-destruct paralyses (EMP) waits cloaked by their anti-air around a strike
 	-- target, and goes off when the strike wing is `trigger` elmos out; only for targets worth `minValue`,
 	-- keeping `keep` spies on watch
-	sabotage = { on = true, trigger = 1600, minValue = 1500, keep = 1, aaRadius = 900 },
+	-- v4.1 ground: also ahead of an Army's assault outside our base on their turrets (`radius` around its
+	-- target, worth `minValue` metal), going off when the squad's centre is `trigger` out
+	sabotage = { on = true, trigger = 1600, minValue = 1500, keep = 1, aaRadius = 900,
+		ground = { trigger = 900, radius = 700, minValue = 600 } },
+	-- v4.1: on a water map with no shipyard of ours, Intelligence builds the cheapest that makes submarines
+	-- from `minute` at `income` metal/s
+	shipyard = { minute = 8, income = 15 },
 }
 
 -- forward firebases (sc_firebase.lua): Defense grows layered turret groups just past our frontier
