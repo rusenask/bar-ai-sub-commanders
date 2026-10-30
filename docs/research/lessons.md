@@ -207,6 +207,11 @@ out wrong.
   hand-off to the Army (`addUnit`, defined 1500 lines below) did this in v15-v18: most games after the
   second T2 constructor were played without the widget. `make lint` now runs `scripts/lua-globals.sh`
   (unknown globals fail), and batch.sh marks such games `WIDGET CRASHED` with the error in the game log.
+- **`a and b` is `false`, not `nil`, when `a` is a boolean.** The fight model's callback cached
+  `p = type(a) == "table" and tonumber(a.noul)`: any failed answer (model error, timeout, bridge
+  disconnect) stored `false`, the counter-push's `p ~= nil and p < 0.6` compared it with a number, and the
+  widget was removed 3 hours into a live game. Values that are later compared or added end in `or nil`
+  (or a number); test them with `if p then`, not `~= nil`.
 - Spring buffers its log (testenv/run.log) until it exits; the infolog stops after loading. Lua errors
   only show up in run.log after the game, which the next game overwrites.
 
