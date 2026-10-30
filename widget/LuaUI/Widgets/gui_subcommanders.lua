@@ -4455,7 +4455,8 @@ function Decider.fightVerdict(sub, x, z)
 	sub.fightVerdicts[key] = { frame = frame, asking = true, p = v and v.p }
 	ai.decideTask(sub.id, "fight", features, function(answers)
 		local a = answers and answers.ahead
-		local p = type(a) == "table" and tonumber(a.noul)
+		-- nil, never false, on a failed answer: callers compare p with numbers
+		local p = type(a) == "table" and tonumber(a.noul) or nil
 		sub.fightVerdicts[key] = { frame = frame, p = p }
 	end)
 	return v and v.p
