@@ -99,7 +99,7 @@ strategist sees the world model too.
 | defense | turrets only where threats show up | + front line and extractor cover, budgeted | + turret schedule across base and expansions, radar |
 | army | defends its own area | + helps other areas, counter-pushes when clearly stronger | + attacks and raids on its own when the threat map says it wins |
 | air defense | reacts to air seen | + covers valuable structures | + proactive by income |
-| intelligence | radar only | + cameras, scouts | + jammer, hunting enemy intel |
+| intelligence | radar only | + cameras, scouts | + jammer, hunting enemy intel, spy-chief (posts, marks, sabotage) |
 
 The autopilot (bot opponent) runs everything at **full**.
 
@@ -282,6 +282,13 @@ each switched on by doctrine once its games say so:
   most at the richest cluster of theirs (4000+ metal within 0.8 x the blast) that none of their
   anti-nukes (static 2000, mobile 1600) covers, never near our army or base.
 - **Their cannons and silos** are the army's and the strikes' first targets (ATTACK_PREFER artillery 4).
+- **Spy-chief** (Intelligence, doctrine.intel v4, sc_spies.lua): spotters (spies, submarines, scouts)
+  watch from posts in sight of the target and outside every known enemy's reach (decloak distance + room
+  for cloakers, weapon range for visible ones), on threat-avoiding routes, slipping away when revealed;
+  radar / sonar planes and a submarine handed over by other factories when Intelligence has none that
+  makes them; the richest fresh structures marked for deep strikes (team requests "strike", taken first by
+  the Air Force and the air raids; its own bombers without an Air Force); a spy EMPs their anti-air as a
+  strike wing comes in.
 - **Juno** (Intelligence): built once two of their radar / jammers / mines are known; fired (stockpiled)
   at the densest cluster within its 700 radius every 20 s at most.
 - **Resurrection** (Lazarus / Graverobber / Zagreus): two kept (production quota), raising the most metal

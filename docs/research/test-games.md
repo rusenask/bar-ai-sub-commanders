@@ -1845,3 +1845,18 @@ two injected errors (one in `Tactics.raid` from minute 2, one in the `UnitIdle` 
 full 10 minutes; B logged both injected errors at 1x/10x/100x with tracebacks and played on. Both arms also
 caught a real error: `Tactics.squad`'s defend-request target had no z (`local rx, rz = r and
 Engine.shorePoint(...)`, from 069e2b3), which would have removed the widget. Fixed in the same commit.
+
+## Spy-chief smoke test (2026-10-30, force, Legion vs Armada medium, 40 min, `20261030-1341-spychief-land` + one Boulder Beach game)
+
+Not a measurement: does Intelligence v4 (sc_spies.lua: safe posts, marks, sabotage, planes / subs) run?
+6 land games ran (1 won, 5 alive at 40 min), no widget errors. Spies (Eidolon) watched from their posts
+most of the time ("watching their base" 117 passes, "on the way" 135), slipped away 7 times, went home
+hurt 3 times; 4 died in 6 games (2 to Fidos, 1 to a light laser turret, 1 to a Fast). Marks in 4 of 6
+games, from minute 30 on (a mark needs a structure seen in the last 2 minutes: eyes deep in their base).
+No planes (Legion's Drone Plant has no radar plane) and no own bombers (an Air Force was there).
+Boulder Beach: both 6-game batches (`spychief-water`, `-water2`) "did not run": every game hung at load
+(watchdog in "Finalizing Models" / PFS) while force's load average was 700-1100 (a CI agent and disk
+encryption, not ours); one game alone afterwards loaded in 19 s and won at 39 min: 12 marks (Experimental
+Gantry, Fusion, Advanced Bot Lab), a spy staged by their anti-air for the Air Force's strike on the
+Gantry (the game ended before the wing came in). No submarine (no shipyard on our side), no hover
+platform (their army stayed on land). Strength not measured yet.

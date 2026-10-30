@@ -147,6 +147,7 @@ do
 	Engine.micro = include("sc_micro")({ doctrine = Engine.D })
 	Engine.strategic = include("sc_strategic")({ doctrine = Engine.D })
 	Engine.fb = include("sc_firebase")({ doctrine = Engine.D })
+	Engine.spies = include("sc_spies")({ doctrine = Engine.D })
 	Engine.armyStyle, Engine.armyStyleNow, Engine.armyStyleSince = "auto", "balanced", 0
 	Engine.comMode, Engine.comPersonality = "auto", "careful"
 	-- the player's switches: do the silos fire on their own (false: kept stockpiled for the player)
@@ -2832,9 +2833,9 @@ end
 
 -- known enemy radar/jammer/camera to hit next: near our zones, not covered by known turrets
 -- a unit that can spot for Intelligence v2: a cheap cloaking, radar-stealthy unit (the spies: Ghost,
--- Spectre, Eidolon) or a scout
+-- Spectre, Eidolon), a scout, or (v4) a submarine (only sonar finds it: eyes on their coast and fleet)
 function Engine.isSpotter(d)
-	return d and d.mobile and not d.air and ((d.canCloak and d.stealthy and d.cost <= 400) or d.scout) or false
+	return d and d.mobile and not d.air and ((d.canCloak and d.stealthy and d.cost <= 400) or d.spy or d.scout or (d.sub and d.cost <= 900)) or false
 end
 
 -- a sub-commander's cloaking spies (spotters that cloak)
@@ -2924,6 +2925,23 @@ function Engine.watchPoints()
 			end
 		end
 	end
+	-- v4, the spy-chief: their richest structures anywhere not seen for doctrine.intel.strategicEyes
+	-- .stale s (what the marks and strikes need fresh)
+	if SE and SE.anywhere then
+		local stale = {}
+		for _, e in pairs(Enemy.units) do
+			local ed = defs[e.defID]
+			if ed and not ed.mobile and not ed.staticDef and frame - e.last > 30 * SE.stale then
+				stale[#stale + 1] = { x = e.x, z = e.z, cost = ed.cost }
+			end
+		end
+		tsort(stale, function(a, b)
+			return a.cost > b.cost
+		end)
+		for i = 1, min(#stale, SE.anywhere) do
+			add(stale[i].x, stale[i].z, "their structures, to see again")
+		end
+	end
 	local facs = {}
 	for _, e in pairs(Enemy.units) do
 		local ed = defs[e.defID]
@@ -2944,20 +2962,139 @@ function Engine.watchPoints()
 	return pts
 end
 
--- a spotter's post: the watch point least watched (nearest first), held `standoff` back toward our base;
--- a spotter that can't cloak keeps out of their known reach. Returns true when it acted
-function Intel.spot(sub, unitID, d, st, x, z)
-	local I = Engine.D.intel
-	local pts = Engine.watchPoints()
-	if #pts == 0 then
+-- spy-chief (doctrine.intel.spy, sc_spies.lua): what we know of theirs on the ground, for spotters to
+-- keep clear of; refreshed every second, with the hazards per decloak distance
+Intel.knownCache = { frame = -99999, list = {}, hazards = {} }
+function Intel.hazards(d)
+	local C = Intel.knownCache
+	if frame - C.frame >= 30 then
+		local list = {}
+		for _, e in pairs(Enemy.units) do
+			local ed = defs[e.defID]
+			local age = (frame - e.last) / 30
+			if ed and not ed.air and age < (ed.mobile and 60 or 600) then
+				list[#list + 1] = { x = e.x, z = e.z, mobile = ed.mobile, armed = ed.armed and not ed.aaOnly, range = ed.range, age = age }
+			end
+		end
+		C.frame, C.list, C.hazards = frame, list, {}
+	end
+	local decloak = d.canCloak and (d.decloak or 75) or nil
+	local key = decloak or "visible"
+	if not C.hazards[key] then
+		C.hazards[key] = Engine.spies.hazards(C.list, decloak)
+	end
+	return C.hazards[key]
+end
+
+-- can a unit of this kind stand at (x, z): land units above their depth, ships and subs on deep enough
+-- water, hovers and aircraft anywhere on the map
+function Intel.canStand(d, x, z)
+	if x < 64 or z < 64 or x > MAP_X - 64 or z > MAP_Z - 64 then
 		return false
 	end
+	if d.air or d.hover then
+		return true
+	end
+	local h = spGetGroundHeight(x, z)
+	if d.naval then
+		return h < (d.sub and -15 or -8)
+	end
+	return h > -(d.maxDepth or 20)
+end
+
+-- along a threat-avoiding route (sc_pathing) to (x, z)
+function Intel.walk(unitID, d, x, z)
+	local ux, _, uz = spGetUnitPosition(unitID)
+	local route = ux and Engine.path.route(ux, uz, x, z, { layer = d.air and "air" or "ground", avoid = 8 }) or { { x = x, z = z } }
+	for i, p in ipairs(route) do
+		order(unitID, CMD.MOVE, { p.x, spGetGroundHeight(p.x, p.z), p.z }, i > 1 and { "shift" } or nil)
+	end
+end
+
+-- how the spotters fared (the state's spyChief: posts taken, slipped away, sent home, no safe post)
+Engine.spyStats = { posts = 0, flees = 0, home = 0, noPost = 0, sabotage = 0 }
+
+-- where a submarine watches (v4): their shipyards and the fleets seen in the last minute, a point per
+-- 800 elmos, counted every second
+function Intel.navalPoints()
+	local C = Intel.navalCache
+	if C and frame - C.frame < 30 then
+		return C.pts
+	end
+	local pts = {}
+	Intel.navalCache = { frame = frame, pts = pts }
+	local function add(x, z, why)
+		for _, p in ipairs(pts) do
+			if dist2(p.x, p.z, x, z) < 800 * 800 then
+				return
+			end
+		end
+		pts[#pts + 1] = { x = x, z = z, why = why }
+	end
+	for _, e in pairs(Enemy.units) do
+		local ed = defs[e.defID]
+		if ed and ed.factory and spGetGroundHeight(e.x, e.z) < -8 then
+			add(e.x, e.z, "their shipyard")
+		elseif ed and ed.naval and frame - e.last < 30 * 60 then
+			add(e.x, e.z, "their fleet")
+		end
+	end
+	return pts
+end
+
+-- a spotter's watch: the watch point least watched (nearest first), from a post in sight of it and
+-- outside everything of theirs we know (sc_spies post), walked to around their armies; it slips away
+-- when revealed or reached, goes home hurt. Returns true when it acted
+function Intel.spot(sub, unitID, d, st, x, z)
+	local I = Engine.D.intel
+	local P, S = I.spy, Engine.spies
+	local pts = d.naval and Intel.navalPoints() or Engine.watchPoints()
+	if #pts == 0 then
+		pts = Engine.watchPoints()
+	end
+	local hx, hz = Engine.homeX or x, Engine.homeZ or z
 	if d.canCloak and not st.cloakOn then
 		order(unitID, Engine.CMD_WANT_CLOAK, { 1 })
 		st.cloakOn = true
 	end
+	local haz = Intel.hazards(d)
+	-- hurt: home, where constructors repair it
+	local hp, maxHp = Spring.GetUnitHealth(unitID)
+	if hp and maxHp and maxHp > 0 and hp / maxHp < P.retreatHealth then
+		if not st.spyHome or frame - st.spyHome > 30 * 10 then
+			if not st.spyHome then
+				Engine.spyStats.home = Engine.spyStats.home + 1
+			end
+			Intel.walk(unitID, d, hx, hz)
+			st.spyHome, st.post, st.watch = frame, nil, nil
+		end
+		setTask(unitID, "spot", "hurt: going home to be repaired", true)
+		return true
+	end
+	st.spyHome = nil
+	-- revealed (a cloaker that isn't cloaked where they can shoot it: energy short, or decloaked) or
+	-- something of theirs within reach: slip away before anything else
+	local inside = S.danger(x, z, haz)
+	local revealed = d.canCloak and Spring.GetUnitIsCloaked and not Spring.GetUnitIsCloaked(unitID) and (Engine.tm.threat(x, z) or 0) > 0
+	if inside > 0 or revealed then
+		if not st.fleeUntil or frame >= st.fleeUntil then
+			local fx, fz = S.flee(x, z, haz, { x = hx, z = hz }, P.flee)
+			fx, fz = clampToMap(fx, fz)
+			order(unitID, CMD.MOVE, { fx, spGetGroundHeight(fx, fz), fz })
+			st.fleeUntil, st.post = frame + 75, nil
+			Engine.spyStats.flees = Engine.spyStats.flees + 1
+		end
+		setTask(unitID, "spot", revealed and "revealed: slipping away" or "they're close: slipping away", true)
+		return true
+	end
+	if st.fleeUntil and frame < st.fleeUntil then
+		return true
+	end
+	st.fleeUntil = nil
+	-- the watch point: least watched, nearest; not one that had no safe post lately
 	local p = st.watch
-	if not p or frame - (st.watchFrame or 0) > I.retarget then
+	st.skip = st.skip or {}
+	if not p or frame - (st.watchFrame or 0) > I.retarget or (st.skip[p.key] and frame - st.skip[p.key] < P.skip) then
 		local load = {}
 		for u in pairs(sub.units) do
 			local o = ustate[u]
@@ -2968,28 +3105,249 @@ function Intel.spot(sub, unitID, d, st, x, z)
 		local best, bestScore
 		for _, q in ipairs(pts) do
 			q.key = floor(q.x / 400) .. ":" .. floor(q.z / 400)
-			local score = (load[q.key] or 0) * 1e8 + dist2(x, z, q.x, q.z)
-			if not bestScore or score < bestScore then
-				best, bestScore = q, score
+			if not (st.skip[q.key] and frame - st.skip[q.key] < P.skip) then
+				local score = (load[q.key] or 0) * 1e8 + dist2(x, z, q.x, q.z)
+				if not bestScore or score < bestScore then
+					best, bestScore = q, score
+				end
 			end
+		end
+		-- every watch point taken or unsafe: their side's ground nobody has seen lately (what's built there
+		-- is what our strikes need)
+		if not best and not d.naval then
+			local sp = Engine.explorePoint(x, z)
+			local key = sp and ("x:" .. floor(sp.x / 400) .. ":" .. floor(sp.z / 400))
+			if sp and not (st.skip[key] and frame - st.skip[key] < P.skip) then
+				best = { x = sp.x, z = sp.z, why = "ground nobody has seen lately", key = key }
+			end
+		end
+		if not best then
+			setTask(unitID, "spot", "no safe place to watch from", true)
+			return d.canCloak -- a cloaker waits where it is (it's outside every hazard); a scout scouts
 		end
 		p, st.watch, st.watchFrame = best, best, frame
 	end
-	local hx, hz = Engine.homeX or x, Engine.homeZ or z
-	local dx, dz = hx - p.x, hz - p.z
-	local len = max(sqrt(dx * dx + dz * dz), 1)
-	local px, pz = clampToMap(p.x + dx / len * I.standoff, p.z + dz / len * I.standoff)
-	if not d.canCloak and Engine.tm.threat(px, pz) > 0 then
-		local sx, sz = Engine.tm.safePoint(px, pz, hx, hz)
-		if sx then
-			px, pz = sx, sz
+	-- its post: chosen anew for a new watch point, every retarget, or when their units reach it
+	local post = st.post
+	if not post or post.key ~= p.key or frame - post.frame > I.retarget or S.danger(post.x, post.z, haz) > 0 then
+		local sight = (d.sight or 0) > 0 and d.sight or 500
+		local px, pz = S.post(p.x, p.z, sight, { x = hx, z = hz }, haz, function(qx, qz)
+			return Intel.canStand(d, qx, qz)
+		end)
+		if not px then
+			st.skip[p.key], st.watch, st.post = frame, nil, nil
+			Engine.spyStats.noPost = Engine.spyStats.noPost + 1
+			setTask(unitID, "spot", "no safe place to watch " .. p.why .. " from", true)
+			return d.canCloak
+		end
+		post = { x = px, z = pz, key = p.key, frame = frame }
+		st.post, st.spotOrder = post, nil
+		Engine.spyStats.posts = Engine.spyStats.posts + 1
+	end
+	if dist2(x, z, post.x, post.z) > 120 * 120 then
+		if not st.spotOrder or (frame - st.spotOrder > P.reroute and (spGetUnitCommandCount(unitID) or 0) == 0) or frame - st.spotOrder > P.reroute * 5 then
+			Intel.walk(unitID, d, post.x, post.z)
+			st.spotOrder = frame
+		end
+		setTask(unitID, "spot", "on the way to watch " .. p.why, true)
+	else
+		setTask(unitID, "spot", "watching " .. p.why, true)
+	end
+	return true
+end
+
+-- deep-strike marks (doctrine.intel.marks, v4): every few seconds the richest structures of theirs our
+-- eyes saw lately go up as team requests "strike" (the Air Force, the Army's air raid, or Intelligence's
+-- own bombers take them first)
+function Intel.mark(sub)
+	local M = Engine.D.intel and Engine.D.intel.marks
+	if sub.role ~= "intelligence" or sub.paused or not M or frame - (sub.markFrame or -99999) < M.every then
+		return
+	end
+	sub.markFrame = frame
+	local cands = {}
+	for u, e in pairs(Enemy.units) do
+		local ed = defs[e.defID]
+		-- turrets are the army's business, not a deep strike's
+		if ed and not ed.mobile and not ed.staticDef and not ed.aaOnly then
+			cands[#cands + 1] = { id = u, x = e.x, z = e.z, cost = ed.cost, role = Engine.strategicRole(ed), age = (frame - e.last) / 30, name = ed.human }
 		end
 	end
-	if dist2(x, z, px, pz) > 150 * 150 and (frame - (st.spotOrder or 0) > 90 or (spGetUnitCommandCount(unitID) or 0) == 0) then
-		order(unitID, CMD.MOVE, { px, spGetGroundHeight(px, pz), pz })
-		st.spotOrder = frame
+	local function aaAt(x, z)
+		return Engine.tm.enemyPower(x, z, Engine.D.air.aaRadius, frame, { air = true, aaOnly = true })
 	end
-	setTask(unitID, "spot", "watching " .. p.why, true)
+	local taken, marks = {}, {}
+	for _ = 1, M.max do
+		local t = Engine.spies.markTarget(cands, aaAt, taken)
+		if not t then
+			break
+		end
+		taken[t.id] = true
+		Engine.team.post({ kind = "strike", from = sub.id, x = t.x, z = t.z, need = t.value, target = t.id, note = t.name }, frame)
+		marks[#marks + 1] = { name = t.name, x = floor(t.x), z = floor(t.z), value = floor(t.value) }
+		if not (sub.marked or {})[t.id] then
+			log(sub, sformat("marked their %s (%d metal) at %d,%d for a deep strike", t.name, t.cost, t.x, t.z))
+		end
+	end
+	sub.marked, sub.marks = taken, marks
+end
+
+-- strike candidates (Engine.raidCandidates' shape) with Intelligence's marks raised doctrine.intel.marks
+-- .bonus x, or added
+function Engine.withMarks(cands)
+	local M = Engine.D.intel and Engine.D.intel.marks
+	if not M then
+		return cands
+	end
+	for _, r in ipairs(Engine.team.open("strike")) do
+		local e = r.target and Enemy.units[r.target]
+		if e then
+			local found = false
+			for _, c in ipairs(cands) do
+				if c.id == r.target then
+					c.value, c.marked, found = c.value * M.bonus, true, true
+					break
+				end
+			end
+			if not found then
+				cands[#cands + 1] = { id = r.target, x = e.x, z = e.z, value = max(r.need or 0, 30) * M.bonus, kind = "marked target", name = r.note or "?", marked = true }
+			end
+		end
+	end
+	return cands
+end
+
+-- the strike under way: the Air Force's, or an air raid wing's (with where the wing is)
+function Intel.currentStrike()
+	for _, s in ipairs(subs) do
+		local o = (s.airOrders and s.airOrders.strike) or s.airOrder
+		if o and o.action == "strike" and o.wx then
+			return o
+		end
+	end
+	return nil
+end
+
+function Intel.strikeKey(o)
+	return tostring(o.id) .. ":" .. tostring(o.seq or 0)
+end
+
+-- does a unit's self-destruct paralyse (the spies' SPYBOMBX)? Its blast radius, or false; from the game's
+-- weapon, once per kind
+Intel.empCache = {}
+function Intel.emp(defID)
+	local c = Intel.empCache[defID]
+	if c == nil then
+		local ud = UnitDefs[defID]
+		local name = ud and (ud.selfDExplosion or ud.selfdExplosion) or ""
+		local wd = WeaponDefNames and WeaponDefNames[tostring(name):lower()]
+		c = (wd and wd.paralyzer and (wd.damageAreaOfEffect or 0) > 0) and wd.damageAreaOfEffect or false
+		Intel.empCache[defID] = c
+	end
+	return c
+end
+
+-- sabotage (doctrine.intel.sabotage, v4): with a strike under way on a target worth it, the nearest spy
+-- whose self-destruct paralyses waits cloaked by their anti-air around the target, and goes off as the
+-- wing comes in (Intel.sabotageStep); `keep` spies stay on watch
+function Intel.sabotage(sub)
+	local SB = Engine.D.intel and Engine.D.intel.sabotage
+	if sub.role ~= "intelligence" or sub.paused or not SB or not SB.on then
+		return
+	end
+	local strike = Intel.currentStrike()
+	local key = strike and Intel.strikeKey(strike)
+	local spies, onJob = {}, false
+	for u in pairs(sub.units) do
+		local d = unitDef(u)
+		local st = ustate[u]
+		if d and d.spy and not spGetUnitIsBeingBuilt(u) then
+			if st and st.sabotage and st.sabotage.key ~= key then
+				st.sabotage, st.post = nil, nil
+			end
+			onJob = onJob or (st and st.sabotage ~= nil) or false
+			spies[#spies + 1] = u
+		end
+	end
+	if not strike or onJob or #spies <= SB.keep then
+		return
+	end
+	local e = Enemy.units[strike.id]
+	local ed = e and defs[e.defID]
+	if not ed or ed.cost < SB.minValue then
+		return
+	end
+	local aa = {}
+	for _, o in pairs(Enemy.units) do
+		local od = defs[o.defID]
+		if od and od.aaOnly and not od.air and frame - o.last < 30 * 120 then
+			aa[#aa + 1] = { x = o.x, z = o.z, cost = od.cost }
+		end
+	end
+	local ax, az, w = Engine.spies.sabotageSite(strike.x, strike.z, aa, SB.aaRadius)
+	if not ax then
+		return
+	end
+	local best, bestD
+	for _, u in ipairs(spies) do
+		local x, _, z = spGetUnitPosition(u)
+		local hp, maxHp = Spring.GetUnitHealth(u)
+		if x and Intel.emp(Spring.GetUnitDefID(u)) and hp and maxHp and hp >= maxHp * Engine.D.intel.spy.retreatHealth then
+			local dd = dist2(x, z, ax, az)
+			if not bestD or dd < bestD then
+				best, bestD = u, dd
+			end
+		end
+	end
+	if best then
+		getState(best).sabotage = { key = key, x = ax, z = az }
+		log(sub, sformat("sabotage: %s waits by their anti-air (%d metal) at %d,%d to EMP it ahead of the strike on %s", unitDef(best).human, w, ax, az, ed.human))
+	end
+end
+
+-- a spy on a sabotage job: staged at a safe post by their anti-air, in when the wing is
+-- doctrine.intel.sabotage.trigger out, self-destruct on the spot. Returns true when it acted
+function Intel.sabotageStep(sub, unitID, d, st, x, z)
+	local job = st.sabotage
+	local strike = Intel.currentStrike()
+	if not strike or Intel.strikeKey(strike) ~= job.key then
+		st.sabotage = nil
+		return false
+	end
+	if job.done then
+		return true
+	end
+	if d.canCloak and not st.cloakOn then
+		order(unitID, Engine.CMD_WANT_CLOAK, { 1 })
+		st.cloakOn = true
+	end
+	local SB = Engine.D.intel.sabotage
+	if job.go or dist2(strike.wx, strike.wz, strike.x, strike.z) <= SB.trigger * SB.trigger then
+		job.go = true
+		if dist2(x, z, job.x, job.z) <= 120 * 120 then
+			order(unitID, CMD.SELFD, {})
+			job.done = true
+			Engine.spyStats.sabotage = Engine.spyStats.sabotage + 1
+			log(sub, sformat("sabotage: %s went off on their anti-air at %d,%d", d.human, job.x, job.z))
+		elseif not job.goOrder or frame - job.goOrder > 60 then
+			order(unitID, CMD.MOVE, { job.x, spGetGroundHeight(job.x, job.z), job.z })
+			job.goOrder = frame
+		end
+		setTask(unitID, "sabotage", "going in: EMP on their anti-air", true)
+		return true
+	end
+	local haz = Intel.hazards(d)
+	if not job.post or frame - job.postFrame > 30 * 10 or Engine.spies.danger(job.post.x, job.post.z, haz) > 0 then
+		local px, pz = Engine.spies.post(job.x, job.z, 400, { x = Engine.homeX or x, z = Engine.homeZ or z }, haz, function(qx, qz)
+			return Intel.canStand(d, qx, qz)
+		end)
+		job.post, job.postFrame, job.walked = px and { x = px, z = pz } or nil, frame, nil
+	end
+	if job.post and dist2(x, z, job.post.x, job.post.z) > 120 * 120 and (not job.walked or frame - job.walked > 30 * 8) then
+		Intel.walk(unitID, d, job.post.x, job.post.z)
+		job.walked = frame
+	end
+	setTask(unitID, "sabotage", "waiting by their anti-air for the strike", true)
 	return true
 end
 
@@ -3024,7 +3382,10 @@ function Intel.huntTarget(sub, x, z)
 			if dd < 4000 * 4000 and (not bestD or dd < bestD) then
 				local guarded = 0
 				for _, o in pairs(Enemy.units) do
-					if defs[o.defID].staticDef and not defs[o.defID].aaOnly and dist2(o.x, o.z, e.x, e.z) < 650 * 650 then
+					local od = defs[o.defID]
+					-- turrets, and (v4) armed units seen lately: hunters went for radars in the middle of their army
+					local guard = (od.staticDef and not od.aaOnly) or (od.mobile and od.armed and not od.air and not od.aaOnly and frame - o.last < 30 * 30)
+					if guard and dist2(o.x, o.z, e.x, e.z) < 650 * 650 then
 						guarded = guarded + 1
 					end
 				end
@@ -3038,7 +3399,7 @@ function Intel.huntTarget(sub, x, z)
 end
 
 -- scouting: visit the enemy start and metal spots outside our zones, least recently seen first
-function Intel.nextScoutPoint(sub, x, z)
+function Intel.nextScoutPoint(sub, x, z, air)
 	sub.scouted = sub.scouted or {}
 	local candidates = {}
 	for _, st in ipairs(getEnemyStarts()) do
@@ -3056,6 +3417,10 @@ function Intel.nextScoutPoint(sub, x, z)
 		end
 		local age = frame - (sub.scouted[c.key] or -30 * 600)
 		local score = age - sqrt(dist2(x, z, c.x, c.z)) * 0.5
+		-- scout planes (v4): not over their anti-air (Blinks flew straight into it)
+		if air and (Engine.tm.threat(c.x, c.z, "air") or 0) > 0 then
+			score = score - 30 * 600
+		end
 		if not bestScore or score > bestScore then
 			best, bestScore = c, score
 		end
@@ -3073,9 +3438,19 @@ function Intel.thinkUnit(sub, unitID, d, st, threats)
 		return
 	end
 	local busy = (spGetUnitCommandCount(unitID) or 0) > 0
+	-- v4: its own bombers strike its marks when there's no Air Force (Tactics.airRaid)
+	if st.airRaid and sub.airOrder then
+		Engine.followAirOrder(sub, unitID, d, st, busy)
+		return
+	end
+	-- v4: a spy on a sabotage job (Intel.sabotage)
+	if st.sabotage and Intel.sabotageStep(sub, unitID, d, st, x, z) then
+		return
+	end
 	-- Intelligence v2: spotters hold watch over targets (cloakers always; scouts while spotters are short)
 	if Engine.D.intel and Engine.isSpotter(d) then
-		local cloaker = d.canCloak and d.stealthy
+		-- always posted: cloakers, and (v4) submarines (only sonar finds them)
+		local cloaker = (d.canCloak and d.stealthy) or d.sub
 		local posted = 0
 		if not cloaker then
 			for u in pairs(sub.units) do
@@ -3089,10 +3464,20 @@ function Intel.thinkUnit(sub, unitID, d, st, threats)
 		st.watch = nil
 	end
 	if d.scout or (d.air and not d.armed) then
+		-- a scout plane in their anti-air's reach turns for the nearest clear sky
+		if d.air and (Engine.tm.threat(x, z, "air") or 0) > 0 and frame - (st.airDodge or -999) > 90 then
+			local sx, sz = Engine.tm.safePoint(x, z, Engine.homeX or x, Engine.homeZ or z, "air")
+			if sx then
+				order(unitID, CMD.MOVE, { sx, spGetGroundHeight(sx, sz), sz })
+				st.airDodge = frame
+				setTask(unitID, "scout", "out of their anti-air", true)
+				return
+			end
+		end
 		if not busy or (st.softUntil and frame > st.softUntil) then
-			local p = Intel.nextScoutPoint(sub, x, z)
+			local p = Intel.nextScoutPoint(sub, x, z, d.air)
 			if p then
-				order(unitID, CMD.MOVE, { p.x, spGetGroundHeight(p.x, p.z), p.z })
+				Intel.walk(unitID, d, p.x, p.z)
 				setTask(unitID, "scout", "scouting", true)
 			end
 		end
@@ -4262,6 +4647,98 @@ function Engine.armyProduction(sub, fd, cap)
 	return defID, (sea and defs[defID].deepWater) and "army (their army is at sea)" or "army"
 end
 
+-- does the map have real water (a tenth of it deeper than land units go)? Once
+function Engine.waterMap()
+	if Engine.waterShare == nil then
+		local n, wet = 0, 0
+		for i = 0, 23 do
+			for j = 0, 23 do
+				n = n + 1
+				if spGetGroundHeight((i + 0.5) * MAP_X / 24, (j + 0.5) * MAP_Z / 24) < -20 then
+					wet = wet + 1
+				end
+			end
+		end
+		Engine.waterShare = wet / n
+	end
+	return Engine.waterShare >= 0.1
+end
+
+-- the spy-chief's eyes (doctrine.intel, v4): radar / sonar planes, submarines, and whether its own
+-- factories make them
+function Engine.intelHave(intel)
+	local h = { planes = 0, subs = 0, bombers = 0, airPlant = false, shipyard = false }
+	for u in pairs(intel.units) do
+		local d = unitDef(u)
+		if d then
+			if d.air and not d.armed and not d.transport and not d.builder then
+				h.planes = h.planes + 1
+			elseif d.sub then
+				h.subs = h.subs + 1
+			elseif d.kind == "bomber" then
+				h.bombers = h.bombers + 1
+			elseif d.factory then
+				h.airPlant = h.airPlant or makesAircraft(d)
+				for _, o in ipairs(d.options or {}) do
+					h.shipyard = h.shipyard or (defs[o] and defs[o].sub) or false
+				end
+			end
+		end
+	end
+	return h
+end
+
+-- the cheapest radar plane a factory makes; on a water map one with sonar first
+function Engine.intelPlane(fd, cap)
+	local options = buildableBy(fd, function(od)
+		return od.air and not od.armed and not od.transport and not od.builder and od.cost <= cap
+	end)
+	local water = Engine.waterMap()
+	tsort(options, function(a, b)
+		local sa, sb = water and defs[a].mobileSonar and 1 or 0, water and defs[b].mobileSonar and 1 or 0
+		if sa ~= sb then
+			return sa > sb
+		end
+		return defs[a].cost < defs[b].cost
+	end)
+	return options[1]
+end
+
+-- the cheapest submarine a factory makes
+function Engine.intelSub(fd, cap)
+	local options = buildableBy(fd, function(od)
+		return od.sub and od.cost <= cap
+	end)
+	tsort(options, function(a, b)
+		return defs[a].cost < defs[b].cost
+	end)
+	return options[1]
+end
+
+-- another sub-commander's factory builds what the spy-chief wants and none of its own factories make
+-- (a radar plane from an aircraft plant, a submarine from a shipyard), handed over; one a minute at most
+function Engine.intelHandOff(sub, facID, fd, cap)
+	local I = Engine.D.intel
+	local intel = I and I.planes and Engine.subOfRole("intelligence")
+	if not intel or intel == sub or intel.paused or frame - (Engine.intelHandFrame or -99999) < 30 * 60 then
+		return nil
+	end
+	local have = Engine.intelHave(intel)
+	local o, why
+	if makesAircraft(fd) and not have.airPlant and have.planes < I.planes then
+		o, why = Engine.intelPlane(fd, cap * 1.5), "radar plane for " .. intel.name
+	elseif not have.shipyard and have.subs < I.subs and Engine.waterMap() then
+		o, why = Engine.intelSub(fd, cap * 1.5), "submarine for " .. intel.name
+	end
+	if o then
+		local st = getState(facID)
+		st.handOff, st.handOffCombat = intel.id, true
+		Engine.intelHandFrame = frame
+		return o, why
+	end
+	return nil
+end
+
 local function pickProduction(sub, facID, fd)
 	local p = POSTURE_INFO[sub.posture]
 	local counts = sub.counts
@@ -4278,6 +4755,12 @@ local function pickProduction(sub, facID, fd)
 		end
 	end
 	local wantBuilder
+	do
+		local o, why = Engine.intelHandOff(sub, facID, fd, cap)
+		if o then
+			return o, why
+		end
+	end
 	if sub.role == "economy" or sub.role == "army" then
 		local c, why = Engine.answerConstructor(fd, facID, cap)
 		if c then
@@ -4344,6 +4827,34 @@ local function pickProduction(sub, facID, fd)
 				end
 			end
 			scoutCap = max(scoutCap, want)
+			-- v4, the spy-chief: radar / sonar planes, a submarine on water maps, and (no Air Force)
+			-- bombers for its marks
+			local I = Engine.D.intel
+			local have = Engine.intelHave(sub)
+			if I.planes and makesAircraft(fd) and have.planes < I.planes then
+				local o = Engine.intelPlane(fd, cap * 1.5)
+				if o then
+					return o, defs[o].mobileSonar and "sonar plane" or "radar plane"
+				end
+			end
+			if I.subs and have.subs < I.subs and Engine.waterMap() then
+				local o = Engine.intelSub(fd, cap * 1.5)
+				if o then
+					return o, "submarine (eyes on their coast)"
+				end
+			end
+			local M = I.marks
+			if M and makesAircraft(fd) and not Engine.subOfRole("air") and have.bombers < M.bombers and #Engine.team.open("strike") > 0 then
+				local bombers = buildableBy(fd, function(od)
+					return od.kind == "bomber" and od.cost <= cap
+				end)
+				tsort(bombers, function(a, b)
+					return defs[a].cost > defs[b].cost
+				end)
+				if bombers[1] then
+					return bombers[1], "bomber (strikes on our marks)"
+				end
+			end
 		end
 		if counts.scouts < scoutCap then
 			local options = buildableBy(fd, function(od)
@@ -4985,37 +5496,52 @@ end
 Const.ATTACK_PREFER = { artillery = 4, factory = 3, extractor = 1.5, generator = 1.2, constructor = 1, radar = 1, structure = 1, army = 0.6 }
 
 -- deep water (doctrine.engage.water): how deep the land units of a squad go (the costliest one's
--- movedef), when they're most of it by metal; nil for a squad that goes to sea. members: { cost, def }
+-- movedef), when they're most of it by metal; "sea" for a squad mostly of ships (v4: a fleet went for
+-- targets inland); nil for one that goes anywhere (hovers, amphibious). members: { cost, def }
 function Engine.waterReach(members)
-	local land, total, depth, top = 0, 0, nil, 0
+	local land, sea, total, depth, top = 0, 0, 0, nil, 0
 	for _, m in ipairs(members) do
 		total = total + m.cost
-		if m.def and not m.def.deepWater then
+		if m.def and m.def.naval then
+			sea = sea + m.cost
+		elseif m.def and not m.def.deepWater then
 			land = land + m.cost
 			if m.cost > top then
 				depth, top = m.def.maxDepth or 20, m.cost
 			end
 		end
 	end
+	if total > 0 and sea >= 0.5 * total then
+		return "sea"
+	end
 	return total > 0 and land >= 0.5 * total and depth or nil
 end
 
--- where units that go `depth` deep fight a target at x, z from: there, or the nearest shore within
--- doctrine.engage.water.shore; nil when there's none (cached: the ground doesn't move)
+-- can a squad of this reach (Engine.waterReach) stand at (x, z)? Ships need 8 elmos of water
+function Engine.standable(depth, x, z)
+	local h = spGetGroundHeight(x, z)
+	if depth == "sea" then
+		return h < -8
+	end
+	return h > -depth
+end
+
+-- where units that go `depth` deep (or "sea": ships) fight a target at x, z from: there, or the nearest
+-- shore (water) within doctrine.engage.water.shore; nil when there's none (cached: the ground doesn't move)
 Engine.shoreCache = {}
 function Engine.shorePoint(depth, x, z)
 	local W = Engine.D.engage.water
-	if not W or not depth or spGetGroundHeight(x, z) > -depth then
+	if not W or not depth or Engine.standable(depth, x, z) then
 		return x, z
 	end
-	local key = sformat("%d:%d:%d", depth, floor(x / 64), floor(z / 64))
+	local key = sformat("%s:%d:%d", tostring(depth), floor(x / 64), floor(z / 64))
 	local c = Engine.shoreCache[key]
 	if c == nil then
 		c = false
-		for r = 100, W.shore, 100 do
+		for r = 100, depth == "sea" and (W.coast or W.shore) or W.shore, 100 do
 			for a = 0, 15 do
 				local px, pz = clampToMap(x + cos(a * pi / 8) * r, z + sin(a * pi / 8) * r)
-				if spGetGroundHeight(px, pz) > -depth then
+				if Engine.standable(depth, px, pz) then
 					c = { px, pz }
 					break
 				end
@@ -5371,7 +5897,7 @@ function Tactics.air(sub)
 		if prev and prev.action == "strike" and sw.power >= prev.power * 0.5 and Enemy.units[prev.id] and frame - prev.frame < P.reroute * 3 then
 			strike = prev
 		elseif not (prev and prev.action == "strike" and sw.power < prev.power * 0.5) and sw.power >= P.strikeMin then
-			local cands = Engine.raidCandidates()
+			local cands = Engine.withMarks(Engine.raidCandidates())
 			for u, e in pairs(Enemy.units) do
 				local ed = defs[e.defID]
 				if ed and ed.aaOnly and frame - e.last < 30 * 120 then
@@ -5386,6 +5912,7 @@ function Tactics.air(sub)
 	end
 	if strike then
 		set("strike", strike)
+		orders.strike.wx, orders.strike.wz = sw.x, sw.z -- where the wing is (Intel.sabotage times the EMP by it)
 		if not orders.strike.route then
 			orders.strike.route = Engine.path.route(sw.x, sw.z, strike.x, strike.z, { layer = "air", avoid = 8 })
 		end
@@ -5504,7 +6031,9 @@ end
 -- what the enemy left without anti-air (extractors, generators, constructors, factories), and come home
 -- when the wing is down to half
 function Tactics.airRaid(sub)
-	if sub.role ~= "army" or not Engine.homeX then
+	-- the Army's, and (v4) Intelligence's bombers striking its marks while there's no Air Force
+	local intel = sub.role == "intelligence" and Engine.D.intel and not Engine.subOfRole("air")
+	if (sub.role ~= "army" and not intel) or not Engine.homeX then
 		return
 	end
 	local A = Engine.D.airRaid
@@ -5524,6 +6053,11 @@ function Tactics.airRaid(sub)
 		end
 	end
 	local prev = sub.airOrder
+	-- Intelligence's wing flies for its marks only; otherwise its planes hunt as before
+	if intel and not (prev and prev.action == "strike") and #Engine.team.open("strike") == 0 then
+		sub.airOrder = nil
+		return
+	end
 	if #wing == 0 or (power < A.min and not (prev and prev.action == "strike")) then
 		sub.airOrder = nil
 		return
@@ -5532,6 +6066,9 @@ function Tactics.airRaid(sub)
 		getState(u).airRaid = true
 	end
 	local cx, cz = sx / #wing, sz / #wing
+	if prev then
+		prev.wx, prev.wz = cx, cz -- where the wing is (Intel.sabotage times the EMP by it)
+	end
 	local action, tx, tz, id, name
 	if prev and prev.action == "strike" then
 		if power < prev.power * 0.5 then
@@ -5542,7 +6079,7 @@ function Tactics.airRaid(sub)
 	end
 	if not action and power >= A.min then
 		local best, bestScore
-		for _, t in ipairs(Engine.raidCandidates()) do
+		for _, t in ipairs(Engine.withMarks(intel and {} or Engine.raidCandidates())) do
 			local aa = Engine.tm.enemyPower(t.x, t.z, A.aaRadius, frame, { air = true, aaOnly = true })
 			if power >= A.need * aa then
 				local score = t.value / (1 + aa / 100) / (1 + sqrt(dist2(cx, cz, t.x, t.z)) / 3000)
@@ -5565,7 +6102,7 @@ function Tactics.airRaid(sub)
 	if prev and prev.id == id and prev.action == action then
 		return
 	end
-	sub.airOrder = { action = action, id = id, x = tx, z = tz, frame = frame, power = power, seq = ((prev and prev.seq) or 0) + 1 }
+	sub.airOrder = { action = action, id = id, x = tx, z = tz, frame = frame, power = power, seq = ((prev and prev.seq) or 0) + 1, wx = cx, wz = cz }
 	log(sub, action == "strike" and sformat("air raid: %d planes going for %s at %d,%d", #wing, name, tx, tz) or ("air wing home: " .. name))
 end
 
@@ -6366,6 +6903,20 @@ function Engine.holdLine(sub, members, threat)
 	sub.holdSlots = slots
 end
 
+-- a plane of an air raid wing (Tactics.airRaid: the Army's, or Intelligence's without an Air Force)
+function Engine.followAirOrder(sub, unitID, d, st, busy)
+	local ao = sub.airOrder
+	if st.airSeq ~= ao.seq or not busy then
+		if ao.action ~= "home" and d.kind == "bomber" then
+			order(unitID, CMD.AREA_ATTACK, { ao.x, spGetGroundHeight(ao.x, ao.z), ao.z, Engine.D.air.bombRadius })
+		else
+			order(unitID, ao.action == "home" and CMD.MOVE or CMD.FIGHT, { ao.x, spGetGroundHeight(ao.x, ao.z), ao.z })
+		end
+		st.airSeq = ao.seq
+		setTask(unitID, "airraid", ao.action == "strike" and "air raid" or "air wing: home", true)
+	end
+end
+
 local function thinkCombat(sub, unitID, d, st, threats)
 	local x, _, z = spGetUnitPosition(unitID)
 	if not x then
@@ -6404,17 +6955,8 @@ local function thinkCombat(sub, unitID, d, st, threats)
 	end
 	local busy = (spGetUnitCommandCount(unitID) or 0) > 0
 	-- the air wing strikes or flies home (Tactics.airRaid)
-	local ao = sub.airOrder
-	if st.airRaid and ao then
-		if st.airSeq ~= ao.seq or not busy then
-			if ao.action ~= "home" and d.kind == "bomber" then
-				order(unitID, CMD.AREA_ATTACK, { ao.x, spGetGroundHeight(ao.x, ao.z), ao.z, Engine.D.air.bombRadius })
-			else
-				order(unitID, ao.action == "home" and CMD.MOVE or CMD.FIGHT, { ao.x, spGetGroundHeight(ao.x, ao.z), ao.z })
-			end
-			st.airSeq = ao.seq
-			setTask(unitID, "airraid", ao.action == "strike" and "air raid" or "air wing: home", true)
-		end
+	if st.airRaid and sub.airOrder then
+		Engine.followAirOrder(sub, unitID, d, st, busy)
 		return
 	end
 	-- raid squad members follow the raid's route (Tactics.raid)
@@ -7475,6 +8017,8 @@ local function summarize(sub)
 		autonomy = sub.autonomy or "balanced",
 		autoZones = sub.autoZones or false,
 		raids = Engine.raidsField(sub),
+		-- the spy-chief (v4): what it marked for deep strikes, and how its spotters fared
+		spyChief = sub.role == "intelligence" and { marks = sub.marks or {}, spotters = Engine.spyStats } or nil,
 		-- an army without a factory gets its units from the economy's (strong players run one lab)
 		fedBy = Engine.fedByName(sub),
 		raid = sub.raidOrder and { action = sub.raidOrder.action, target = { x = floor(sub.raidOrder.x), z = floor(sub.raidOrder.z) } } or nil,
@@ -8946,7 +9490,7 @@ function widget:UnitCreated(unitID, unitDefID, unitTeam, builderID)
 	end
 	-- built for another sub-commander that had no constructor left
 	local fst = ustate[builderID]
-	if fst and fst.handOff and d and (d.builder or (fst.handOffCombat and d.combat)) then
+	if fst and fst.handOff and d and (d.builder or (fst.handOffCombat and (d.combat or (d.mobile and not d.commander)))) then
 		local target = findSub(fst.handOff)
 		fst.handOff, fst.handOffCombat = nil, nil
 		if target then
@@ -9803,6 +10347,8 @@ function widget:GameFrame(n)
 			run("Tactics.updatePush", Tactics.updatePush, sub)
 			run("Tactics.raid", Tactics.raid, sub)
 			run("Tactics.airRaid", Tactics.airRaid, sub)
+			run("Intel.mark", Intel.mark, sub)
+			run("Intel.sabotage", Intel.sabotage, sub)
 			run("Tactics.air", Tactics.air, sub)
 			run("Tactics.responders", Tactics.responders, sub)
 			run("Tactics.squad", Tactics.squad, sub)

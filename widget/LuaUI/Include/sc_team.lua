@@ -18,12 +18,12 @@ return function(ctx)
 	local P = D.team
 	local T = { requests = {}, nextID = 1, plan = { phase = "opening", why = "the first minutes" }, since = 0 }
 
-	-- post (or refresh) a request. req: { kind, from, x, z, need, note, tier (constructor: 2 = tier 2) }.
-	-- Returns the request.
+	-- post (or refresh) a request. req: { kind, from, x, z, need, note, tier (constructor: 2 = tier 2),
+	-- target (strike: the unit marked; marks of different targets stay apart) }. Returns the request.
 	function T.post(req, frame)
 		for _, r in ipairs(T.requests) do
 			local near = not req.x or not r.x or (r.x - req.x) ^ 2 + (r.z - req.z) ^ 2 < P.mergeRadius ^ 2
-			if r.kind == req.kind and r.from == req.from and r.tier == req.tier and near then
+			if r.kind == req.kind and r.from == req.from and r.tier == req.tier and r.target == req.target and near then
 				r.frame, r.need, r.note = frame, max(r.need or 0, req.need or 0), req.note or r.note
 				if req.x then
 					r.x, r.z = req.x, req.z

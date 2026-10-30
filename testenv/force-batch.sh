@@ -30,6 +30,12 @@ fi
 if [ -z "$RESUME" ]; then
 SRC="${WIDGET_SRC:-$T/../widget/LuaUI/Widgets}"
 [ -f "$SRC/gui_subcommanders.lua" ] || { echo "force-batch.sh: no widgets in $SRC (WIDGET_SRC from a failed arm.sh?)" >&2; exit 1; }
+# force is shared (CI, decision models): at a load of 700+ every game of a batch hung at load (watchdog,
+# "did not run", 2026-10-30). Warn when it's busy
+read -r load cores <<< "$(ssh -n "$HOST" 'echo $(cut -d" " -f1 /proc/loadavg) $(nproc)' 2>/dev/null)"
+if [ -n "$load" ] && awk -v l="$load" -v c="$cores" 'BEGIN { exit !(l > 2 * c) }'; then
+	echo "force-batch.sh: warning: $HOST load average $load on $cores cores (others' jobs?): games may hang at load" >&2
+fi
 mkdir -p "$DIR"
 {
 	echo "label: $LABEL"

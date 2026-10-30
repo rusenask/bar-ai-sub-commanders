@@ -83,6 +83,9 @@ out wrong.
 - A replay benchmark is only fair while the engine keeps the replay in sync: a -march=znver4 build ran a
   replay 67% faster because it desynced (fewer units), and live it was no faster. Check the per-minute
   unit counts against the official engine before believing a build's speed-up.
+- A whole force batch "did not run" with every game hung at load (watchdog in PFS / model loading): the
+  host's load average was 700-1100 from others' jobs (CI, disk encryption). One game alone loaded in 19 s.
+  force-batch.sh now warns on a busy host; check `uptime` there before blaming the map or the widget.
 - Force is shared (decision models, other services): 12 headless replays at once ran it out of memory and
   the OOM killer took other people's processes. Keep to 8 games at once there.
 
@@ -181,6 +184,12 @@ out wrong.
 - A change that helps one faction and not the other is a faction overlay, not a revert: the later
   aircraft plant was neutral on Cortex and +0.14 on Legion (48 pairs, repeated before keeping). A borderline
   "better" on one faction gets a second batch before it's kept. (g101, g102)
+- Spotters died at their posts, not on the way: a cloaker's post was the watch point 420 back with no
+  check (their units walk past a factory; decloak at 75), it walked there in a straight line through their
+  army, and nothing reacted when it decloaked. Posts now come from what we know of theirs (decloak + room
+  for cloakers, weapon range for visible spotters, sc_spies.lua). Also: `d.spy` had never been true
+  (`d.builder` needs build options, spies have none) and the spies' dummy weapon made them 285-metal
+  "assault" units. Read a flag's definition before building on it. (spy-chief, 2026-10-30)
 - Nothing knew about deep water: on Boulder Beach (2026-10-30, live game, minute 130) the enemy was a
   hover/naval fleet at sea, the Army's push target sat at -118 depth, and 193 Legion vehicles stood on the
   shore while the vehicle plants kept making more. Land squads now fight sea targets from the shore or skip

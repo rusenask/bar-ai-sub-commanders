@@ -61,7 +61,8 @@ D.engage = {
 	-- mostly of land units fights a target in water from the nearest shore within `shore` elmos, or leaves
 	-- it; once `at` of their known army (by metal, `minValue` at least) is at sea the Army builds what goes
 	-- there (hover, amphibious, ships) where a factory can, and a hovercraft platform
-	water = { at = 0.5, minValue = 2000, shore = 600 },
+	-- a fleet (mostly ships, v4) fights a target inland from water within `coast`
+	water = { at = 0.5, minValue = 2000, shore = 600, coast = 1000 },
 	-- falling back to our turrets within radius of the unit (minValue metal) instead of the rally point
 	retreatToTurrets = false,
 	-- holding in a line: the squad's places on an arc around a point this far out in front of the rally
@@ -273,7 +274,32 @@ D.intel = {
 	jammerFollow = true,
 	-- v3: watch their richest structures in our cannons' reach not seen for `stale` s (the `cannon` best),
 	-- and the richest cluster a nuke could hit, while we have cannons / a nuke silo (nil: off)
-	strategicEyes = { stale = 240, cannon = 2 },
+	-- v4: anywhere = their richest structures anywhere going stale that get eyes too
+	strategicEyes = { stale = 240, cannon = 2, anywhere = 2 },
+	-- v4, the spy-chief (sc_spies.lua). Spotters died at their posts: a cloaker's post was the watch point
+	-- 420 back, unchecked, where their units walk past (decloak at 75), reached by a straight walk through
+	-- their army, and nothing reacted when it decloaked. Now:
+	-- spy: a post is a point at `rings` x its sight from the watch point, outside every known enemy's
+	--   reach: a cloaker keeps decloak + `static` from structures and decloak + `mobile` from units seen in
+	--   the last `mobileSecs` s (they walk), a visible spotter their weapon range + `armed`; walked to on a
+	--   threat-avoiding route. Revealed (decloaked, energy short) or reached: it slips away `flee` elmos;
+	--   under `retreatHealth` it goes home. A watch point with no safe post is skipped for `skip` frames
+	spy = { rings = { 0.85, 0.7, 0.55, 1.0 }, static = 150, mobile = 350, mobileSecs = 20, armed = 150, flee = 500,
+		retreatHealth = 0.6, skip = 30 * 60, reroute = 30 * 6 },
+	-- what the spy-chief keeps besides spies: radar / sonar planes (sonar ones where there's water) and a
+	-- submarine spotter on water maps (from any of our shipyards, handed over)
+	planes = 2,
+	subs = 1,
+	-- marks: every `every` frames the richest structures of theirs seen in the last `fresh` s (by role
+	-- weight) are marked for deep strikes (team requests "strike", `max` at once); the Air Force (or the
+	-- Army's air raid) counts a marked target `bonus` x. Without an Air Force, Intelligence builds up to
+	-- `bombers` bombers and strikes its marks itself
+	marks = { every = 30 * 5, fresh = 120, max = 2, bonus = 3, minValue = 300, bombers = 6,
+		weights = { lrpc = 5, nuke = 6, antinuke = 4, factory = 4, energy = 3, shield = 2, extractor = 1.5, radar = 1, turret = 0.5, other = 0.5 } },
+	-- sabotage: a spy whose self-destruct paralyses (EMP) waits cloaked by their anti-air around a strike
+	-- target, and goes off when the strike wing is `trigger` elmos out; only for targets worth `minValue`,
+	-- keeping `keep` spies on watch
+	sabotage = { on = true, trigger = 1600, minValue = 1500, keep = 1, aaRadius = 900 },
 }
 
 -- forward firebases (sc_firebase.lua): Defense grows layered turret groups just past our frontier

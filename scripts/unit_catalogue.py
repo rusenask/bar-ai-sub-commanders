@@ -126,7 +126,8 @@ def tags(u):
 
 # does our widget use the ability? (searched by hand; update when a behaviour lands)
 USED = {
-    "cloak": "Armada overlay: kept cloaked, raids (2026-10-15)",
+    "cloak": "Armada overlay: kept cloaked, raids (2026-10-15); spies: Intelligence spy-chief posts and sabotage (2026-10-30)",
+    "radar stealth": "Intelligence spies (spy-chief, 2026-10-30)", "sonar stealth": "Intelligence spies (spy-chief, 2026-10-30)",
     "radar": "Intelligence sub-commander", "jammer": "Intelligence sub-commander", "sonar": "Intelligence",
     "seismic detector": "Intelligence (structures)", "transport": "no (only excluded from the air force)",
     "manual fire (D-gun style)": "commander D-gun only", "energy converter": "economy (surplus energy)",

@@ -1,6 +1,6 @@
 ---
 name: intelligence
-description: Playbook for an Intelligence sub-commander in Beyond All Reason - radar coverage, cameras, jammers, sonar, scouting and hunting enemy radar and jammers.
+description: Playbook for an Intelligence sub-commander in Beyond All Reason - the spy-chief - radar coverage, cameras, jammers, sonar, spies, radar planes and submarines, marking targets for deep strikes, sabotage, hunting enemy radar and jammers.
 ---
 
 # Intelligence playbook
@@ -46,11 +46,31 @@ player when their jammers hide an army.
 
 ## Eyes for the cannons and bombers, and counter-intelligence (since 2026-10-16)
 
-- **Spotters**: cloaking spies (Ghost / Spectre / Eidolon, from the tier 2 bot lab, which makes them for you)
-  and, where none can be made, scouts hold watch near what the team is hitting: the long-range cannons'
-  and the bombers' targets, the army's target, their factories (their start if none is known). They
-  cloak, stand back ~400 from the target, and lost ones are replaced (2 + 1 per 50 metal/s, up to 5).
+- **Spotters**: cloaking spies (Ghost / Spectre / Eidolon, from the tier 2 bot lab, which makes them for you),
+  submarines on water maps, and, where none can be made, scouts hold watch near what the team is hitting:
+  the long-range cannons' and the bombers' targets, the army's target, their factories, their richest
+  structures not seen for 4 minutes (their start if nothing is known); with every point watched they look
+  at their side's unseen ground. Lost ones are replaced (2 + 1 per 50 metal/s, up to 5).
   Without eyes the cannons and strikes have nothing to aim at.
+
+## The spy-chief (since 2026-10-30)
+
+- **Spotters stay alive**: each watches from a post in sight of its target and outside the reach of
+  everything of theirs we know (a cloaker keeps clear of their units' decloak distance, a visible one of
+  their guns), walks there around their armies, slips away when revealed or approached, goes home hurt.
+  `spyChief.spotters` in your state counts posts, slip-aways, trips home, targets without a safe post and
+  sabotages; many slip-aways mean their army moves around a lot there.
+- **Radar and sonar planes** (2; sonar ones on water maps) and a **submarine** on water maps (it watches
+  their shipyards and fleets): from your own aircraft plant / shipyard, or another sub-commander's
+  factory builds them for you.
+- **Marks for deep strikes**: every few seconds the richest structures of theirs your eyes saw in the last
+  2 minutes (cannons, silos, anti-nukes, factories, big power, less where their anti-air is) are marked
+  (`spyChief.marks`); the Air Force and the Army's air raids go for marks first. Without an Air Force
+  your aircraft plant builds bombers (up to 6) and you strike the marks yourself.
+- **Sabotage**: during a strike on a target worth 1500+, a spy waits cloaked by their anti-air around it
+  and self-destructs (an EMP) as the bombers come in. One spy always stays on watch.
+- Tell the player what you marked and why it matters (their fusion feeds their whole army; their anti-nuke
+  stops our nuke).
 - **Counter-intelligence**: your armed units hunt their scouts, spies and cameras in our areas first,
   then their radar and jammers; a seismic detector at home from minute 8 reveals cloaked units moving;
   the mobile jammer follows the army to hide it.

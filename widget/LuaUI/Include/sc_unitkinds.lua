@@ -68,7 +68,12 @@ for defID, ud in pairs(UnitDefs) do
 	d.sight = ud.sightDistance or ud.losRadius or 0
 	d.camera = not mobile and not d.armed and (ud.cloakCost or 0) > 0 and d.cost < 100
 	d.scout = mobile and not d.builder and not d.air and d.cost < 45 and (ud.speed or 0) >= 120 and d.sight >= 550
-	d.spy = mobile and (ud.cloakCost or 0) > 0 and ud.stealth and d.builder and not d.commander
+	-- the spies (Ghost, Spectre, Eidolon): cloaking, radar-stealthy "builders" without build options and a
+	-- dummy weapon, whose self-destruct is an EMP (SPYBOMBX). (d.builder needs build options: tested on it,
+	-- this was never true)
+	d.spy = mobile and (ud.cloakCost or 0) > 0 and ud.stealth and ud.isBuilder and #buildOptions == 0 and not cp.iscommander
+	d.decloak = ud.decloakDistance or ud.minCloakDistance or 75
+	d.mobileSonar = mobile and (ud.sonarDistance or 0) > 0
 	d.canCloak = ud.canCloak or false
 	-- abilities (docs/research/units.md, scripts/unit_catalogue.py)
 	local ucp = ud.customParams or {}
@@ -133,6 +138,8 @@ for defID, ud in pairs(UnitDefs) do
 	-- go anywhere on water (deepWater: what a fleet at sea can be reached with)
 	d.maxDepth = ud.maxWaterDepth or 20
 	d.deepWater = mobile and not d.air and (d.naval or d.hover or d.maxDepth >= 255)
+	-- submarines (UBOAT movedefs): hidden from all but sonar
+	d.sub = d.naval and move:lower():find("uboat") ~= nil
 	d.speed = ud.speed or 0
 	d.health = ud.health or 0
 	d.transport = (ud.transportCapacity or 0) > 0
@@ -177,6 +184,10 @@ for defID, ud in pairs(UnitDefs) do
 	end
 	if d.hover and d.mobile and not d.air then
 		d.kind = "hover " .. d.kind
+	end
+	-- a spy's dummy weapon does nothing: not a fighter (the Ghost read as a 285-metal "assault" unit)
+	if d.spy then
+		d.armed, d.combat, d.dps, d.groundDps, d.kind = false, false, 0, 0, "spy"
 	end
 	defs[defID] = d
 end
