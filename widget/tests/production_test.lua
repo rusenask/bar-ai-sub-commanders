@@ -30,6 +30,21 @@ return {
 		local id2 = P.pick({ 6 }, {}, 100, {}, { category = "heavy" })
 		T.eq(id2, 6)
 	end,
+	enemy_at_sea_picks_units_that_reach_it = function()
+		local P = prod()
+		local d = {}
+		for k, v in pairs(defs) do
+			d[k] = v
+		end
+		d[10] = { mobile = true, combat = true, armed = true, cost = 300, speed = 50, kind = "skirmisher", deepWater = true }
+		local P2 = T.load("sc_production")({ defs = d, doctrine = F.doctrine })
+		for _ = 1, 4 do
+			local id = P2.pick({ 2, 4, 5, 6, 10 }, {}, 100, {}, { combatOnly = true, water = true })
+			T.eq(id, 10, "only the amphibious unit")
+		end
+		local id = P.pick({ 2, 4, 5, 6 }, {}, 100, {}, { combatOnly = true, water = true })
+		T.ok(id ~= nil, "a factory with nothing for water builds as usual")
+	end,
 	categories = function()
 		local P = prod()
 		T.eq(P.category(defs[1]), "constructor")

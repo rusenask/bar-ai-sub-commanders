@@ -181,6 +181,11 @@ out wrong.
 - A change that helps one faction and not the other is a faction overlay, not a revert: the later
   aircraft plant was neutral on Cortex and +0.14 on Legion (48 pairs, repeated before keeping). A borderline
   "better" on one faction gets a second batch before it's kept. (g101, g102)
+- Nothing knew about deep water: on Boulder Beach (2026-10-30, live game, minute 130) the enemy was a
+  hover/naval fleet at sea, the Army's push target sat at -118 depth, and 193 Legion vehicles stood on the
+  shore while the vehicle plants kept making more. Land squads now fight sea targets from the shore or skip
+  them, and the Army builds hover/amphibious units and a hovercraft platform once their army is at sea
+  (doctrine.engage.water). Not yet measured in games: test on a water map before tuning.
 
 ## Engine and widget traps
 

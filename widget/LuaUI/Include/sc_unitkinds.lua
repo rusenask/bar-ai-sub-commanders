@@ -129,6 +129,10 @@ for defID, ud in pairs(UnitDefs) do
 	local move = ud.moveDef and ud.moveDef.name or ""
 	d.naval = mobile and not d.air and (move:find("boat") ~= nil or (ud.minWaterDepth or 0) > 0)
 	d.hover = mobile and move:find("hover") ~= nil
+	-- how deep the water it can go into: land units 20 (BAR's movedefs), amphibious 5000; hovers and ships
+	-- go anywhere on water (deepWater: what a fleet at sea can be reached with)
+	d.maxDepth = ud.maxWaterDepth or 20
+	d.deepWater = mobile and not d.air and (d.naval or d.hover or d.maxDepth >= 255)
 	d.speed = ud.speed or 0
 	d.health = ud.health or 0
 	d.transport = (ud.transportCapacity or 0) > 0

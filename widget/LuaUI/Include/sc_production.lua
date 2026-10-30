@@ -102,15 +102,25 @@ return function(ctx)
 	end
 
 	-- options: list of defIDs the factory can build; have: category -> count we have (from this factory's
-	-- owner); opts.cap: most metal per unit; opts.combatOnly: no constructors; opts.category: force one
+	-- owner); opts.cap: most metal per unit; opts.combatOnly: no constructors; opts.category: force one;
+	-- opts.water: their army is at sea, only units that go into deep water (hover, amphibious, ships) when
+	-- the factory has any
 	-- returns defID, category (nil if nothing fits)
 	function P.pick(options, have, income, enemyKinds, opts)
 		opts = opts or {}
+		local water = false
+		if opts.water then
+			for _, o in ipairs(options) do
+				local d = defs[o]
+				local c = P.category(d)
+				water = water or (d.deepWater and c and c ~= "scout" and c ~= "constructor" and (not opts.cap or d.cost <= opts.cap))
+			end
+		end
 		local byCat = {}
 		for _, o in ipairs(options) do
 			local d = defs[o]
 			local c = P.category(d)
-			if c and c ~= "scout" and (not opts.cap or d.cost <= opts.cap) and not (opts.combatOnly and c == "constructor") then
+			if c and c ~= "scout" and (not opts.cap or d.cost <= opts.cap) and not (opts.combatOnly and c == "constructor") and (not water or d.deepWater) then
 				byCat[c] = byCat[c] or {}
 				byCat[c][#byCat[c] + 1] = o
 			end

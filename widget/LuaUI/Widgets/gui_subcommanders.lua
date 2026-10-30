@@ -149,6 +149,8 @@ do
 	Engine.fb = include("sc_firebase")({ doctrine = Engine.D })
 	Engine.armyStyle, Engine.armyStyleNow, Engine.armyStyleSince = "auto", "balanced", 0
 	Engine.comMode, Engine.comPersonality = "auto", "careful"
+	-- the player's switches: do the silos fire on their own (false: kept stockpiled for the player)
+	Engine.autoLaunch = { nuke = true, juno = true }
 end
 
 --------------------------------------------------------------------------------
@@ -2280,16 +2282,25 @@ function Jobs.newFactory(sub, unitID, d, ux, uz)
 			want = want + 1
 		end
 	end
+	-- their army at sea (doctrine.engage.water): a hovercraft platform for the Army, past the cap (land
+	-- labs make nothing that reaches a fleet; the floating one needs water to stand on)
+	local seaLab = false
+	if Engine.enemyAtSea() and Engine.subOfRole("army") and not Engine.haveFactoryNamed("hp$") then
+		for _, opt in ipairs(d.options) do
+			local name = UnitDefs[opt].name or ""
+			seaLab = seaLab or (name:find("hp$") ~= nil and not name:find("fhp$"))
+		end
+	end
 	-- metal overflowing (doctrine.economy.overflowSpend): labs beyond the cap to spend it
 	local OS = E.overflowSpend
 	local cap = E.maxFactories + ((OS and econ.mFrac > OS.at) and OS.extraFactories or 0)
-	if have >= min(want, cap) then
+	if have >= min(want, cap) and not seaLab then
 		return false
 	end
 	-- construction turrets first: another lab only once every lab has its turrets, as long as energy can
 	-- pay for turrets (3200 energy each); short of energy, a lab is the way to spend piling metal (engine-v4)
 	local earlySecond = E.secondLabIncome and have == 1 and income >= E.secondLabIncome
-	if have > 0 and not earlySecond and not Engine.labsSaturated() and econ.eFrac > 0.3 and econ.eInc > 300 then
+	if have > 0 and not earlySecond and not seaLab and not Engine.labsSaturated() and econ.eFrac > 0.3 and econ.eInc > 300 then
 		return false
 	end
 	for _, p in pairs(planned) do
@@ -2304,11 +2315,14 @@ function Jobs.newFactory(sub, unitID, d, ux, uz)
 	-- with a big economy a second one for the Army: air raids (doctrine.escalation)
 	-- (an Air Force sub-commander builds its own)
 	local airForce = Engine.subOfRole("air")
-	local armyAir = not airForce and have > 0 and income >= Engine.D.escalation.airRaidIncome and Engine.haveAirPlant() and not Engine.armyHasAirPlant()
-	local wantAir = not airForce and ((have > 0 and income >= E.airPlantIncome and not Engine.haveAirPlant()) or armyAir)
+	local armyAir = not seaLab and not airForce and have > 0 and income >= Engine.D.escalation.airRaidIncome and Engine.haveAirPlant() and not Engine.armyHasAirPlant()
+	local wantAir = not seaLab and not airForce and ((have > 0 and income >= E.airPlantIncome and not Engine.haveAirPlant()) or armyAir)
 	local wantVehicles = have > 0 and not wantAir and not Engine.haveFactoryNamed("vp$")
 	local function rank(opt)
 		local name = UnitDefs[opt].name or ""
+		if seaLab then
+			return (name:find("hp$") and not name:find("fhp$")) and 3 or 0
+		end
 		if wantAir then
 			return makesAircraft(defs[opt]) and 3 or 0
 		end
@@ -2338,7 +2352,7 @@ function Jobs.newFactory(sub, unitID, d, ux, uz)
 	local len = max(sqrt(dx * dx + dz * dz), 1)
 	local ax, az = clampToMap(Engine.homeX - dx / len * 250, Engine.homeZ - dz / len * 250)
 	local x, z = findBuildSpot(sub, o, ax, az, { gap = 48, rings = 10 })
-	if x and issueBuild(sub, unitID, o, x, z, facingToward(x, z, Engine.enemyX or MAP_X / 2, Engine.enemyZ or MAP_Z / 2), have == 0 and "our first factory" or "another factory: income allows it") then
+	if x and issueBuild(sub, unitID, o, x, z, facingToward(x, z, Engine.enemyX or MAP_X / 2, Engine.enemyZ or MAP_Z / 2), have == 0 and "our first factory" or (seaLab and "a hovercraft platform: their army is at sea") or "another factory: income allows it") then
 		local owner_ = Engine.armyToFeed() or sub
 		-- a second kind of factory builds the army's units in parallel: it goes to the Army
 		for _, s in ipairs(subs) do
@@ -3935,6 +3949,109 @@ end
 
 -- every 2 s: interceptors and Juno missiles stockpiled, Juno fired at their densest intel, the long-range
 -- cannons on their best target, resurrection bots on the best wreck
+-- the player's switch for a silo kind ("nuke" or "juno"): fire on their own, or only stockpile
+function Engine.setAutoLaunch(kind, on)
+	if Engine.autoLaunch[kind] == nil then
+		return false
+	end
+	Engine.autoLaunch[kind] = on and true or false
+	local what = kind == "nuke" and "nukes" or "Juno missiles"
+	local text = on and (what .. ": fired automatically") or (what .. ": stockpiled, fired by you only")
+	local C = Engine.ourStrategic()
+	local sub = owner[(kind == "nuke" and C.nukeSilo or C.junoSilo)[1] or -1] or activeSub
+	if sub then
+		log(sub, text)
+	else
+		spEcho("Sub-Commanders: " .. text)
+	end
+	return true
+end
+
+-- our side's nukes in the air (ours, the player's or an ally's): our sub-commanders' units under the
+-- blast walk out until it lands, and those just outside stop walking in (doctrine.strategic.nuke.clear)
+Engine.nukeWeapon = {} -- weaponDefID -> blast radius for nukes, false otherwise
+Engine.nukeLogged = {}
+function Engine.nukeClear()
+	local K = Engine.D.strategic and Engine.D.strategic.nuke and Engine.D.strategic.nuke.clear
+	if not K or not canControl or not Spring.GetProjectilesInRectangle or not Spring.GetProjectileTarget then
+		return
+	end
+	local impacts = {}
+	for _, p in ipairs(Spring.GetProjectilesInRectangle(0, 0, MAP_X, MAP_Z, false, true) or {}) do
+		local wdID = Spring.GetProjectileDefID(p)
+		local r = wdID and Engine.nukeWeapon[wdID]
+		if wdID and r == nil then
+			local wd = WeaponDefs[wdID]
+			local cp = wd and wd.customParams or {}
+			local aoe = wd and wd.damageAreaOfEffect or 0
+			r = (wd and (cp.nuclear or (wd.targetable or 0) > 0) and aoe >= 300) and aoe or false
+			Engine.nukeWeapon[wdID] = r
+		end
+		local team = r and Spring.GetProjectileTeamID(p)
+		if team and Spring.AreTeamsAllied(team, myTeam) then
+			local kind, target = Spring.GetProjectileTarget(p)
+			local tx, tz
+			if kind == 103 and type(target) == "table" then -- 'g': ground
+				tx, tz = target[1], target[3]
+			elseif kind == 117 then -- 'u': a unit
+				local ux, _, uz = spGetUnitPosition(target)
+				tx, tz = ux, uz
+			end
+			if tx then
+				impacts[#impacts + 1] = { id = p, x = tx, z = tz, r = r * K.scale + K.margin, n = 0 }
+			end
+		end
+	end
+	if #impacts == 0 then
+		return
+	end
+	for _, sub in ipairs(subs) do
+		for u in pairs(sub.units) do
+			local d = unitDef(u)
+			local st = ustate[u]
+			if d and d.mobile and not d.air and (d.speed or 0) > 0 and not (st and st.manual) and not spGetUnitIsBeingBuilt(u) then
+				local x, _, z = spGetUnitPosition(u)
+				for _, h in ipairs(impacts) do
+					local dd = x and dist2(x, z, h.x, h.z)
+					if dd and dd < (h.r + K.hold) ^ 2 then
+						local s = getState(u)
+						if dd < h.r * h.r then
+							local len = sqrt(dd)
+							local dx, dz = x - h.x, z - h.z
+							if len < 1 then
+								dx, dz = (Engine.homeX or MAP_X / 2) - h.x, (Engine.homeZ or MAP_Z / 2) - h.z
+								len = max(sqrt(dx * dx + dz * dz), 1)
+							end
+							local ox, oz = clampToMap(h.x + dx / len * (h.r + 150), h.z + dz / len * (h.r + 150))
+							order(u, CMD.MOVE, { ox, spGetGroundHeight(ox, oz), oz })
+							setTask(u, "dodge", "leaving our nuke's blast", true)
+							h.n = h.n + 1
+						else
+							-- just outside: don't walk in (velocity toward the impact)
+							local vx, _, vz = Spring.GetUnitVelocity(u)
+							if vx and vx * (h.x - x) + vz * (h.z - z) > 0 then
+								order(u, CMD.STOP, {})
+								setTask(u, "dodge", "waiting for our nuke to land", true)
+							end
+						end
+						s.dodgeUntil, s.engaged, s.kiteUntil = frame + 45, nil, nil
+						break
+					end
+				end
+			end
+		end
+	end
+	for _, h in ipairs(impacts) do
+		if h.n > 0 and not Engine.nukeLogged[h.id] then
+			Engine.nukeLogged[h.id] = true
+			local sub = Engine.anyArmy() or activeSub
+			if sub then
+				log(sub, sformat("nuke incoming at %d,%d: %d of our units leaving the blast", h.x, h.z, h.n))
+			end
+		end
+	end
+end
+
 function Engine.strategicControl()
 	local G = Engine.D.strategic
 	if not G or not canControl then
@@ -3957,7 +4074,8 @@ function Engine.strategicControl()
 	end
 	if G.juno.on then
 		for _, u in ipairs(C.junoSilo) do
-			if not spGetUnitIsBeingBuilt(u) and stock(u, G.juno.stockpile) > 0 then
+			-- stockpiled either way; fired by us only on auto (the player's switch)
+			if not spGetUnitIsBeingBuilt(u) and stock(u, G.juno.stockpile) > 0 and Engine.autoLaunch.juno then
 				local st = getState(u)
 				if frame >= (st.junoNext or 0) then
 					local x, z, n = Engine.strategic.junoTarget(Engine.junoTargets(), G.juno.aoe, G.juno.minTargets)
@@ -4025,7 +4143,7 @@ function Engine.strategicControl()
 		end
 		for _, u in ipairs(C.nukeSilo) do
 			local ud = unitDef(u)
-			if ud and not spGetUnitIsBeingBuilt(u) and stock(u, N.stockpile) > 0 and frame - (Engine.lastNuke or -99999) > 30 * N.every then
+			if ud and not spGetUnitIsBeingBuilt(u) and stock(u, N.stockpile) > 0 and Engine.autoLaunch.nuke and frame - (Engine.lastNuke or -99999) > 30 * N.every then
 				local aoe = ud.weaponAoe or 640
 				local x, z, v = Engine.strategic.nukeTarget(cands, aoe, antis, N.minValue)
 				-- none of ours under the blast: anything of ours within 1.2 x its radius worth more than
@@ -4119,12 +4237,14 @@ function Engine.armyProduction(sub, fd, cap)
 		return q, "army (" .. (defs[q].human or "quota") .. ", faction quota)"
 	end
 	-- no unit-count cap: metal limits production (a count cap only idled the lab while metal piled up)
+	-- their army at sea (doctrine.engage.water): what goes there, where this factory has it
+	local sea = Engine.enemyAtSea()
 	local defID = Engine.prod.pick(fd.options, sub.counts.cats or {}, max(econ.mInc, 0), Enemy.mix().kinds,
-		{ cap = cap, combatOnly = true, category = Engine.raidNeed(sub) and "raider" or nil })
+		{ cap = cap, combatOnly = true, category = (not sea and Engine.raidNeed(sub)) and "raider" or nil, water = sea })
 	if not defID then
 		return nil, "nothing affordable"
 	end
-	return defID, "army"
+	return defID, (sea and defs[defID].deepWater) and "army (their army is at sea)" or "army"
 end
 
 local function pickProduction(sub, facID, fd)
@@ -4849,11 +4969,108 @@ end
 -- their factories and economy (what wins games) and their armed groups (threat map memory)
 Const.ATTACK_PREFER = { artillery = 4, factory = 3, extractor = 1.5, generator = 1.2, constructor = 1, radar = 1, structure = 1, army = 0.6 }
 
+-- deep water (doctrine.engage.water): how deep the land units of a squad go (the costliest one's
+-- movedef), when they're most of it by metal; nil for a squad that goes to sea. members: { cost, def }
+function Engine.waterReach(members)
+	local land, total, depth, top = 0, 0, nil, 0
+	for _, m in ipairs(members) do
+		total = total + m.cost
+		if m.def and not m.def.deepWater then
+			land = land + m.cost
+			if m.cost > top then
+				depth, top = m.def.maxDepth or 20, m.cost
+			end
+		end
+	end
+	return total > 0 and land >= 0.5 * total and depth or nil
+end
+
+-- where units that go `depth` deep fight a target at x, z from: there, or the nearest shore within
+-- doctrine.engage.water.shore; nil when there's none (cached: the ground doesn't move)
+Engine.shoreCache = {}
+function Engine.shorePoint(depth, x, z)
+	local W = Engine.D.engage.water
+	if not W or not depth or spGetGroundHeight(x, z) > -depth then
+		return x, z
+	end
+	local key = sformat("%d:%d:%d", depth, floor(x / 64), floor(z / 64))
+	local c = Engine.shoreCache[key]
+	if c == nil then
+		c = false
+		for r = 100, W.shore, 100 do
+			for a = 0, 15 do
+				local px, pz = clampToMap(x + cos(a * pi / 8) * r, z + sin(a * pi / 8) * r)
+				if spGetGroundHeight(px, pz) > -depth then
+					c = { px, pz }
+					break
+				end
+			end
+			if c then
+				break
+			end
+		end
+		Engine.shoreCache[key] = c
+	end
+	if c then
+		return c[1], c[2]
+	end
+	return nil
+end
+
+-- the targets a squad of land units can fight: each where it is or from its shore, the rest left out
+function Engine.reachable(depth, cands)
+	if not depth then
+		return cands
+	end
+	local out = {}
+	for _, c in ipairs(cands) do
+		local x, z = Engine.shorePoint(depth, c.x, c.z)
+		if x then
+			if x ~= c.x or z ~= c.z then
+				local s = {}
+				for k, v in pairs(c) do
+					s[k] = v
+				end
+				s.x, s.z = x, z
+				c = s
+			end
+			out[#out + 1] = c
+		end
+	end
+	return out
+end
+
+-- is their army mostly at sea (doctrine.engage.water)? Their armed mobile ground and sea units seen in
+-- the last 2 minutes, by metal, in water deeper than land units go; counted every 10 s
+Engine.seaCache = { frame = -99999, at = false, share = 0 }
+function Engine.enemyAtSea()
+	local C, W = Engine.seaCache, Engine.D.engage.water
+	if not W then
+		return false
+	end
+	if frame - C.frame >= 300 then
+		local sea, all = 0, 0
+		for _, e in pairs(Enemy.units) do
+			local d = defs[e.defID]
+			if d and d.mobile and d.armed and not d.air and not d.builder and frame - e.last < 30 * 120 then
+				all = all + d.cost
+				if spGetGroundHeight(e.x, e.z) < -20 then
+					sea = sea + d.cost
+				end
+			end
+		end
+		C.frame, C.share = frame, all > 0 and sea / all or 0
+		C.at = all >= W.minValue and C.share >= W.at
+	end
+	return C.at
+end
+
 function Tactics.attackTarget(sub, sq)
 	local cands = Engine.raidCandidates(true)
 	for _, g in ipairs(Engine.tm.groups(frame, 8)) do
 		cands[#cands + 1] = { id = "group:" .. floor(g.x / 512) .. ":" .. floor(g.z / 512), x = g.x, z = g.z, value = g.power, kind = "army", name = sformat("%d metal", g.power) }
 	end
+	cands = Engine.reachable(sq.depth, cands)
 	local t = Engine.squads.pickTarget(sq, cands, frame, { prefer = Const.ATTACK_PREFER })
 	if t then
 		return { id = t.id, x = t.x, z = t.z, name = "enemy " .. t.kind .. " (" .. t.name .. ")" }
@@ -4972,7 +5189,7 @@ function Tactics.raid(sub)
 		if d and (cloaker or Engine.micro.raids(Engine.prod.category(d), Engine.armyStyleNow)) and not spGetUnitIsBeingBuilt(u) and not (st and (st.retreating or st.manual)) then
 			local x, _, z = spGetUnitPosition(u)
 			if x then
-				raiders[#raiders + 1] = { id = u, x = x, z = z, cost = d.cost }
+				raiders[#raiders + 1] = { id = u, x = x, z = z, cost = d.cost, def = d }
 			end
 		end
 	end
@@ -5012,7 +5229,7 @@ function Tactics.raid(sub)
 	elseif prev and prev.action == "retreat" and dist2(rs.x, rs.z, prev.x, prev.z) > 600 * 600 then
 		return -- still on the way home
 	else
-		local t = S.pickTarget(rs, Engine.raidCandidates(), frame, { need = R.need, prefer = R.prefer })
+		local t = S.pickTarget(rs, Engine.reachable(Engine.waterReach(members), Engine.raidCandidates()), frame, { need = R.need, prefer = R.prefer })
 		if t then
 			action, tx, tz, name, id = "raid", t.x, t.z, "enemy " .. t.kind .. " (" .. t.name .. ")", t.id
 		else
@@ -5843,12 +6060,13 @@ function Tactics.squad(sub)
 		if d and d.combat and not d.aaOnly and not d.air and not spGetUnitIsBeingBuilt(u) and not (st and (st.retreating or st.manual or st.raid or st.responder)) then
 			local x, _, z = spGetUnitPosition(u)
 			if x then
-				members[#members + 1] = { id = u, x = x, z = z, cost = d.cost, range = d.range }
+				members[#members + 1] = { id = u, x = x, z = z, cost = d.cost, range = d.range, def = d }
 			end
 		end
 	end
 	local S = Engine.squads
 	local sq = S.summarize(members)
+	sq.depth = Engine.waterReach(members)
 	sub.squad = sq
 	sub.rallyX, sub.rallyZ = Tactics.rallyPoint(sub)
 	if sq.power <= 0 then
@@ -5869,14 +6087,16 @@ function Tactics.squad(sub)
 			-- (v19's 200-unit army chased raiders at home through the whole push)
 			-- (not just in a push: v23's whole army regrouped "before intruders (290.8x)")
 			handled = handled or (rsq and theirs * Engine.D.escalation.overkill < sq.power)
-			if not t.air and not handled and not (helping and not Engine.nearVital(t.x, t.z) and Engine.tm.influence(t.x, t.z) >= 1.5 * Engine.tm.enemyPower(t.x, t.z, 700, frame)) then
-				local dd = sqrt(dist2(sq.x, sq.z, t.x, t.z))
+			-- out at sea beyond the shore our land units reach: the turrets' and the fleet's
+			local tx, tz = Engine.shorePoint(sq.depth, t.x, t.z)
+			if tx and not t.air and not handled and not (helping and not Engine.nearVital(t.x, t.z) and Engine.tm.influence(t.x, t.z) >= 1.5 * Engine.tm.enemyPower(t.x, t.z, 700, frame)) then
+				local dd = sqrt(dist2(sq.x, sq.z, tx, tz))
 				-- what they threaten counts more than how close they are: factories and the commander first
 				if Engine.nearVital(t.x, t.z) then
 					dd = dd - 2500
 				end
 				if dd < 4000 and (not targetD or dd < targetD) then
-					target, targetD = { id = t.id, x = t.x, z = t.z, name = "intruders" }, dd
+					target, targetD = { id = t.id, x = tx, z = tz, name = "intruders" }, dd
 				end
 			end
 		end
@@ -5911,8 +6131,9 @@ function Tactics.squad(sub)
 	end
 	if dominant then
 		for _, t in ipairs(sub.threats) do
-			if not t.air and Engine.nearVital(t.x, t.z) then
-				target = { id = t.id, x = t.x, z = t.z, name = "intruders at a factory or the commander" }
+			local tx, tz = Engine.shorePoint(sq.depth, t.x, t.z)
+			if tx and not t.air and Engine.nearVital(t.x, t.z) then
+				target = { id = t.id, x = tx, z = tz, name = "intruders at a factory or the commander" }
 				break
 			end
 		end
@@ -5932,13 +6153,14 @@ function Tactics.squad(sub)
 	-- the team asks: a sub-commander's area outgunned (sc_team.lua defend requests)
 	if not target and auto.help then
 		local r, rd = Engine.team.nearest("defend", sq.x, sq.z)
-		if r and rd < 5000 and Engine.inBase(r.x, r.z) then
-			target = { id = "req:" .. r.id, x = r.x, z = r.z, name = "a call for help (" .. (r.note or "defend") .. ")" }
+		local rx, rz = r and Engine.shorePoint(sq.depth, r.x, r.z)
+		if rx and rd < 5000 and Engine.inBase(r.x, r.z) then
+			target = { id = "req:" .. r.id, x = rx, z = rz, name = "a call for help (" .. (r.note or "defend") .. ")" }
 		end
 	end
 	-- their artillery outranges our turrets: dive it when it's within reach of home and we beat it there
 	if not target and auto.help and Engine.homeX then
-		for _, g in ipairs(Engine.tm.groups(frame, 6)) do
+		for _, g in ipairs(Engine.reachable(sq.depth, Engine.tm.groups(frame, 6))) do
 			if (g.ranged or 0) >= g.power * 0.4 and sqrt(dist2(g.x, g.z, Engine.homeX, Engine.homeZ)) < Engine.D.engage.chase + 800
 				and S.decide(sq, g.x, g.z, frame, {}) == "engage" then
 				target = { id = "arty:" .. floor(g.x / 512) .. ":" .. floor(g.z / 512), x = g.x, z = g.z, name = "their artillery" }
@@ -5950,7 +6172,7 @@ function Tactics.squad(sub)
 	-- from another angle
 	if not target and auto.help and Engine.homeX and Engine.D.engage.chase > 0 then
 		local bestD
-		for _, g in ipairs(Engine.tm.groups(frame, 6)) do
+		for _, g in ipairs(Engine.reachable(sq.depth, Engine.tm.groups(frame, 6))) do
 			local dh = sqrt(dist2(g.x, g.z, Engine.homeX, Engine.homeZ))
 			if g.static < g.power * 0.3 and dh < Engine.D.engage.chase then
 				local dd = dist2(sq.x, sq.z, g.x, g.z)
@@ -5968,7 +6190,10 @@ function Tactics.squad(sub)
 	end
 	if not target and auto.push and sub.pushTarget and phase ~= "defend" then
 		local p = sub.pushTarget
-		target = { id = p.id, x = p.x, z = p.z, name = p.name }
+		local px, pz = Engine.shorePoint(sq.depth, p.x, p.z)
+		if px then
+			target = { id = p.id, x = px, z = pz, name = p.name }
+		end
 	end
 	if not target and (auto.attack or (auto.push and phase == "push")) and phase ~= "defend" and S.canAttack(sq) then
 		target = Tactics.attackTarget(sub, sq)
@@ -7063,7 +7288,9 @@ local function runSub(sub, budget, combatPass)
 			local d = unitDef(unitID)
 			local st = getState(unitID)
 			if d and not spGetUnitIsBeingBuilt(unitID) and not manualHeld(unitID, st, d) then
-				if d.builder then
+				if st.dodgeUntil and frame < st.dodgeUntil and d.builder then
+					-- a constructor leaving our nuke's blast (Engine.nukeClear)
+				elseif d.builder then
 					if d.commander and ((combatPass and Tactics.guardCommander(sub, unitID, st)) or (st.fleeing and frame - st.fleeing < 30 * 15)) then
 						-- the commander is getting out of danger
 					elseif d.commander and ((combatPass and Tactics.commander(sub, unitID, d, st)) or (st.comBusy and frame < st.comBusy)) then
@@ -7774,6 +8001,7 @@ Const.HELP = {
 	"  role <role> [id] / posture <conserve|balanced|spend> [id]",
 	"  autonomy <light|balanced|full> [id]   how much it does on its own",
 	"  raids <on|off> [id]   an army's fast units scout and raid (on by default)",
+	"  nukes <on|off> / juno <on|off>   silos fire on their own, or only stockpile for you (on by default)",
 	"  focus [id]       factory produces only the selected unit types (none selected = automatic)",
 	"  pause [id] / resume [id] / delete [id] / select [id] / list",
 	"  tell [id] <orders>   standing orders in plain words for its AI strategist (empty = clear)",
@@ -7872,6 +8100,8 @@ local function textCommand(_, line, words)
 		end
 	elseif verb == "new" then
 		createSub(words[2])
+	elseif verb == "nukes" or verb == "juno" then
+		Engine.setAutoLaunch(verb == "nukes" and "nuke" or "juno", words[2] ~= "off")
 	elseif verb == "list" then
 		for _, sub in ipairs(subs) do
 			spEcho(sformat("[%d] %s  %s/%s  units=%d zones=%d  %s", sub.id, sub.name, sub.role, sub.posture, sub.counts.total, #sub.zones, sub.status or ""))
@@ -8127,6 +8357,20 @@ local function drawActiveControls(sub, x1, x2, y, s)
 	end
 	buttonRow(x1, x2, y, h, s, row, fs)
 	y = y - h - 4 * s
+	-- the silos' switches (team-wide), once we have a nuke or Juno silo
+	local C = Engine.ourStrategic()
+	if #C.nukeSilo > 0 or #C.junoSilo > 0 then
+		local A = Engine.autoLaunch
+		buttonRow(x1, x2, y, h, s, {
+			{ A.nuke and "Nukes: auto" or "Nukes: manual", function()
+				Engine.setAutoLaunch("nuke", not A.nuke)
+			end, A.nuke and { 0.55, 1, 0.6 } or { 1, 0.6, 0.2 } },
+			{ A.juno and "Juno: auto" or "Juno: manual", function()
+				Engine.setAutoLaunch("juno", not A.juno)
+			end, A.juno and { 0.55, 1, 0.6 } or { 1, 0.6, 0.2 } },
+		}, fs)
+		y = y - h - 4 * s
+	end
 	-- the sub-commander with the commander: its mode and personality (sc_commander.lua)
 	if Engine.commanderID and owner[Engine.commanderID] == sub then
 		local C = Engine.com
@@ -9289,6 +9533,10 @@ function Engine.teamReport()
 		commander = { mode = Engine.comMode, now = Engine.comModeNow, personality = Engine.comPersonality },
 		learned = Engine.learned, -- rules learned from past games (internal/learn), applied at game start
 		armyStyle = { setting = Engine.armyStyle, now = Engine.armyStyleNow, desc = Engine.micro.style(Engine.armyStyleNow).desc },
+		-- the player's switches: false = the silo only stockpiles, the player fires it
+		autoLaunch = Engine.autoLaunch,
+		-- share of their known army (by metal) in deep water; atSea: the Army builds for the sea
+		enemyAtSea = { share = Engine.seaCache.share, atSea = Engine.seaCache.at },
 		territory = Engine.pickets and {
 			exposedFrontierCells = Engine.terr.exposed, -- our edge cells enemies can walk to (cliffs, water, map edge excluded)
 			pickets = (function()
@@ -9536,6 +9784,9 @@ function widget:GameFrame(n)
 	if n % 60 == 30 then
 		Engine.strategicControl()
 	end
+	if n % 30 == 15 then
+		Engine.nukeClear()
+	end
 	local G = Engine.D.micro.dodge
 	if G and G.on and n % (G.every or 6) == 0 then
 		for _, sub in ipairs(subs) do
@@ -9622,6 +9873,11 @@ local function restore(game)
 	if game.armyStyle then
 		Engine.setArmyStyle(game.armyStyle)
 	end
+	for kind, on in pairs(game.autoLaunch or {}) do
+		if Engine.autoLaunch[kind] ~= nil then
+			Engine.autoLaunch[kind] = on and true or false
+		end
+	end
 	if game.commander then
 		Engine.setCommander(game.commander.mode or "auto")
 		Engine.setCommander(game.commander.personality or "careful")
@@ -9634,7 +9890,7 @@ function widget:GetConfigData()
 	local f = spGetGameFrame()
 	if f > 0 and #subs > 0 then
 		data.game = { map = Game.mapName, team = myTeam, frame = f, time = os and os.time and os.time() or nil, subs = serialize(),
-			commander = { mode = Engine.comMode, personality = Engine.comPersonality }, armyStyle = Engine.armyStyle }
+			commander = { mode = Engine.comMode, personality = Engine.comPersonality }, armyStyle = Engine.armyStyle, autoLaunch = Engine.autoLaunch }
 	end
 	return data
 end

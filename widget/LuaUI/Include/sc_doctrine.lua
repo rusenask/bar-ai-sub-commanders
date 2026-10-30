@@ -57,6 +57,11 @@ D.engage = {
 	-- a squad that would hold against a threat within `dist` of its centre, at under `below` of its
 	-- strength, falls back instead (false: holds; at any ratio it threw away mirror fights, -0.47)
 	contactFallback = false,
+	-- deep water (Boulder Beach: a land army chased a hover fleet at sea and stood on the shore): a squad
+	-- mostly of land units fights a target in water from the nearest shore within `shore` elmos, or leaves
+	-- it; once `at` of their known army (by metal, `minValue` at least) is at sea the Army builds what goes
+	-- there (hover, amphibious, ships) where a factory can, and a hovercraft platform
+	water = { at = 0.5, minValue = 2000, shore = 600 },
 	-- falling back to our turrets within radius of the unit (minValue metal) instead of the rally point
 	retreatToTurrets = false,
 	-- holding in a line: the squad's places on an arc around a point this far out in front of the rally
@@ -517,7 +522,11 @@ D.strategic = {
 	-- energy): late, with a big economy (`income` metal/s, `energy` energy/s, metal storage `surplus` full,
 	-- not while defending); `stockpile` missiles kept; fired at the richest cluster of theirs (`minValue`
 	-- metal within 0.8 x its blast) that none of their anti-nukes covers, every `every` s at most
-	nuke = { on = true, minute = 30, income = 120, energy = 3000, surplus = 0.4, max = 1, stockpile = 1, minValue = 4000, every = 30 },
+	-- clear: while a nuke of our side (ours, the player's, an ally's) is in the air, our sub-commanders'
+	-- units within its blast radius x `scale` + `margin` walk out, and those within `hold` more stop
+	-- walking in, until it lands
+	nuke = { on = true, minute = 30, income = 120, energy = 3000, surplus = 0.4, max = 1, stockpile = 1, minValue = 4000, every = 30,
+		clear = { scale = 1.25, margin = 100, hold = 400 } },
 	-- Juno (T1, missile with a 700 radius that kills radar, jammers and mines): Intelligence builds one
 	-- once `minTargets` of their intel structures are known, at `income`; fires at the biggest cluster
 	-- v2: radar / jammers near our operations (an air strike's target, the army's push, our cannons'
