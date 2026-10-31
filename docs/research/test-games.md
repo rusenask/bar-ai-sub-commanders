@@ -1889,3 +1889,17 @@ Score -0.13 [-0.38, +0.10]: can't tell. Better: opening metal lost -826 [-1500, 
 assaults (25 jobs staged; v4.1 on Legion: 0 of 41). No anti-nuke sabotage (no nuke of ours in 40 min).
 Mobile / radar plane hand-offs happened (49 log lines). Kept: no metric says the spy-chief costs games;
 the late losses are worth a look (a bigger army fighting longer, 127.5k metal vs 104.5k).
+
+## Spy-chief v4.2 A/B, water (2026-10-31, force PARALLEL=2, Legion vs Armada medium on Boulder Beach, 40 min, `20261031-1504-ab-spy42-water`, A 28379a9 pre-spy, B 03c95a4)
+
+| Arm | Games | Results | Metal | Killed / lost | Dealt / taken | Constructors lost | Army at 12 min |
+|---|---|---|---|---|---|---|---|
+| A (pre-spy) | 6 | 6 timeout | 102.5k | 223 / 316 | 1.69 | 12.0 | 4.6k |
+| B (v4.2) | 6 | 6 timeout | 97.9k | 142 / 288 | 1.35 | 8.5 | 4.6k |
+
+Score -0.05 [-0.08, -0.01]: worse (all timeouts: the score is the trades); late metal lost +10.3k
+[+2.0k, +18.0k] worse (as on Armada); metal income at 20 min -17.6 [-51, +3] can't tell. 12/12 ran, no
+widget errors. No sabotage (no strike or assault into turrets), 39 marks. B's armies were thinner: 61
+Karkinos in its 6 games against A's 141, with 17 Euclid radar bots, 11 naval scouts, 5 shipyards and 9
+Dionysus - a resurrection sub Intelligence took for its "cheapest submarine" (d.sub included construction
+and resurrection subs: fixed). 6 pairs; the spy-chief's cost on water is measured again with the fix.

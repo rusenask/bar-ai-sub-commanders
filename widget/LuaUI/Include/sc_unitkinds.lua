@@ -139,7 +139,9 @@ for defID, ud in pairs(UnitDefs) do
 	d.maxDepth = ud.maxWaterDepth or 20
 	d.deepWater = mobile and not d.air and (d.naval or d.hover or d.maxDepth >= 255)
 	-- submarines (UBOAT movedefs): hidden from all but sonar
-	d.sub = d.naval and move:lower():find("uboat") ~= nil
+	-- (not construction or resurrection subs: Legion's 240-metal Dionysus was Intelligence's "cheapest sub",
+	-- 9 in 6 Boulder Beach games)
+	d.sub = d.naval and move:lower():find("uboat") ~= nil and not (ud.isBuilder or d.resurrect)
 	d.speed = ud.speed or 0
 	d.health = ud.health or 0
 	d.transport = (ud.transportCapacity or 0) > 0

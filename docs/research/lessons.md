@@ -202,6 +202,9 @@ out wrong.
   each time it flips engage/hold or moves to the next target, so 41 sabotage jobs in 12 games ended before
   one went off. Bind follow-up jobs to the place (an operation near the same site) with a grace period, and
   count completions ("went off"), not starts, in a smoke test. (spy-chief v4.1 A/B, 2026-10-31)
+- A flag named for a unit class ("sub") also took that class's constructors and resurrectors: the cheapest
+  "submarine" was Legion's Dionysus rez sub. When a pick sorts by cost, list what it actually chose in a
+  batch (final unit counts per arm) before trusting the flag. (water A/B, 2026-10-31)
 - Nothing knew about deep water: on Boulder Beach (2026-10-30, live game, minute 130) the enemy was a
   hover/naval fleet at sea, the Army's push target sat at -118 depth, and 193 Legion vehicles stood on the
   shore while the vehicle plants kept making more. Land squads now fight sea targets from the shore or skip
