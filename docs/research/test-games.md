@@ -1860,3 +1860,17 @@ encryption, not ours); one game alone afterwards loaded in 19 s and won at 39 mi
 Gantry, Fusion, Advanced Bot Lab), a spy staged by their anti-air for the Air Force's strike on the
 Gantry (the game ended before the wing came in). No submarine (no shipyard on our side), no hover
 platform (their army stayed on land). Strength not measured yet.
+
+## Spy-chief v4.1 A/B, Legion (2026-10-31, force, Legion vs Armada medium, 40 min, `20261031-1044-ab-spy-leg`, A 28379a9 pre-spy, B 3c8d81a)
+
+| Arm | Games | Results | Metal | Killed / lost | Dealt / taken | Constructors lost | Army at 12 min |
+|---|---|---|---|---|---|---|---|
+| A (pre-spy) | 12 | 3 win, 9 timeout | 149.2k | 192 / 502 | 1.03 | 11.1 | 4.3k |
+| B (v4.1) | 12 | 4 win, 8 timeout | 130.1k | 169 / 452 | 0.93 | 12.8 | 3.7k |
+
+Score +0.02 [-0.21, +0.24]: can't tell; every paired metric can't tell. 24/24 ran, no widget errors. B
+marked targets (310 "marked" log lines), but its sabotage never went off: 41 jobs staged, 0 EMPs. A job
+ended the moment its operation's key changed (the Army flips between engage and hold and moves to the
+next turret; a strike re-targets), so the spy rarely got past "waiting for the go". Fixed in v4.2
+(Intel.keepJob: a job takes over a same-kind operation by its site, and outlives a gap by 20 s). The
+Armada and water batches were stopped to re-run with v4.2.

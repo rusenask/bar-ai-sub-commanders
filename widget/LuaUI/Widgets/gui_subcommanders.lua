@@ -3346,6 +3346,27 @@ function Intel.operation(key)
 	return nil
 end
 
+-- v4.2: is a spy's job still on? Its operation by key, or (the Army flips between engage and hold, and
+-- moves to the next turret as one dies; a strike re-targets) a live one of the same kind with its target
+-- by the job's site, which the job takes over; or one seen within doctrine.intel.sabotage.grace s
+function Intel.keepJob(job, ops)
+	local SB = Engine.D.intel.sabotage
+	for _, o in ipairs(ops) do
+		if o.key == job.key then
+			job.seen = frame
+			return true
+		end
+	end
+	local radius = job.kind == "air" and SB.aaRadius or SB.ground.radius
+	for _, o in ipairs(ops) do
+		if o.kind == job.kind and o.kind ~= "antinuke" and dist2(o.x, o.z, job.x, job.z) <= radius * radius then
+			job.key, job.seen = o.key, frame
+			return true
+		end
+	end
+	return frame - (job.seen or 0) <= 30 * SB.grace
+end
+
 -- does a unit's self-destruct paralyse (the spies' SPYBOMBX)? Its blast radius, or false; from the game's
 -- weapon, once per kind
 Intel.empCache = {}
@@ -3412,7 +3433,7 @@ function Intel.sabotage(sub)
 		local d = unitDef(u)
 		local st = ustate[u]
 		if d and d.spy and not spGetUnitIsBeingBuilt(u) then
-			if st and st.sabotage and not live[st.sabotage.key] then
+			if st and st.sabotage and not Intel.keepJob(st.sabotage, ops) then
 				st.sabotage, st.post = nil, nil
 			end
 			onJob = onJob or (st and st.sabotage ~= nil) or false
@@ -3453,7 +3474,7 @@ function Intel.sabotage(sub)
 	end
 	if best then
 		local what = ({ air = "their anti-air", ground = "their turrets", antinuke = "their anti-nuke" })[op.kind]
-		getState(best).sabotage = { key = op.key, x = sx, z = sz, what = what }
+		getState(best).sabotage = { key = op.key, kind = op.kind, x = sx, z = sz, what = what, seen = frame }
 		log(sub, sformat("sabotage: %s waits by %s (%d metal) at %d,%d to EMP them ahead of the %s", unitDef(best).human, what, sw, sx, sz, ({ air = "strike", ground = "army's assault", antinuke = "nuke" })[op.kind]))
 	end
 end
@@ -3463,7 +3484,11 @@ end
 function Intel.sabotageStep(sub, unitID, d, st, x, z)
 	local job = st.sabotage
 	local op = Intel.operation(job.key)
-	if not op then
+	if op then
+		job.op, job.seen = op, frame
+	elseif job.op and frame - (job.seen or 0) <= 30 * Engine.D.intel.sabotage.grace then
+		op = job.op -- gone a moment (Intel.keepJob): wait on, or carry on going in
+	else
 		st.sabotage = nil
 		return false
 	end

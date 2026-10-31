@@ -307,7 +307,9 @@ D.intel = {
 	-- the spy goes off when the missile is the anti-nuke's coverage + `lead` out (the game's spy EMP stuns
 	-- anti-nukes up to 20 s: customparams.paralyzetime_exception); given up after `abort` s without a
 	-- launch, or `wait` s by the anti-nuke
-	sabotage = { on = true, trigger = 1600, minValue = 1500, keep = 1, aaRadius = 900,
+	-- v4.2 grace: a job outlives its operation by that many s (the Army flips between engage and hold,
+	-- and moves to the next turret: in 12 games 41 jobs were staged and none went off)
+	sabotage = { on = true, trigger = 1600, minValue = 1500, keep = 1, aaRadius = 900, grace = 20,
 		ground = { trigger = 900, radius = 700, minValue = 600 },
 		antinuke = { on = true, gain = 1.5, stand = 100, lead = 2500, abort = 240, wait = 20 } },
 	-- v4.1: on a water map with no shipyard of ours, Intelligence builds the cheapest that makes submarines
