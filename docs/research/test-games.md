@@ -1903,3 +1903,17 @@ widget errors. No sabotage (no strike or assault into turrets), 39 marks. B's ar
 Karkinos in its 6 games against A's 141, with 17 Euclid radar bots, 11 naval scouts, 5 shipyards and 9
 Dionysus - a resurrection sub Intelligence took for its "cheapest submarine" (d.sub included construction
 and resurrection subs: fixed). 6 pairs; the spy-chief's cost on water is measured again with the fix.
+
+## Asks and shared factories A/B, Legion (2026-10-31, force PARALLEL=2, Legion vs Armada medium, 40 min, `20261031-1527-ab-asks-leg`, A 03c95a4 spy-chief v4.2, B 23564f3)
+
+| Arm | Games | Results | Metal | Killed / lost | Dealt / taken | Constructors lost | Army at 12 min |
+|---|---|---|---|---|---|---|---|
+| A (v4.2) | 12 | 3 win, 7 timeout, 2 loss | 131.4k | 143 / 397 | 0.94 | 12.4 | 3.1k |
+| B (asks) | 12 | 4 win, 8 timeout | 136.2k | 179 / 439 | 0.89 | 9.7 | 4.1k |
+
+Score +0.11 [-0.15, +0.37]: can't tell; extractors at 20 min +5.9 [+0.3, +10.8] better; army at 12 min
++1.07k [-0.02k, +2.14k] and mid enemy metal killed +3.3k [-0.2k, +7.1k] nearly. 24/24 ran, no widget
+errors. Asks answered and handed over: mobile radars for Intelligence (Euclid / Pheme, from the Army's and
+the Economy's labs; Legion has no radar plane), tier 1 and tier 2 constructors; 1-3 radars alive at the
+end of a game (replacements: they follow the army and die). Shared factories weren't set (off unless the
+player or strategist shares). 2 sabotage EMPs. B also carries the d.sub fix (no Dionysus).
