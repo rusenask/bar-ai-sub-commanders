@@ -68,7 +68,11 @@ player when their jammers hide an army.
   (`spyChief.marks`); the Air Force and the Army's air raids go for marks first. Without an Air Force
   your aircraft plant builds bombers (up to 6) and you strike the marks yourself.
 - **Sabotage**: during a strike on a target worth 1500+, a spy waits cloaked by their anti-air around it
-  and self-destructs (an EMP) as the bombers come in. One spy always stays on watch.
+  and self-destructs (an EMP) as the bombers come in; ahead of an Army assault into their turrets (600+
+  metal) it EMPs the turrets as the squad arrives. With our nuke ready and their richest cluster under
+  one anti-nuke, a spy stands by the anti-nuke, our nuke goes up, and the spy goes off as it comes in (the
+  EMP stuns an anti-nuke for up to 20 s): `spyChief.antinuke` shows it. One spy always stays on watch.
+- With no radar plane (Legion has none on land) another sub-commander's factory builds you a mobile radar.
 - Tell the player what you marked and why it matters (their fusion feeds their whole army; their anti-nuke
   stops our nuke).
 - **Counter-intelligence**: your armed units hunt their scouts, spies and cameras in our areas first,

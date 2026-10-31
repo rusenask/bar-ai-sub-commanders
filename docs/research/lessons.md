@@ -190,6 +190,14 @@ out wrong.
   for cloakers, weapon range for visible spotters, sc_spies.lua). Also: `d.spy` had never been true
   (`d.builder` needs build options, spies have none) and the spies' dummy weapon made them 285-metal
   "assault" units. Read a flag's definition before building on it. (spy-chief, 2026-10-30)
+- Game rules the per-unit dump doesn't show live in the weapon defs: the spy's self-destruct `spybombx`
+  (5000 paralyse damage, `areaofeffect` 360 = 180 radius) carries `paralyzetime_exception`
+  `customparams.unitgroup=antinuke:20`, a built-in "EMP the anti-nuke" play (anti-nukes 3300-3650 HP).
+  Weapon defs are in force's rapid pool: `zcat ~/bar-sim/data/pool/*/*.gz | grep` for the name. Nukes:
+  5.5 s climb, then up to 1600 elmos/s; anti-nuke coverage 2000. (spy-chief v4.2, 2026-10-31)
+- Legion has no radar plane on land at any tech (its T2 air plant has none); its mobile radar is the
+  Euclid bot / Pheme vehicle, and Okeanos only from the seaplane platform. Check units.md before assuming a
+  faction has a unit kind. (2026-10-31)
 - Nothing knew about deep water: on Boulder Beach (2026-10-30, live game, minute 130) the enemy was a
   hover/naval fleet at sea, the Army's push target sat at -118 depth, and 193 Legion vehicles stood on the
   shore while the vehicle plants kept making more. Land squads now fight sea targets from the shore or skip

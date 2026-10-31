@@ -301,8 +301,15 @@ D.intel = {
 	-- keeping `keep` spies on watch
 	-- v4.1 ground: also ahead of an Army's assault outside our base on their turrets (`radius` around its
 	-- target, worth `minValue` metal), going off when the squad's centre is `trigger` out
+	-- v4.2 antinuke: with our nuke ready and their richest cluster kept from it by one static anti-nuke
+	-- (worth `gain` x the best open target), a spy walks up to `stand` from it (outside its decloak
+	-- distance of 75, inside the EMP's 180), our nuke goes up, and
+	-- the spy goes off when the missile is the anti-nuke's coverage + `lead` out (the game's spy EMP stuns
+	-- anti-nukes up to 20 s: customparams.paralyzetime_exception); given up after `abort` s without a
+	-- launch, or `wait` s by the anti-nuke
 	sabotage = { on = true, trigger = 1600, minValue = 1500, keep = 1, aaRadius = 900,
-		ground = { trigger = 900, radius = 700, minValue = 600 } },
+		ground = { trigger = 900, radius = 700, minValue = 600 },
+		antinuke = { on = true, gain = 1.5, stand = 100, lead = 2500, abort = 240, wait = 20 } },
 	-- v4.1: on a water map with no shipyard of ours, Intelligence builds the cheapest that makes submarines
 	-- from `minute` at `income` metal/s
 	shipyard = { minute = 8, income = 15 },

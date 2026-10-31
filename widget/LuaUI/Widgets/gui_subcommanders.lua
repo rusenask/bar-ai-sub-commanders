@@ -3234,7 +3234,107 @@ function Intel.operations()
 			ops[#ops + 1] = { key = "army:" .. s.id .. ":" .. tostring(q.id), id = q.id, x = q.x, z = q.z, wx = sq.x, wz = sq.z, kind = "ground", trigger = SB.ground.trigger }
 		end
 	end
+	if Engine.antinukeOp then
+		ops[#ops + 1] = Engine.antinukeOp
+	end
 	return ops
+end
+
+-- v4.2 anti-nuke sabotage (doctrine.intel.sabotage.antinuke): Engine.antinukeOp { key, kind = "antinuke",
+-- id, x, z, r, value, created, sub, armed, launched, tx, tz, spy, fired } while one is under way. Started with
+-- our nuke ready and an anti-nuke worth stunning (sc_spies.lua antinukeOp); ended when the anti-nuke is
+-- gone, the nuke has had a minute, or it waited too long
+function Intel.antinukePlan(sub)
+	local A = Engine.D.intel.sabotage.antinuke
+	local op = Engine.antinukeOp
+	if op then
+		local why
+		if not Enemy.units[op.id] and not op.launched then
+			why = "their anti-nuke is gone"
+		elseif op.launched and frame - op.launched > 30 * 60 then
+			why = op.fired and "done" or "the nuke went without the spy"
+		elseif not op.launched and frame - op.created > 30 * A.abort then
+			why = "no spy got there in time"
+		elseif op.armed and not op.launched and frame - op.armed > 30 * A.wait then
+			why = "no nuke to launch"
+		end
+		if why then
+			Engine.antinukeOp = nil
+			log(sub, "anti-nuke sabotage over: " .. why)
+		end
+		return
+	end
+	if not A or not A.on or not Engine.nukeReady() then
+		return
+	end
+	local _, ud = Engine.nukeReady()
+	local cands, antis = Engine.nukeTargets()
+	local N = Engine.D.strategic.nuke
+	local pick = Engine.spies.antinukeOp(cands, ud.weaponAoe or 640, antis, N.minValue, Engine.strategic.nukeTarget, A.gain)
+	if pick then
+		local a = pick.anti
+		Engine.antinukeOp = { key = "antinuke:" .. a.id, kind = "antinuke", id = a.id, x = a.x, z = a.z, r = a.r, value = pick.v, created = frame, sub = sub }
+		local e = Enemy.units[a.id]
+		local ad = e and defs[e.defID]
+		log(sub, sformat("anti-nuke sabotage: their %s at %d,%d keeps our nuke off %d metal; a spy will stun it", ad and ad.human or "anti-nuke", a.x, a.z, pick.v))
+	end
+end
+
+-- the spy by the anti-nuke: launch our nuke (the richest target with that one anti-nuke out of the way).
+-- false when none could go
+function Intel.antinukeLaunch(op, spy)
+	local u, ud = Engine.nukeReady()
+	if not u then
+		return false
+	end
+	local cands, antis = Engine.nukeTargets()
+	local rest = {}
+	for _, a in ipairs(antis) do
+		if a.id ~= op.id then
+			rest[#rest + 1] = a
+		end
+	end
+	local x, z, v = Engine.nukePick(cands, ud.weaponAoe or 640, rest)
+	if not x then
+		return false
+	end
+	Engine.fireNuke(u, ud, x, z, v, "a spy stuns their anti-nuke on the way")
+	op.launched, op.tx, op.tz, op.spy, op.silo = frame, x, z, spy, u
+	return true
+end
+
+-- every pass while our nuke flies: the spy goes off as the missile comes within the anti-nuke's coverage
+-- + doctrine lead (its EMP stuns the anti-nuke for longer than the missile takes from there)
+function Intel.antinukeTick()
+	local op = Engine.antinukeOp
+	if not op or not op.launched or op.fired or not Spring.GetProjectilesInRectangle then
+		return
+	end
+	local A = Engine.D.intel.sabotage.antinuke
+	local reach = op.r + A.lead
+	local near
+	for _, p in ipairs(Spring.GetProjectilesInRectangle(op.x - reach, op.z - reach, op.x + reach, op.z + reach, false, true) or {}) do
+		if Engine.nukeBlast(Spring.GetProjectileDefID(p)) and Spring.GetProjectileTeamID(p) == myTeam then
+			local px, _, pz = Spring.GetProjectilePosition(p)
+			if px and dist2(px, pz, op.x, op.z) <= reach * reach then
+				near = true
+				break
+			end
+		end
+	end
+	if not near then
+		return
+	end
+	op.fired = frame
+	local sub = owner[op.spy] or op.sub
+	local alive = isAlive(op.spy)
+	if alive then
+		order(op.spy, CMD.SELFD, {})
+		Engine.spyStats.sabotage = Engine.spyStats.sabotage + 1
+	end
+	if sub then
+		log(sub, sformat(alive and "anti-nuke sabotage: the spy went off on their anti-nuke at %d,%d as our nuke came in" or "anti-nuke sabotage: our nuke is near their anti-nuke at %d,%d but the spy is gone", op.x, op.z))
+	end
 end
 
 function Intel.operation(key)
@@ -3265,6 +3365,9 @@ end
 -- target, or of their turrets around an assault's; with its metal. nil when not worth a spy
 function Intel.sabotageSite(op)
 	local SB = Engine.D.intel.sabotage
+	if op.kind == "antinuke" then
+		return op.x, op.z, op.value
+	end
 	local list = {}
 	for _, o in pairs(Enemy.units) do
 		local od = defs[o.defID]
@@ -3316,14 +3419,21 @@ function Intel.sabotage(sub)
 			spies[#spies + 1] = u
 		end
 	end
+	-- v4.2: an anti-nuke to stun for our nuke, only with a spy free for it (the nuke waits for it)
+	if Engine.antinukeOp or (not onJob and #spies > SB.keep) then
+		Intel.antinukePlan(sub)
+		if Engine.antinukeOp and not live[Engine.antinukeOp.key] then
+			ops[#ops + 1] = Engine.antinukeOp
+		end
+	end
 	if onJob or #spies <= SB.keep then
 		return
 	end
-	-- the operation where the spy opens the most: their guards' metal there
+	-- the operation where the spy opens the most: their guards' metal there (an anti-nuke first)
 	local op, sx, sz, sw
 	for _, o in ipairs(ops) do
 		local x, z, w = Intel.sabotageSite(o)
-		if x and (not sw or w > sw) then
+		if x and not (op and op.kind == "antinuke") and (o.kind == "antinuke" or not sw or w > sw) then
 			op, sx, sz, sw = o, x, z, w
 		end
 	end
@@ -3342,9 +3452,9 @@ function Intel.sabotage(sub)
 		end
 	end
 	if best then
-		local what = op.kind == "air" and "their anti-air" or "their turrets"
+		local what = ({ air = "their anti-air", ground = "their turrets", antinuke = "their anti-nuke" })[op.kind]
 		getState(best).sabotage = { key = op.key, x = sx, z = sz, what = what }
-		log(sub, sformat("sabotage: %s waits by %s (%d metal) at %d,%d to EMP them ahead of the %s", unitDef(best).human, what, sw, sx, sz, op.kind == "air" and "strike" or "army's assault"))
+		log(sub, sformat("sabotage: %s waits by %s (%d metal) at %d,%d to EMP them ahead of the %s", unitDef(best).human, what, sw, sx, sz, ({ air = "strike", ground = "army's assault", antinuke = "nuke" })[op.kind]))
 	end
 end
 
@@ -3364,15 +3474,37 @@ function Intel.sabotageStep(sub, unitID, d, st, x, z)
 		order(unitID, Engine.CMD_WANT_CLOAK, { 1 })
 		st.cloakOn = true
 	end
-	if job.go or dist2(op.wx, op.wz, op.x, op.z) <= op.trigger * op.trigger then
+	local anti = op.kind == "antinuke"
+	-- the go: the wing or squad the trigger distance out; for an anti-nuke, the spy at its post
+	if job.go or (anti and job.post and dist2(x, z, job.post.x, job.post.z) <= 150 * 150) or (not anti and dist2(op.wx, op.wz, op.x, op.z) <= op.trigger * op.trigger) then
 		job.go = true
-		if dist2(x, z, job.x, job.z) <= 120 * 120 then
+		local A = Engine.D.intel.sabotage.antinuke
+		if anti and not job.inX then
+			-- `stand` out from it on our side: outside its decloak distance, inside the EMP
+			local fx, fz = (job.post and job.post.x or x) - job.x, (job.post and job.post.z or z) - job.z
+			local l = max(sqrt(fx * fx + fz * fz), 1)
+			job.inX, job.inZ = job.x + fx / l * A.stand, job.z + fz / l * A.stand
+		end
+		if anti and op.launched then
+			setTask(unitID, "sabotage", "by their anti-nuke: goes off as our nuke comes in", true)
+			return true
+		elseif anti and dist2(x, z, job.x, job.z) <= (A.stand + 30) ^ 2 then
+			-- by it: our nuke goes up, the spy goes off as it comes in (Intel.antinukeTick)
+			if not op.armed then
+				op.armed = frame
+				order(unitID, CMD.STOP, {})
+			end
+			Intel.antinukeLaunch(op, unitID)
+			setTask(unitID, "sabotage", "by their anti-nuke: waiting for our nuke to go up", true)
+			return true
+		elseif not anti and dist2(x, z, job.x, job.z) <= 120 * 120 then
 			order(unitID, CMD.SELFD, {})
 			job.done = true
 			Engine.spyStats.sabotage = Engine.spyStats.sabotage + 1
 			log(sub, sformat("sabotage: %s went off on %s at %d,%d", d.human, job.what, job.x, job.z))
 		elseif not job.goOrder or frame - job.goOrder > 60 then
-			order(unitID, CMD.MOVE, { job.x, spGetGroundHeight(job.x, job.z), job.z })
+			local mx, mz = job.inX or job.x, job.inZ or job.z
+			order(unitID, CMD.MOVE, { mx, spGetGroundHeight(mx, mz), mz })
 			job.goOrder = frame
 		end
 		setTask(unitID, "sabotage", "going in: EMP on " .. job.what, true)
@@ -4476,6 +4608,20 @@ end
 -- blast walk out until it lands, and those just outside stop walking in (doctrine.strategic.nuke.clear)
 Engine.nukeWeapon = {} -- weaponDefID -> blast radius for nukes, false otherwise
 Engine.nukeLogged = {}
+function Engine.nukeBlast(wdID)
+	if not wdID then
+		return false
+	end
+	local r = Engine.nukeWeapon[wdID]
+	if r == nil then
+		local wd = WeaponDefs[wdID]
+		local cp = wd and wd.customParams or {}
+		local aoe = wd and wd.damageAreaOfEffect or 0
+		r = (wd and (cp.nuclear or (wd.targetable or 0) > 0) and aoe >= 300) and aoe or false
+		Engine.nukeWeapon[wdID] = r
+	end
+	return r
+end
 function Engine.nukeClear()
 	local K = Engine.D.strategic and Engine.D.strategic.nuke and Engine.D.strategic.nuke.clear
 	if not K or not canControl or not Spring.GetProjectilesInRectangle or not Spring.GetProjectileTarget then
@@ -4483,15 +4629,7 @@ function Engine.nukeClear()
 	end
 	local impacts = {}
 	for _, p in ipairs(Spring.GetProjectilesInRectangle(0, 0, MAP_X, MAP_Z, false, true) or {}) do
-		local wdID = Spring.GetProjectileDefID(p)
-		local r = wdID and Engine.nukeWeapon[wdID]
-		if wdID and r == nil then
-			local wd = WeaponDefs[wdID]
-			local cp = wd and wd.customParams or {}
-			local aoe = wd and wd.damageAreaOfEffect or 0
-			r = (wd and (cp.nuclear or (wd.targetable or 0) > 0) and aoe >= 300) and aoe or false
-			Engine.nukeWeapon[wdID] = r
-		end
+		local r = Engine.nukeBlast(Spring.GetProjectileDefID(p))
 		local team = r and Spring.GetProjectileTeamID(p)
 		if team and Spring.AreTeamsAllied(team, myTeam) then
 			local kind, target = Spring.GetProjectileTarget(p)
@@ -4514,7 +4652,8 @@ function Engine.nukeClear()
 		for u in pairs(sub.units) do
 			local d = unitDef(u)
 			local st = ustate[u]
-			if d and d.mobile and not d.air and (d.speed or 0) > 0 and not (st and st.manual) and not spGetUnitIsBeingBuilt(u) then
+			-- (a spy by their anti-nuke stays: it goes off before the nuke lands)
+			if d and d.mobile and not d.air and (d.speed or 0) > 0 and not (st and (st.manual or st.sabotage)) and not spGetUnitIsBeingBuilt(u) then
 				local x, _, z = spGetUnitPosition(u)
 				for _, h in ipairs(impacts) do
 					local dd = x and dist2(x, z, h.x, h.z)
@@ -4554,6 +4693,86 @@ function Engine.nukeClear()
 				log(sub, sformat("nuke incoming at %d,%d: %d of our units leaving the blast", h.x, h.z, h.n))
 			end
 		end
+	end
+end
+
+-- a nuke silo of ours with a missile up, on auto and past doctrine.strategic.nuke.every since the last:
+-- the silo and its def, or nil
+function Engine.nukeReady()
+	local N = Engine.D.strategic and Engine.D.strategic.nuke
+	if not N or not N.on or not Engine.autoLaunch.nuke or frame - (Engine.lastNuke or -99999) <= 30 * N.every then
+		return nil
+	end
+	for _, u in ipairs(Engine.ourStrategic().nukeSilo) do
+		local ud = unitDef(u)
+		local have = Spring.GetUnitStockpile(u)
+		if ud and not spGetUnitIsBeingBuilt(u) and (have or 0) > 0 then
+			return u, ud
+		end
+	end
+	return nil
+end
+
+-- what a nuke could hit: cands { x, z, cost } (never near our own army or base: their army in a fight with
+-- ours is ours too under the blast), and their anti-nukes { id, x, z, r, static }
+function Engine.nukeTargets()
+	local cands, antis = {}, {}
+	local army = Engine.anyArmy()
+	local sq = army and army.squad
+	local function ours(x, z)
+		return Engine.inBase(x, z) or (sq and sq.x and dist2(x, z, sq.x, sq.z) < 1400 * 1400)
+	end
+	for u, e in pairs(Enemy.units) do
+		local ed = defs[e.defID]
+		if ed and (frame - e.last < 30 * (ed.mobile and 60 or 600)) then
+			if ed.interceptor then
+				antis[#antis + 1] = { id = u, x = e.x, z = e.z, r = ed.mobile and 1600 or 2000, static = not ed.mobile }
+			end
+			if not ours(e.x, e.z) then
+				cands[#cands + 1] = { x = e.x, z = e.z, cost = ed.cost }
+			end
+		end
+	end
+	return cands, antis
+end
+
+-- the richest target no anti-nuke covers (sc_strategic.lua nukeTarget) with none of ours under the blast:
+-- anything of ours within 1.2 x its radius worth more than max(300, a tenth of the target) rules that
+-- target out (g69: our Supernova killed 57 of our own units spread around the fight; the army squad's
+-- centre alone wasn't enough). x, z, value or nil
+function Engine.nukePick(cands, aoe, antis)
+	local minValue = Engine.D.strategic.nuke.minValue
+	local x, z, v = Engine.strategic.nukeTarget(cands, aoe, antis, minValue)
+	for _ = 1, 6 do
+		if not x then
+			return nil
+		end
+		local mine = 0
+		for _, o in ipairs(spGetUnitsInCylinder(x, z, aoe * 1.2)) do
+			local od = spGetUnitTeam(o) == myTeam and unitDef(o)
+			mine = mine + (od and od.cost or 0)
+		end
+		if mine <= max(300, v * 0.1) then
+			return x, z, v
+		end
+		local keep = {}
+		for _, c in ipairs(cands) do
+			if dist2(c.x, c.z, x, z) > (aoe * 1.5) ^ 2 then
+				keep[#keep + 1] = c
+			end
+		end
+		cands = keep
+		x, z, v = Engine.strategic.nukeTarget(cands, aoe, antis, minValue)
+	end
+	return nil
+end
+
+function Engine.fireNuke(u, ud, x, z, v, note)
+	order(u, CMD.ATTACK, { x, spGetGroundHeight(x, z), z })
+	Engine.lastNuke = frame
+	Engine.lastNukeAt = { x = x, z = z, r = ud.weaponAoe or 640, frame = frame }
+	if owner[u] then
+		log(owner[u], sformat("%s: nuke on %d metal of theirs at %d,%d (%s)", ud.human, v, x, z, note))
 	end
 end
 
@@ -4632,66 +4851,21 @@ function Engine.strategicControl()
 			end
 		end
 	end
-	-- nukes: one stockpiled, fired at the richest cluster of theirs no anti-nuke covers
+	-- nukes: one stockpiled, fired at the richest cluster of theirs no anti-nuke covers (held while a spy
+	-- works on an anti-nuke for it: Intel.antinukePlan)
 	local N = G.nuke
 	if N and N.on and #C.nukeSilo > 0 then
-		local cands, antis = {}, {}
-		-- never near our own army or base (their army in a fight with ours is ours too under the blast)
-		local army = Engine.anyArmy()
-		local sq = army and army.squad
-		local function ours(x, z)
-			return Engine.inBase(x, z) or (sq and sq.x and dist2(x, z, sq.x, sq.z) < 1400 * 1400)
-		end
-		for _, e in pairs(Enemy.units) do
-			local ed = defs[e.defID]
-			if ed and (frame - e.last < 30 * (ed.mobile and 60 or 600)) then
-				if ed.interceptor then
-					antis[#antis + 1] = { x = e.x, z = e.z, r = ed.mobile and 1600 or 2000 }
-				end
-				if not ours(e.x, e.z) then
-					cands[#cands + 1] = { x = e.x, z = e.z, cost = ed.cost }
-				end
+		for _, u in ipairs(C.nukeSilo) do
+			if not spGetUnitIsBeingBuilt(u) then
+				stock(u, N.stockpile)
 			end
 		end
-		for _, u in ipairs(C.nukeSilo) do
-			local ud = unitDef(u)
-			if ud and not spGetUnitIsBeingBuilt(u) and stock(u, N.stockpile) > 0 and Engine.autoLaunch.nuke and frame - (Engine.lastNuke or -99999) > 30 * N.every then
-				local aoe = ud.weaponAoe or 640
-				local x, z, v = Engine.strategic.nukeTarget(cands, aoe, antis, N.minValue)
-				-- none of ours under the blast: anything of ours within 1.2 x its radius worth more than
-				-- max(300, a tenth of the target) rules that target out (g69: our Supernova killed 57 of our
-				-- own units spread around the fight; the army squad's centre alone wasn't enough)
-				local safe = false
-				for _ = 1, 6 do
-					if not x then
-						break
-					end
-					local mine = 0
-					for _, o in ipairs(spGetUnitsInCylinder(x, z, aoe * 1.2)) do
-						local od = spGetUnitTeam(o) == myTeam and unitDef(o)
-						mine = mine + (od and od.cost or 0)
-					end
-					if mine <= max(300, v * 0.1) then
-						safe = true
-						break
-					end
-					local keep = {}
-					for _, c in ipairs(cands) do
-						if dist2(c.x, c.z, x, z) > (aoe * 1.5) ^ 2 then
-							keep[#keep + 1] = c
-						end
-					end
-					cands = keep
-					x, z, v = Engine.strategic.nukeTarget(cands, aoe, antis, N.minValue)
-				end
-				if x and safe then
-					order(u, CMD.ATTACK, { x, spGetGroundHeight(x, z), z })
-					Engine.lastNuke = frame
-					Engine.lastNukeAt = { x = x, z = z, r = ud.weaponAoe or 640, frame = frame }
-					if owner[u] then
-						log(owner[u], sformat("%s: nuke on %d metal of theirs at %d,%d (%d anti-nukes known)", ud.human, v, x, z, #antis))
-					end
-				end
+		local u, ud = Engine.nukeReady()
+		if u and not Engine.antinukeOp then
+			local cands, antis = Engine.nukeTargets()
+			local x, z, v = Engine.nukePick(cands, ud.weaponAoe or 640, antis)
+			if x then
+				Engine.fireNuke(u, ud, x, z, v, sformat("%d anti-nukes known", #antis))
 			end
 		end
 	end
@@ -4776,15 +4950,22 @@ function Engine.waterMap()
 	return Engine.waterShare >= 0.1
 end
 
--- the spy-chief's eyes (doctrine.intel, v4): radar / sonar planes, submarines, and whether its own
--- factories make them
+-- a mobile ground radar (Prophet / Augur / Euclid / Pheme: ~2200 range)
+function Engine.groundRadar(od)
+	return od.mobile and not od.air and not od.armed and not od.builder and (od.radarRange or 0) >= 1800
+end
+
+-- the spy-chief's eyes (doctrine.intel, v4): radar / sonar planes, submarines, mobile ground radar
+-- (v4.2), and whether its own factories make them
 function Engine.intelHave(intel)
-	local h = { planes = 0, subs = 0, bombers = 0, airPlant = false, shipyard = false }
+	local h = { planes = 0, subs = 0, bombers = 0, radars = 0, airPlant = false, shipyard = false, radarLab = false }
 	for u in pairs(intel.units) do
 		local d = unitDef(u)
 		if d then
 			if d.air and not d.armed and not d.transport and not d.builder then
 				h.planes = h.planes + 1
+			elseif Engine.groundRadar(d) then
+				h.radars = h.radars + 1
 			elseif d.sub then
 				h.subs = h.subs + 1
 			elseif d.kind == "bomber" then
@@ -4793,6 +4974,7 @@ function Engine.intelHave(intel)
 				h.airPlant = h.airPlant or makesAircraft(d)
 				for _, o in ipairs(d.options or {}) do
 					h.shipyard = h.shipyard or (defs[o] and defs[o].sub) or false
+					h.radarLab = h.radarLab or (defs[o] and Engine.groundRadar(defs[o])) or false
 				end
 			end
 		end
@@ -4828,7 +5010,8 @@ function Engine.intelSub(fd, cap)
 end
 
 -- another sub-commander's factory builds what the spy-chief wants and none of its own factories make
--- (a radar plane from an aircraft plant, a submarine from a shipyard), handed over; one a minute at most
+-- (a radar plane from an aircraft plant, a submarine from a shipyard; v4.2 with no radar plane, a mobile
+-- ground radar: Legion has no radar plane on land), handed over; one a minute at most
 function Engine.intelHandOff(sub, facID, fd, cap)
 	local I = Engine.D.intel
 	local intel = I and I.planes and Engine.subOfRole("intelligence")
@@ -4841,6 +5024,15 @@ function Engine.intelHandOff(sub, facID, fd, cap)
 		o, why = Engine.intelPlane(fd, cap * 1.5), "radar plane for " .. intel.name
 	elseif not have.shipyard and have.subs < I.subs and Engine.waterMap() then
 		o, why = Engine.intelSub(fd, cap * 1.5), "submarine for " .. intel.name
+	end
+	if not o and have.planes == 0 and have.radars < 1 and not have.radarLab then
+		local options = buildableBy(fd, function(od)
+			return Engine.groundRadar(od) and od.cost <= cap * 1.5
+		end)
+		tsort(options, function(a, b)
+			return defs[a].cost < defs[b].cost
+		end)
+		o, why = options[1], "mobile radar for " .. intel.name
 	end
 	if o then
 		local st = getState(facID)
@@ -8130,7 +8322,9 @@ local function summarize(sub)
 		autoZones = sub.autoZones or false,
 		raids = Engine.raidsField(sub),
 		-- the spy-chief (v4): what it marked for deep strikes, and how its spotters fared
-		spyChief = sub.role == "intelligence" and { marks = sub.marks or {}, spotters = Engine.spyStats } or nil,
+		spyChief = sub.role == "intelligence" and { marks = sub.marks or {}, spotters = Engine.spyStats,
+			antinuke = Engine.antinukeOp and { x = floor(Engine.antinukeOp.x), z = floor(Engine.antinukeOp.z), value = Engine.antinukeOp.value,
+				armed = Engine.antinukeOp.armed ~= nil, launched = Engine.antinukeOp.launched ~= nil, fired = Engine.antinukeOp.fired ~= nil } or nil } or nil,
 		-- an army without a factory gets its units from the economy's (strong players run one lab)
 		fedBy = Engine.fedByName(sub),
 		raid = sub.raidOrder and { action = sub.raidOrder.action, target = { x = floor(sub.raidOrder.x), z = floor(sub.raidOrder.z) } } or nil,
@@ -10478,6 +10672,7 @@ function widget:GameFrame(n)
 	if n % 30 == 15 then
 		run("Engine.nukeClear", Engine.nukeClear)
 	end
+	run("Intel.antinukeTick", Intel.antinukeTick)
 	local G = Engine.D.micro.dodge
 	if G and G.on and n % (G.every or 6) == 0 then
 		for _, sub in ipairs(subs) do

@@ -99,7 +99,7 @@ strategist sees the world model too.
 | defense | turrets only where threats show up | + front line and extractor cover, budgeted | + turret schedule across base and expansions, radar |
 | army | defends its own area | + helps other areas, counter-pushes when clearly stronger | + attacks and raids on its own when the threat map says it wins |
 | air defense | reacts to air seen | + covers valuable structures | + proactive by income |
-| intelligence | radar only | + cameras, scouts | + jammer, hunting enemy intel, spy-chief (posts, marks, sabotage) |
+| intelligence | radar only | + cameras, scouts | + jammer, hunting enemy intel, spy-chief (posts, marks, sabotage incl. anti-nukes) |
 
 The autopilot (bot opponent) runs everything at **full**.
 

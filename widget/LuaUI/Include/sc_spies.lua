@@ -6,6 +6,7 @@
 --   flee(x, z, hazards, home, dist)          where to slip away to
 --   markTarget(cands, aaAt, taken)           the structure worth a deep strike
 --   sabotageSite(tx, tz, aa, radius)         the centre of their anti-air around a strike target
+--   antinukeOp(cands, aoe, antis, minValue, nukeTarget, gain)   the anti-nuke to stun for our nuke
 --
 -- usage: local Spies = VFS.Include("LuaUI/Include/sc_spies.lua", nil, VFS.RAW_FIRST)
 --        local S = Spies({ doctrine = D })
@@ -151,6 +152,30 @@ return function(ctx)
 			return nil
 		end
 		return sx / w, sz / w, w
+	end
+
+	-- v4.2: which of their static anti-nukes a spy's EMP should stun for our nuke. cands, aoe, antis
+	-- ({ id, x, z, r, static }), minValue as nukeTarget(cands, aoe, antis, minValue) (sc_strategic.lua),
+	-- passed in. The one whose coverage alone keeps our nuke off the richest cluster, when that is worth
+	-- `gain` x the best open one. Returns { anti, x, z, v } or nil
+	function S.antinukeOp(cands, aoe, antis, minValue, nukeTarget, gain)
+		local _, _, open = nukeTarget(cands, aoe, antis, minValue)
+		local best
+		for _, a in ipairs(antis) do
+			if a.static then
+				local rest = {}
+				for _, o in ipairs(antis) do
+					if o ~= a then
+						rest[#rest + 1] = o
+					end
+				end
+				local x, z, v = nukeTarget(cands, aoe, rest, minValue)
+				if x and v >= (open or 0) * gain and d2(x, z, a.x, a.z) <= a.r * a.r and (not best or v > best.v) then
+					best = { anti = a, x = x, z = z, v = v }
+				end
+			end
+		end
+		return best
 	end
 
 	return S

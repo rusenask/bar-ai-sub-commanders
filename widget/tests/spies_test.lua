@@ -84,4 +84,23 @@ return {
 		T.eq(w, 600)
 		T.eq(S.sabotageSite(0, 0, {}, 900), nil)
 	end,
+	antinuke_op_picks_the_one_anti_nuke_in_the_way = function()
+		local S = spies()
+		local nt = T.load("sc_strategic")({ doctrine = F.doctrine }).nukeTarget
+		-- their base at 5000,5000 (8000 metal) under a Citadel; an outpost at 0,0 (1000) in the open
+		local cands = { { x = 5000, z = 5000, cost = 5000 }, { x = 5100, z = 5000, cost = 3000 }, { x = 0, z = 0, cost = 1000 } }
+		local anti = { id = 7, x = 5200, z = 5000, r = 2000, static = true }
+		local op = S.antinukeOp(cands, 640, { anti }, 500, nt, 1.5)
+		T.ok(op and op.anti.id == 7, "stun the Citadel")
+		T.eq(op.v, 8000)
+		T.near(op.x, 5000, 1e-6)
+		-- a second anti-nuke over the base too: one spy isn't enough
+		local two = { anti, { id = 8, x = 4800, z = 5000, r = 2000, static = true } }
+		T.eq(S.antinukeOp(cands, 640, two, 500, nt, 1.5), nil)
+		-- a mobile one moves: no
+		T.eq(S.antinukeOp(cands, 640, { { id = 9, x = 5200, z = 5000, r = 1600 } }, 500, nt, 1.5), nil)
+		-- the open target nearly as good: not worth a spy
+		cands[3].cost = 6000
+		T.eq(S.antinukeOp(cands, 640, { anti }, 500, nt, 1.5), nil)
+	end,
 }
