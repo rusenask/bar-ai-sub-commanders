@@ -1,7 +1,8 @@
 -- Sub-Commanders team planning (design/engine.md, "swarm"): a blackboard every sub-commander reads and
 -- writes.
 --   plan     the team's phase: opening, expand, tech, defend, push (from the game's state)
---   requests what sub-commanders ask of each other: defend a place, a constructor, combat production
+--   requests what sub-commanders ask of each other: defend a place, a constructor, combat production,
+--            units of a kind (sc_asks.lua)
 -- Others answer by role (the Army defends, Defense builds turrets, the Economy sends a constructor or
 -- puts its factory on combat units). Requests expire; ones of the same kind for the same place merge.
 --
@@ -19,12 +20,13 @@ return function(ctx)
 	local T = { requests = {}, nextID = 1, plan = { phase = "opening", why = "the first minutes" }, since = 0 }
 
 	-- post (or refresh) a request. req: { kind, from, x, z, need, note, tier (constructor: 2 = tier 2),
-	-- target (strike: the unit marked; marks of different targets stay apart) }. Returns the request.
+	-- target (strike: the unit marked; marks of different targets stay apart), what, count (units: what
+	-- kind and how many still wanted; asks of different kinds stay apart) }. Returns the request.
 	function T.post(req, frame)
 		for _, r in ipairs(T.requests) do
 			local near = not req.x or not r.x or (r.x - req.x) ^ 2 + (r.z - req.z) ^ 2 < P.mergeRadius ^ 2
-			if r.kind == req.kind and r.from == req.from and r.tier == req.tier and r.target == req.target and near then
-				r.frame, r.need, r.note = frame, max(r.need or 0, req.need or 0), req.note or r.note
+			if r.kind == req.kind and r.from == req.from and r.tier == req.tier and r.target == req.target and r.what == req.what and r.oneShot == req.oneShot and near then
+				r.frame, r.need, r.note, r.count = frame, max(r.need or 0, req.need or 0), req.note or r.note, req.count or r.count
 				if req.x then
 					r.x, r.z = req.x, req.z
 				end
@@ -37,10 +39,12 @@ return function(ctx)
 		return req
 	end
 
-	-- drop requests nobody refreshed within doctrine.team.requestLife
+	-- drop requests nobody refreshed within doctrine.team.requestLife (or their own `life`), and one-shot
+	-- asks once all came (count 0)
 	function T.expire(frame)
 		for i = #T.requests, 1, -1 do
-			if frame - T.requests[i].frame > P.requestLife then
+			local r = T.requests[i]
+			if frame - r.frame > (r.life or P.requestLife) or (r.oneShot and (r.count or 1) <= 0) then
 				table.remove(T.requests, i)
 			end
 		end

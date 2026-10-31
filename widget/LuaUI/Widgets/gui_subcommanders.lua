@@ -148,6 +148,7 @@ do
 	Engine.strategic = include("sc_strategic")({ doctrine = Engine.D })
 	Engine.fb = include("sc_firebase")({ doctrine = Engine.D })
 	Engine.spies = include("sc_spies")({ doctrine = Engine.D })
+	Engine.asks = include("sc_asks")({ doctrine = Engine.D })
 	Engine.armyStyle, Engine.armyStyleNow, Engine.armyStyleSince = "auto", "balanced", 0
 	Engine.comMode, Engine.comPersonality = "auto", "careful"
 	-- the player's switches: do the silos fire on their own (false: kept stockpiled for the player)
@@ -3997,7 +3998,7 @@ end
 
 function Engine.economyProduction(sub, facID, fd, cap)
 	local st = getState(facID)
-	st.handOff, st.handOffCombat, st.openingPending = nil, nil, nil
+	st.handOff, st.openingPending = nil, nil
 	-- a tier-2 lab: its constructors first (extractor upgrades, fusion), then it goes to the Army
 	if (fd.tech or 1) >= 2 then
 		local t2 = 0
@@ -4036,12 +4037,13 @@ function Engine.economyProduction(sub, facID, fd, cap)
 				return defs[a].cost < defs[b].cost
 			end)
 			if spies[1] then
-				st.handOff, st.handOffCombat = intel.id, true
+				st.handOff = intel.id
 				return spies[1], "spy for " .. intel.name
 			end
 		end
 		for _, s in ipairs(subs) do
-			if s.role == "army" and not s.paused then
+			-- (its own lab only: not one shared with it, Engine.shareFactories)
+			if s.role == "army" and not s.paused and owner[facID] == sub then
 				Engine.addUnit(s, facID)
 				log(sub, fd.human .. ": T2 constructors done, handed to " .. s.name)
 				log(s, "received " .. fd.human .. " (tier 2 units)")
@@ -4049,7 +4051,7 @@ function Engine.economyProduction(sub, facID, fd, cap)
 			end
 		end
 	end
-	st.handOff, st.handOffCombat, st.openingPending = nil, nil, nil
+	st.handOff, st.openingPending = nil, nil
 	local counts = sub.counts
 	local income = max(econ.mInc, 0)
 	local target = Engine.D.economy.builders(income) + (Engine.D.economy.builderBonus or 0)
@@ -4122,7 +4124,7 @@ function Engine.economyProduction(sub, facID, fd, cap)
 	end
 	-- the commander's escort first (v20: every unit went to the Army, the commander died alone twice)
 	if feed and counts.combat >= Engine.D.economy.escorts then
-		st.handOff, st.handOffCombat = feed.id, true
+		st.handOff = feed.id
 		return defID, "army (for " .. feed.name .. ")"
 	end
 	local guard = sub.posture == "conserve" and 2 or (sub.posture == "spend" and 8 or 4)
@@ -4131,7 +4133,7 @@ function Engine.economyProduction(sub, facID, fd, cap)
 		-- metal piling up: more units, but for the Army (v19 kept 130 guards at home)
 		local army = econ.mFrac >= 0.75 and Engine.anyArmy()
 		if army then
-			st.handOff, st.handOffCombat = army.id, true
+			st.handOff = army.id
 			return defID, "army (for " .. army.name .. ", metal piling up)"
 		end
 		return nil, "enough guards"
@@ -5034,38 +5036,123 @@ function Engine.intelSub(fd, cap)
 	return options[1]
 end
 
--- another sub-commander's factory builds what the spy-chief wants and none of its own factories make
--- (a radar plane from an aircraft plant, a submarine from a shipyard; v4.2 with no radar plane, a mobile
--- ground radar: Legion has no radar plane on land), handed over; one a minute at most
-function Engine.intelHandOff(sub, facID, fd, cap)
+-- the spy-chief asks the team (v4.2, "units" requests, sc_asks.lua) for what none of its own factories
+-- make: radar / sonar planes, a submarine on water maps, and with no radar plane a mobile ground radar
+-- (Legion has no radar plane on land)
+function Engine.intelAsks(intel)
 	local I = Engine.D.intel
-	local intel = I and I.planes and Engine.subOfRole("intelligence")
-	if not intel or intel == sub or intel.paused or frame - (Engine.intelHandFrame or -99999) < 30 * 60 then
-		return nil
+	-- not in the opening: the first labs make constructors and raiders
+	if not I or not I.planes or intel.paused or Engine.minute() < Engine.D.team.openingMinutes then
+		return
 	end
 	local have = Engine.intelHave(intel)
-	local o, why
-	if makesAircraft(fd) and not have.airPlant and have.planes < I.planes then
-		o, why = Engine.intelPlane(fd, cap * 1.5), "radar plane for " .. intel.name
-	elseif not have.shipyard and have.subs < I.subs and Engine.waterMap() then
-		o, why = Engine.intelSub(fd, cap * 1.5), "submarine for " .. intel.name
+	local function ask(what, count, note)
+		if count > 0 then
+			Engine.team.post({ kind = "units", from = intel.id, what = what, count = count, note = note }, frame)
+		end
 	end
-	if not o and have.planes == 0 and have.radars < 1 and not have.radarLab then
-		local options = buildableBy(fd, function(od)
-			return Engine.groundRadar(od) and od.cost <= cap * 1.5
-		end)
-		tsort(options, function(a, b)
-			return defs[a].cost < defs[b].cost
-		end)
-		o, why = options[1], "mobile radar for " .. intel.name
+	if not have.airPlant then
+		ask("radarplane", I.planes - have.planes, "eyes over their base")
 	end
-	if o then
-		local st = getState(facID)
-		st.handOff, st.handOffCombat = intel.id, true
-		Engine.intelHandFrame = frame
-		return o, why
+	if not have.shipyard and Engine.waterMap() then
+		ask("sub", I.subs - have.subs, "eyes on their coast")
 	end
-	return nil
+	if have.planes == 0 and not have.radarLab then
+		ask("radar", 1 - have.radars, "no radar plane: a mobile radar")
+	end
+end
+
+-- one-shot asks (the player, the strategist): count units of `what`, open for doctrine.asks.life frames
+function Engine.askKinds()
+	local out = {}
+	for k in pairs(Engine.asks.WHATS) do
+		out[#out + 1] = k
+	end
+	tsort(out)
+	return out
+end
+
+function Engine.askable(what)
+	return type(what) == "string" and (Engine.asks.WHATS[what] ~= nil or UnitDefNames[what] ~= nil)
+end
+
+function Engine.ask(sub, what, count, note)
+	log(sub, sformat("asked the team for %d %s%s", count, what, note and (" (" .. note .. ")") or ""))
+	return Engine.team.post({ kind = "units", from = sub.id, what = what, count = count, note = note, oneShot = true, life = Engine.D.asks.life }, frame)
+end
+
+function Engine.subByID(id)
+	for _, s in ipairs(subs) do
+		if s.id == id then
+			return s
+		end
+	end
+end
+
+-- a factory answers the team's "units" requests (sc_asks.lua) of other sub-commanders it can build for,
+-- the neediest first: the unit, and who it goes to (st.handOff, st.handOffAsk)
+function Engine.answerUnits(sub, facID, fd, st)
+	local A = Engine.asks
+	local cap = costCap(sub, 1.2) * 1.5
+	for _, r in ipairs(Engine.team.open("units")) do
+		local to = r.from ~= sub.id and Engine.subByID(r.from)
+		if to and not to.paused and r.what and A.due(r, frame) then
+			local options = buildableBy(fd, function(od)
+				return A.matches(r.what, od)
+			end)
+			local o = A.pick(r.what, options, defs, cap, { sonar = Engine.waterMap() })
+			if o then
+				st.handOff, st.handOffAsk = to.id, r
+				return o, sformat("%s for %s (asked%s)", defs[o].human, to.name, r.note and (": " .. r.note) or "")
+			end
+		end
+	end
+end
+
+-- who a factory works for this time: its own sub-commander, or (Engine.shareFactories) one it is shared
+-- with, in turn
+function Engine.factoryTurn(sub, facID, st)
+	local list = { sub }
+	local seen = { [sub.id] = true }
+	for _, set in ipairs({ sub.shareTo or {}, (sub.factoryShares or {})[facID] or {} }) do
+		for id in pairs(set) do
+			local s = Engine.subByID(id)
+			if s and not s.paused and not seen[id] then
+				seen[id] = true
+				list[#list + 1] = s
+			end
+		end
+	end
+	if #list == 1 then
+		return sub
+	end
+	tsort(list, function(a, b)
+		return a.id < b.id
+	end)
+	st.turn = (st.turn or 0) % #list + 1
+	return list[st.turn]
+end
+
+-- share a sub-commander's factories (all of them, or `facs`: unit ids) with another: they take turns,
+-- each turn its production rules and budget, the unit handed over. on = false stops it
+function Engine.shareFactories(from, to, on, facs)
+	if not from or not to or from == to then
+		return false
+	end
+	if facs and #facs > 0 then
+		from.factoryShares = from.factoryShares or {}
+		for _, f in ipairs(facs) do
+			from.factoryShares[f] = from.factoryShares[f] or {}
+			from.factoryShares[f][to.id] = on and true or nil
+		end
+	else
+		from.shareTo = from.shareTo or {}
+		from.shareTo[to.id] = on and true or nil
+	end
+	local what = facs and #facs > 0 and sformat("%d of my factories", #facs) or "my factories"
+	log(from, on and sformat("%s also build for %s, in turn", what, to.name) or sformat("%s no longer build for %s", what, to.name))
+	log(to, on and sformat("%s's factories build for me in turn", from.name) or sformat("%s's factories no longer build for me", from.name))
+	return true
 end
 
 local function pickProduction(sub, facID, fd)
@@ -5084,12 +5171,6 @@ local function pickProduction(sub, facID, fd)
 		end
 	end
 	local wantBuilder
-	do
-		local o, why = Engine.intelHandOff(sub, facID, fd, cap)
-		if o then
-			return o, why
-		end
-	end
 	if sub.role == "economy" or sub.role == "army" then
 		local c, why = Engine.answerConstructor(fd, facID, cap)
 		if c then
@@ -5636,7 +5717,35 @@ local function thinkFactory(sub, facID, fd, st)
 	if (spGetFactoryCommandCount(facID) or 0) > 1 then
 		return
 	end
-	local defID, why = pickProduction(sub, facID, fd)
+	st.handOff, st.handOffAsk = nil, nil
+	-- the team's asks (sc_asks.lua): at most one unit in doctrine.asks.share for others; then a shared
+	-- factory's turn (Engine.shareFactories), else its own sub-commander's rules
+	local who, defID, why = sub, nil, nil
+	if (st.sinceAsk or math.huge) >= Engine.D.asks.share - 1 then
+		defID, why = Engine.answerUnits(sub, facID, fd, st)
+	end
+	if not defID then
+		who = Engine.factoryTurn(sub, facID, st)
+		if who ~= sub then
+			defID, why = pickProduction(who, facID, fd)
+			if defID then
+				st.handOff = st.handOff or who.id
+				why = sformat("%s for %s (shared)", tostring(why), who.name)
+			else
+				who, st.handOff = sub, nil
+			end
+		end
+	end
+	if not defID then
+		defID, why = pickProduction(sub, facID, fd)
+	end
+	-- nothing of its own to make: anyone's ask
+	if not defID then
+		local o, w = Engine.answerUnits(sub, facID, fd, st)
+		if o then
+			defID, why = o, w
+		end
+	end
 	if not defID then
 		st.factoryNote = why
 		return
@@ -5649,11 +5758,23 @@ local function thinkFactory(sub, facID, fd, st)
 			defID, why = pick, "decision model"
 		end
 	end
-	if not canSpend(sub, defs[defID]) then
+	if not canSpend(who, defs[defID]) then
 		st.factoryNote = "waiting for resources"
 		return
 	end
 	order(facID, -defID, {})
+	-- who gets it, matched by kind when it starts (widget:UnitCreated)
+	if st.handOff then
+		st.handOffs = st.handOffs or {}
+		st.handOffs[#st.handOffs + 1] = { defID = defID, to = st.handOff, ask = st.handOffAsk, frame = frame }
+	end
+	if st.handOffAsk then
+		Engine.asks.sent(st.handOffAsk, frame)
+		st.sinceAsk = 0
+	else
+		st.sinceAsk = (st.sinceAsk or 0) + 1
+	end
+	st.handOff, st.handOffAsk = nil, nil
 	if st.openingPending then
 		st.openStep, st.openingPending = (st.openStep or 1) + 1, nil
 	end
@@ -6552,6 +6673,13 @@ function Engine.refreshTeam()
 		end
 		-- a defending sub-commander without constructors asks for one (after the opening); with a big
 		-- economy for a tier 2 one (harder turrets, doctrine.escalation)
+		-- (v4.2: Intelligence too: radar towers, sonar, its shipyard; and it asks for its eyes)
+		if sub.role == "intelligence" and not sub.paused then
+			if sub.counts.builders == 0 and Engine.minute() >= 4 then
+				team.post({ kind = "constructor", from = sub.id, need = 1, note = sub.name .. " has no constructors" }, frame)
+			end
+			Engine.intelAsks(sub)
+		end
 		if (sub.role == "defense" or sub.role == "air") and not sub.paused then
 			local X = Engine.D.escalation
 			local t2 = (sub.role == "defense" and X.t2DefenseIncome) or Engine.D.air.t2Income
@@ -8344,6 +8472,14 @@ local function summarize(sub)
 		role = sub.role,
 		posture = sub.posture,
 		autonomy = sub.autonomy or "balanced",
+		-- whose sub-commanders this one's factories also build for, in turn (Engine.shareFactories)
+		sharesFactoriesWith = (function()
+			local out = {}
+			for id in pairs(sub.shareTo or {}) do
+				out[#out + 1] = id
+			end
+			return #out > 0 and out or nil
+		end)(),
 		autoZones = sub.autoZones or false,
 		raids = Engine.raidsField(sub),
 		-- the spy-chief (v4): what it marked for deep strikes, and how its spotters fared
@@ -8804,6 +8940,21 @@ local function exportAPI()
 			end
 			return Engine.team.post(req, frame)
 		end,
+		-- units of a kind (sc_asks.lua), asked once: another's factory builds them and hands them over
+		ask = function(id, what, count, note)
+			local sub = findSub(id)
+			if not sub or not Engine.askable(what) then
+				return nil
+			end
+			return Engine.ask(sub, what, max(1, min(10, tonumber(count) or 1)), note)
+		end,
+		askKinds = function()
+			return Engine.askKinds()
+		end,
+		-- id's factories also build for `to`, in turn (on = false stops)
+		shareFactories = function(id, to, on)
+			return Engine.shareFactories(findSub(id), findSub(to), on)
+		end,
 		setRaids = function(id, on)
 			local sub = findSub(id)
 			if sub then
@@ -8906,6 +9057,9 @@ Const.HELP = {
 	"  autonomy <light|balanced|full> [id]   how much it does on its own",
 	"  raids <on|off> [id]   an army's fast units scout and raid (on by default)",
 	"  nukes <on|off> / juno <on|off>   silos fire on their own, or only stockpile for you (on by default)",
+	"  share <id> [off]   the active sub-commander's factories (the selected ones, or all) also build for <id>, in turn",
+	"  ask <what> [count]   the active one asks the team for units: constructor, constructor2, combat, antiair,",
+	"                       fighter, bomber, gunship, raider, scout, radarplane, radar, sub, spy, amphibious, transport, or a unit name",
 	"  focus [id]       factory produces only the selected unit types (none selected = automatic)",
 	"  pause [id] / resume [id] / delete [id] / select [id] / list",
 	"  tell [id] <orders>   standing orders in plain words for its AI strategist (empty = clear)",
@@ -9006,6 +9160,26 @@ local function textCommand(_, line, words)
 		createSub(words[2])
 	elseif verb == "nukes" or verb == "juno" then
 		Engine.setAutoLaunch(verb == "nukes" and "nuke" or "juno", words[2] ~= "off")
+	elseif verb == "share" then
+		local to = tonumber(words[2]) and findSub(tonumber(words[2]))
+		if not activeSub or not to or to == activeSub then
+			spEcho("Sub-Commanders: share <id> [off]: the active sub-commander's factories build for sub-commander <id> too")
+			return true
+		end
+		local facs = {}
+		for _, u in ipairs(spGetSelectedUnits()) do
+			local ud = unitDef(u)
+			if ud and ud.factory and owner[u] == activeSub then
+				facs[#facs + 1] = u
+			end
+		end
+		Engine.shareFactories(activeSub, to, words[3] ~= "off", facs)
+	elseif verb == "ask" then
+		if not activeSub or not Engine.askable(words[2]) then
+			spEcho("Sub-Commanders: ask <what> [count]: " .. tconcat(Engine.askKinds(), ", ") .. ", or a unit name")
+			return true
+		end
+		Engine.ask(activeSub, words[2], tonumber(words[3]) or 1, "asked by the player")
 	elseif verb == "list" then
 		for _, sub in ipairs(subs) do
 			spEcho(sformat("[%d] %s  %s/%s  units=%d zones=%d  %s", sub.id, sub.name, sub.role, sub.posture, sub.counts.total, #sub.zones, sub.status or ""))
@@ -9819,15 +9993,27 @@ function widget:UnitCreated(unitID, unitDefID, unitTeam, builderID)
 		log(sub, d.human .. " stays yours: assign it to me if I should produce with it")
 		return
 	end
-	-- built for another sub-commander that had no constructor left
+	-- built for another sub-commander (asked, shared, or one that had no constructor left): the factory's
+	-- oldest hand-off of this kind (thinkFactory), ones older than 5 minutes dropped
 	local fst = ustate[builderID]
-	if fst and fst.handOff and d and (d.builder or (fst.handOffCombat and (d.combat or (d.mobile and not d.commander)))) then
-		local target = findSub(fst.handOff)
-		fst.handOff, fst.handOffCombat = nil, nil
+	if fst and fst.handOffs and d then
+		local keep, h = {}, nil
+		for _, e in ipairs(fst.handOffs) do
+			if not h and e.defID == unitDefID then
+				h = e
+			elseif frame - e.frame < 30 * 300 then
+				keep[#keep + 1] = e
+			end
+		end
+		fst.handOffs = keep
+		local target = h and findSub(h.to)
 		if target then
 			sub = target
-			if d.builder then
-				log(target, "received a constructor from " .. owner[builderID].name)
+			if h.ask then
+				Engine.asks.arrived(h.ask)
+			end
+			if d.builder or h.ask then
+				log(target, sformat("received %s from %s%s", d.human, owner[builderID].name, h.ask and " (asked)" or ""))
 			end
 		end
 	end
@@ -10430,7 +10616,8 @@ function Engine.teamReport()
 		requests = (function()
 			local out = {}
 			for i, r in ipairs(Engine.team.open()) do
-				out[i] = { kind = r.kind, from = r.from, x = r.x and floor(r.x), z = r.z and floor(r.z), need = r.need, note = r.note }
+				out[i] = { kind = r.kind, from = r.from, x = r.x and floor(r.x), z = r.z and floor(r.z), need = r.need, note = r.note,
+					what = r.what, count = r.count, onWay = r.onWay and #r.onWay or nil, delivered = r.delivered }
 			end
 			return out
 		end)(),
@@ -10731,7 +10918,8 @@ local function serialize()
 				focus[#focus + 1] = defs[defID].name
 			end
 		end
-		out[#out + 1] = { id = sub.id, name = sub.name, role = sub.role, posture = sub.posture, paused = sub.paused, zones = not sub.autoZones and sub.zones or {}, autoZones = sub.autoZones or false, autonomy = sub.autonomy, raids = sub.raids, colorIndex = sub.colorIndex, units = units, focus = focus, ai = sub.ai, directive = sub.directive }
+		out[#out + 1] = { id = sub.id, name = sub.name, role = sub.role, posture = sub.posture, paused = sub.paused, zones = not sub.autoZones and sub.zones or {}, autoZones = sub.autoZones or false, autonomy = sub.autonomy, raids = sub.raids, colorIndex = sub.colorIndex, units = units, focus = focus, ai = sub.ai, directive = sub.directive,
+			shareTo = sub.shareTo, factoryShares = sub.factoryShares }
 	end
 	return out
 end
@@ -10761,6 +10949,7 @@ local function restore(game)
 		end
 		sub.autonomy = Engine.D.autonomy[s.autonomy or ""] and s.autonomy or "balanced"
 		sub.raids = s.raids
+		sub.shareTo, sub.factoryShares = s.shareTo, s.factoryShares
 		sub.colorIndex = s.colorIndex or sub.colorIndex
 		sub.color = PALETTE[sub.colorIndex] or sub.color
 		for _, pair in ipairs(s.units or {}) do

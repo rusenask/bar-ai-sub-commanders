@@ -258,7 +258,8 @@ sending anything.
 | `set_autonomy` | light / balanced / full: how much the rules do on their own |
 | `set_commander` | the commander's mode (auto / builder / defender / frontline) and personality (careful / bold) |
 | `set_army_style` | how the Army's units fight: balanced / skirmish / siege / harass / hold / auto |
-| `request_help` | ask the team: defend a place, a constructor, combat production for the Army |
+| `request_help` | ask the team: defend a place, a constructor, combat production for the Army, or units of a kind from any other sub-commander's factory |
+| `share_factories` | its factories also build for another sub-commander, in turn (`/luaui sc share <id>` for the player, the selected factories or all) |
 | `get_structures` | its own structures with positions, flagging ones that block a factory exit |
 | `remove_structures` | its constructors reclaim those structures (never factories); red rings on the map |
 | `set_paused` | stop its automatic decisions |

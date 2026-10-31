@@ -203,6 +203,14 @@ local function apply(msg)
 		end
 		sc.noteAI(sub.id, string.format("tuned %s = %s", tostring(args.key), tostring(v)))
 		return { key = args.key, value = v }
+	elseif op == "share_factories" then
+		if not sc.shareFactories then
+			return nil, "sharing factories isn't available in this widget version"
+		end
+		if not sc.shareFactories(sub.id, tonumber(args.to), args.on ~= false) then
+			return nil, "to is another sub-commander's id"
+		end
+		sc.noteAI(sub.id, string.format("factories %s sub-commander %s", args.on ~= false and "shared with" or "no longer shared with", tostring(args.to)))
 	elseif op == "set_raids" then
 		if not sc.setRaids then
 			return nil, "raids aren't available in this widget version"
@@ -218,10 +226,19 @@ local function apply(msg)
 			return nil, "set is a mode (auto, builder, defender, frontline) or a personality (careful, bold)"
 		end
 		sc.noteAI(sub.id, "commander: " .. tostring(args.set))
+	elseif op == "request_help" and args.kind == "units" then
+		-- units of a kind from another sub-commander's factory (sc_asks.lua)
+		if not sc.ask then
+			return nil, "asking for units isn't available in this widget version"
+		end
+		if not sc.ask(sub.id, args.what, args.count, args.note) then
+			return nil, "what is " .. table.concat(sc.askKinds(), ", ") .. ", or a unit's name"
+		end
+		sc.noteAI(sub.id, string.format("asked the team for %s %s", tostring(args.count or 1), tostring(args.what)))
 	elseif op == "request_help" then
 		local kinds = { defend = true, constructor = true, production = true, cover = true }
 		if not sc.request or not kinds[args.kind] then
-			return nil, "kind is defend, constructor, production or cover (air cover from the Air Force)"
+			return nil, "kind is defend, constructor, production, cover (air cover from the Air Force) or units"
 		end
 		if (args.kind == "defend" or args.kind == "cover") and not (tonumber(args.x) and tonumber(args.z)) then
 			return nil, args.kind .. " needs x and z"

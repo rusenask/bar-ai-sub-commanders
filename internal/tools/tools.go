@@ -49,11 +49,19 @@ type commanderArgs struct {
 
 type requestArgs struct {
 	SubID int    `json:"sub_id" jsonschema:"your sub-commander id"`
-	Kind  string `json:"kind" jsonschema:"defend, constructor, production or cover"`
+	Kind  string `json:"kind" jsonschema:"defend, constructor, production, cover or units"`
+	What  string `json:"what,omitempty" jsonschema:"for units: constructor, constructor2, combat, antiair, fighter, bomber, gunship, raider, scout, radarplane, radar, sub, spy, amphibious, transport, or a unit's name (e.g. armpeep)"`
+	Count int    `json:"count,omitempty" jsonschema:"for units: how many (1-10, default 1)"`
 	X     *int   `json:"x,omitempty" jsonschema:"for defend and cover: where (map x)"`
 	Z     *int   `json:"z,omitempty" jsonschema:"for defend and cover: where (map z)"`
 	Need  int    `json:"need,omitempty" jsonschema:"how much (metal of enemy strength to answer, or of units)"`
 	Note  string `json:"note,omitempty" jsonschema:"one line: why"`
+}
+
+type shareArgs struct {
+	SubID int   `json:"sub_id" jsonschema:"your sub-commander id (whose factories)"`
+	To    int   `json:"to" jsonschema:"the sub-commander id they also build for"`
+	On    *bool `json:"on,omitempty" jsonschema:"false stops sharing (default true)"`
 }
 
 type tuneArgs struct {
@@ -331,13 +339,28 @@ func Handler(g *game.Server, guard Guard) http.Handler {
 
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "request_help",
-		Description: "Ask the team (the plan and open requests are in the team report). defend (x, z): the Army sends its squad there when it's in the base; cover (x, z): the Air Force covers it (fighters intercept aircraft there, gunships hunt raiders there); constructor: the Economy builds you one; production: the Economy's lab builds combat units for the Army. Requests expire after 45 s unless asked again; the rules engine posts its own when an area is outgunned or a known enemy army outweighs ours.",
+		Description: "Ask the team (the plan and open requests are in the team report). defend (x, z): the Army sends its squad there when it's in the base; cover (x, z): the Air Force covers it (fighters intercept aircraft there, gunships hunt raiders there); constructor: the Economy builds you one; production: the Economy's lab builds combat units for the Army; units (what, count): any other sub-commander's factory that can make them builds them for you (at most every other unit of theirs, one every 20 s; open 5 minutes) - for what your own factories can't make, or when you have none. Requests expire after 45 s unless asked again; the rules engine posts its own when an area is outgunned, a known enemy army outweighs ours, a sub-commander has no constructors, or Intelligence lacks radar planes / a submarine.",
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in requestArgs) (*mcp.CallToolResult, any, error) {
 		args := map[string]any{"kind": in.Kind, "need": in.Need, "note": in.Note}
+		if in.Kind == "units" {
+			args["what"], args["count"] = in.What, in.Count
+		}
 		if in.X != nil && in.Z != nil {
 			args["x"], args["z"] = *in.X, *in.Z
 		}
 		return act(ctx, in.SubID, "request_help", args, "asked the team for "+in.Kind), nil, nil
+	})
+
+	mcp.AddTool(s, &mcp.Tool{
+		Name:        "share_factories",
+		Description: "Your factories also build for another sub-commander, in turn: each turn runs its production rules and budget and the unit is handed to it (e.g. the Economy's labs feeding an Army or Air Force without factories of its own). on=false stops it. The player can share single factories (/luaui sc share).",
+	}, func(ctx context.Context, _ *mcp.CallToolRequest, in shareArgs) (*mcp.CallToolResult, any, error) {
+		on := in.On == nil || *in.On
+		verb := "shared factories with"
+		if !on {
+			verb = "stopped sharing factories with"
+		}
+		return act(ctx, in.SubID, "share_factories", map[string]any{"to": in.To, "on": on}, fmt.Sprintf("%s sub-commander %d", verb, in.To)), nil, nil
 	})
 
 	mcp.AddTool(s, &mcp.Tool{

@@ -115,6 +115,12 @@ D.team = {
 	defendResponders = 1.5, -- the response squad's share of the army while the team defends
 }
 
+-- asks (sc_asks.lua): "units" requests on the blackboard. A request is answered `every` frames apart, with
+-- up to its count on the way at once (one taken on counts for `onWay` frames, or until handed over); a
+-- factory answers others at most one unit in `share` (its own sub-commander's work goes on). One-shot asks
+-- (the player's, the strategist's) stay open `life` frames
+D.asks = { every = 30 * 20, onWay = 30 * 180, share = 2, life = 30 * 300 }
+
 -- the commander (sc_commander.lua): modes and personality
 D.commander = {
 	careful = { retreat = 0.6, dgunMin = 150, homeRange = 1600, frontline = false },
