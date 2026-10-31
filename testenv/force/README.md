@@ -1,7 +1,7 @@
 # Test games on the force host (headless, Linux)
 
 `force` (Ubuntu, 12 cores, 60 GB, RTX 4090; also serves the decision models) runs test batches with the
-Recoil headless engine: no window, no GPU, up to 100x speed, 6 games at a time. A 10-minute game takes
+Recoil headless engine: no window, no GPU, up to 100x speed, a few games at a time (memory: see below). A 10-minute game takes
 about 25 s of wall time (12 s of it loading). The laptop stays free.
 
 ```sh
@@ -51,3 +51,10 @@ Maps download on force; game versions don't (the rapid streamer answers force wi
 fetch them on the Mac (`pr-downloader --download-game "<version>"` with the PRD_* variables in
 pro_replays.py) and copy them with `testenv/force/sync_games.py` and rsync. A replay whose game or map is
 missing logs "no data (... Dependent archive ...)".
+
+## Memory
+
+force is shared and ran out of memory (2026-10-31). force-batch.sh doesn't start when the host has less
+than `MIN_FREE_MB` + 1500 MB per parallel game available; run_game.sh waits (up to 10 min) for
+`MIN_FREE_MB` (default 8000) before each game, and kills its game when the host falls under
+`MEM_FLOOR_MB` (default 3000): `exit.txt` says "skipped" or "lowmem". Use PARALLEL=3-4.

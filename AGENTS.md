@@ -43,10 +43,15 @@ widget reconnects by itself within a few seconds. Sub-commanders survive `/luaui
 
 ## Testing without disturbing a running game
 
-- Batches run on the `force` host by default now (`testenv/force-batch.sh`, headless, 6 games at a time at
+- Batches run on the `force` host by default now (`testenv/force-batch.sh`, headless, a few games at a time at
   up to 100x: [testenv/force/README.md](testenv/force/README.md)); the laptop stays free. Local batches
   (`testenv/batch.sh`) are for watching games; when the laptop has to run a batch, `FAST=1 WORKERS=6
   SPEED=100` is ~5x the old default ([docs/research/speed.md](docs/research/speed.md)).
+
+- force is shared and has run out of memory under our batches (2026-10-31): keep `PARALLEL` at 3-4, one
+  batch at a time, and check `free -g` there first. force-batch.sh refuses to start short of memory, and
+  each game waits for `MIN_FREE_MB` (8000) and is killed under `MEM_FLOOR_MB` (3000): `exit.txt`
+  "skipped" / "lowmem" games are memory, not our code.
 
 - Micro (targeting, focus fire, kiting, movement, retreats) is measured in the **battle lab**: one
   engagement in isolation, ~16 s each (`SCENARIO=battle testenv/force-batch.sh 72 battle`, specs in
