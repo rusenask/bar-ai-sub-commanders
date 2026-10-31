@@ -45,7 +45,11 @@ widget/LuaUI/Include/
   sc_territory.lua    what's ours (cells near our structures), its frontier, and pickets: the frontier
                       points to hold (facing the enemy, where intruders came from, what they protect)
   sc_team.lua         the swarm's blackboard: the team plan (opening / expand / tech / defend / push)
-                      and requests sub-commanders post for each other (defend, constructor, production)
+                      and requests sub-commanders post for each other (defend, constructor, production,
+                      units)
+  sc_asks.lua         "units" requests: what kinds one can ask for, which unit a factory builds for one,
+                      and how many are on the way. Any factory answers others' asks (one unit in two);
+                      shared factories (share_factories) take turns building by each sharer's rules
   sc_commander.lua    the commander's modes (auto / builder / defender / frontline), personality
                       (careful / bold) and D-gun target choice
 widget/tests/         plain-Lua unit tests of the modules (make test-lua; stubs for Spring)
