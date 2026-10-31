@@ -12,7 +12,9 @@ T="$(cd "$(dirname "$0")" && pwd)"
 HOST="${FORCE_HOST:-force}"
 N="${1:-8}"
 SCENARIO="${2:-duelrules}"
-PARALLEL="${PARALLEL:-4}"
+PARALLEL="${PARALLEL:-2}"
+# force is shared and went out of memory under 6 games (2026-10-31): 3 at most
+[ "$PARALLEL" -le 3 ] || { echo "force-batch.sh: PARALLEL=$PARALLEL: 3 at most on the shared force host" >&2; exit 1; }
 SPEED="${SPEED:-100}"
 DUEL_MINUTES="${DUEL_MINUTES:-60}"
 AI_PROFILE="${AI_PROFILE:-medium}"
@@ -32,15 +34,19 @@ SRC="${WIDGET_SRC:-$T/../widget/LuaUI/Widgets}"
 [ -f "$SRC/gui_subcommanders.lua" ] || { echo "force-batch.sh: no widgets in $SRC (WIDGET_SRC from a failed arm.sh?)" >&2; exit 1; }
 # force is shared (CI, decision models): at a load of 700+ every game of a batch hung at load (watchdog,
 # "did not run", 2026-10-30). Warn when it's busy
-read -r load cores mem <<< "$(ssh -n "$HOST" 'echo $(cut -d" " -f1 /proc/loadavg) $(nproc) $(awk "/MemAvailable/ { print int(\$2 / 1024) }" /proc/meminfo)' 2>/dev/null)"
+read -r load cores mem total <<< "$(ssh -n "$HOST" 'echo $(cut -d" " -f1 /proc/loadavg) $(nproc) $(awk "/MemAvailable/ { print int(\$2 / 1024) }" /proc/meminfo) $(awk "/MemTotal/ { print int(\$2 / 1024) }" /proc/meminfo)' 2>/dev/null)"
 if [ -n "$load" ] && awk -v l="$load" -v c="$cores" 'BEGIN { exit !(l > 2 * c) }'; then
 	echo "force-batch.sh: warning: $HOST load average $load on $cores cores (others' jobs?): games may hang at load" >&2
 fi
-# and it ran out of memory (2026-10-31): no batch on a host short of memory; each game also waits for
-# MIN_FREE_MB and is killed under MEM_FLOOR_MB (force/run_game.sh)
-NEED_MB=$(( ${MIN_FREE_MB:-8000} + PARALLEL * 1500 ))
-if [ -n "$mem" ] && [ "$mem" -lt "$NEED_MB" ]; then
-	echo "force-batch.sh: $HOST has $mem MB available, $NEED_MB needed for $PARALLEL games: not starting" >&2
+# and it ran out of memory (2026-10-31): no batch unless 70% of its memory is available, or its load is
+# over its cores; each game also waits for MIN_FREE_PCT (60) and is killed under FLOOR_PCT (40)
+# (force/run_game.sh)
+if [ -z "$mem" ]; then
+	echo "force-batch.sh: can't read $HOST's memory: not starting" >&2
+	exit 1
+fi
+if [ "$mem" -lt $(( total * 70 / 100 )) ] || awk -v l="$load" -v c="$cores" 'BEGIN { exit !(l > c) }'; then
+	echo "force-batch.sh: $HOST has $mem of $total MB available, load $load on $cores cores: too busy, not starting" >&2
 	exit 1
 fi
 mkdir -p "$DIR"
@@ -107,7 +113,7 @@ rm -rf "$STAGE"
 # even games and kept the quick decisive ones: a biased batch.
 LIMIT=$(( DUEL_MINUTES * 60 / 2 + 300 ))
 start=$(date +%s)
-ssh -n "$HOST" "cd \$HOME/$R && seq 1 $N | MIN_FREE_MB=${MIN_FREE_MB:-8000} MEM_FLOOR_MB=${MEM_FLOOR_MB:-3000} xargs -P $PARALLEL -I{} bash \$HOME/bar-sim/run_game.sh \$HOME/$R {} $LIMIT"
+ssh -n "$HOST" "cd \$HOME/$R && seq 1 $N | MIN_FREE_PCT=${MIN_FREE_PCT:-60} FLOOR_PCT=${FLOOR_PCT:-40} xargs -P $PARALLEL -I{} bash \$HOME/bar-sim/run_game.sh \$HOME/$R {} $LIMIT"
 fi
 set +e # collecting: a missing file or an empty grep isn't fatal
 rsync -a "$HOST:$R/" "$DIR/remote/" --include='g*/' --include='sctest_out.txt' --include='run.log' --include='exit.txt' --exclude='*'

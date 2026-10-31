@@ -2,15 +2,18 @@
 # On the force host: plays game <i> of a batch with the headless engine, in its own write dir copied from
 # the batch's template. usage: run_game.sh <batch dir> <i> <wall-clock limit, seconds>
 # Retries once when the game left no RESULT line (a hang or a crash at load).
-# force is shared and ran out of memory (2026-10-31): a game starts only with MIN_FREE_MB available
-# (waits up to 10 min, then skips: exit.txt "skipped"), and is killed when the host falls under
-# MEM_FLOOR_MB while it runs (exit.txt "lowmem": no retry)
+# force is shared and ran out of memory under our batches (2026-10-31, the kernel killed others'
+# processes): a game starts only with MIN_FREE_PCT of the host's memory available (waits up to 10 min,
+# then skips: exit.txt "skipped"), and is killed when the host falls under FLOOR_PCT while it runs
+# (exit.txt "lowmem": no retry). Games run at the lowest CPU and disk priority
+
 B="$1"
 I="$2"
 LIMIT="$3"
 G="$B/g$I"
-MIN_FREE_MB="${MIN_FREE_MB:-8000}"
-MEM_FLOOR_MB="${MEM_FLOOR_MB:-3000}"
+TOTAL_MB=$(awk '/MemTotal/ { print int($2 / 1024) }' /proc/meminfo)
+MIN_FREE_MB=$(( TOTAL_MB * ${MIN_FREE_PCT:-60} / 100 ))
+MEM_FLOOR_MB=$(( TOTAL_MB * ${FLOOR_PCT:-40} / 100 ))
 avail() { awk '/MemAvailable/ { print int($2 / 1024) }' /proc/meminfo; }
 for try in 1 2; do
 	waited=0
@@ -40,7 +43,7 @@ for try in 1 2; do
 		specs=(battles/*.txt)
 		mkdir -p LuaUI/Config && cp "${specs[$(( pair % ${#specs[@]} ))]}" LuaUI/Config/sctest_battle.txt
 	fi
-	SPRING_DATADIR="$HOME/bar-sim/data:$HOME/bar-sim/engine" timeout "$LIMIT" \
+	SPRING_DATADIR="$HOME/bar-sim/data:$HOME/bar-sim/engine" nice -n 19 ionice -c 3 timeout "$LIMIT" \
 		"$HOME/bar-sim/engine/spring-headless" --write-dir "$G" "$G/script.txt" > run.log 2>&1 &
 	pid=$!
 	lowmem=

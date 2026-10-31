@@ -7,7 +7,7 @@ about 25 s of wall time (12 s of it loading). The laptop stays free.
 ```sh
 WIDGET_SRC=$(testenv/arm.sh v22 <commit>) LABEL=force-v22 testenv/force-batch.sh 16            # duelrules
 WIDGET_SRC=$(testenv/arm.sh v22ap <commit>) LABEL=force-v22-ap testenv/force-batch.sh 8 autopilot
-# options: PARALLEL=6 SPEED=100 DUEL_MINUTES=60 AI_PROFILE=medium MAP="..." FORCE_HOST=force FAST=1
+# options: PARALLEL=2 SPEED=100 DUEL_MINUTES=60 AI_PROFILE=medium MAP="..." FORCE_HOST=force FAST=1
 ```
 
 `FAST=1` turns BAR's interface widgets off and caps each engine at 2 threads (`FAST_THREADS`; `FAST_WIDGETS=0`
@@ -54,7 +54,7 @@ missing logs "no data (... Dependent archive ...)".
 
 ## Memory
 
-force is shared and ran out of memory (2026-10-31). force-batch.sh doesn't start when the host has less
-than `MIN_FREE_MB` + 1500 MB per parallel game available; run_game.sh waits (up to 10 min) for
-`MIN_FREE_MB` (default 8000) before each game, and kills its game when the host falls under
-`MEM_FLOOR_MB` (default 3000): `exit.txt` says "skipped" or "lowmem". Use PARALLEL=3-4.
+force is shared and went out of memory under 6 games (2026-10-31). PARALLEL defaults to 2, 3 at most.
+force-batch.sh doesn't start under 70% of the host's memory available or with load over its cores;
+run_game.sh waits (up to 10 min) for `MIN_FREE_PCT` (60%) before each game, runs it at nice 19 / idle IO,
+and kills it when the host falls under `FLOOR_PCT` (40%): `exit.txt` says "skipped" or "lowmem".

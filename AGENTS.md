@@ -48,10 +48,12 @@ widget reconnects by itself within a few seconds. Sub-commanders survive `/luaui
   (`testenv/batch.sh`) are for watching games; when the laptop has to run a batch, `FAST=1 WORKERS=6
   SPEED=100` is ~5x the old default ([docs/research/speed.md](docs/research/speed.md)).
 
-- force is shared and has run out of memory under our batches (2026-10-31): keep `PARALLEL` at 3-4, one
-  batch at a time, and check `free -g` there first. force-batch.sh refuses to start short of memory, and
-  each game waits for `MIN_FREE_MB` (8000) and is killed under `MEM_FLOOR_MB` (3000): `exit.txt`
-  "skipped" / "lowmem" games are memory, not our code.
+- force is shared and went out of memory under 6 of our games (2026-10-31: the kernel killed others'
+  processes, the host dropped off the tailnet). Leave it plenty of room: `PARALLEL` 2 (default; 3 at
+  most, enforced), one batch at a time, `free -g` there first and between batches. force-batch.sh won't
+  start under 70% memory available or with load over its cores; each game waits for 60% available
+  (`MIN_FREE_PCT`), runs at nice 19 / idle IO, and is killed under 40% (`FLOOR_PCT`): `exit.txt`
+  "skipped" / "lowmem" games are memory, not our code. Don't loosen these to get a batch through.
 
 - Micro (targeting, focus fire, kiting, movement, retreats) is measured in the **battle lab**: one
   engagement in isolation, ~16 s each (`SCENARIO=battle testenv/force-batch.sh 72 battle`, specs in
