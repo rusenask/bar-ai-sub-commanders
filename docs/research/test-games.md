@@ -1874,3 +1874,18 @@ ended the moment its operation's key changed (the Army flips between engage and 
 next turret; a strike re-targets), so the spy rarely got past "waiting for the go". Fixed in v4.2
 (Intel.keepJob: a job takes over a same-kind operation by its site, and outlives a gap by 20 s). The
 Armada and water batches were stopped to re-run with v4.2.
+
+## Spy-chief v4.2 A/B, Armada (2026-10-31, force PARALLEL=2, Armada vs Cortex medium, 40 min, `20261031-1430-ab-spy42-arm`, A 28379a9 pre-spy, B 03c95a4)
+
+| Arm | Games | Results | Metal | Killed / lost | Dealt / taken | Constructors lost | Army at 12 min |
+|---|---|---|---|---|---|---|---|
+| A (pre-spy) | 12 | 5 win, 6 timeout, 1 loss | 104.5k | 167 / 279 | 1.00 | 12.6 | 4.0k |
+| B (v4.2) | 12 | 3 win, 8 timeout, 1 loss | 127.5k | 166 / 329 | 0.85 | 12.2 | 4.7k |
+
+Score -0.13 [-0.38, +0.10]: can't tell. Better: opening metal lost -826 [-1500, -227], metal income at
+20 min +17.3 [+5.9, +28.9], extractors lost by 12 min -2.7 [-4.7, -0.2]. Worse: late metal lost +15.5k
+[+0.4k, +31.1k] (10 / 9 games). 24/24 ran, no widget errors, none skipped for memory (force never under
+38.7 GB available, ~1 GB a game). The job fix works: 3 EMPs went off on turrets ahead of the Army's
+assaults (25 jobs staged; v4.1 on Legion: 0 of 41). No anti-nuke sabotage (no nuke of ours in 40 min).
+Mobile / radar plane hand-offs happened (49 log lines). Kept: no metric says the spy-chief costs games;
+the late losses are worth a look (a bigger army fighting longer, 127.5k metal vs 104.5k).
