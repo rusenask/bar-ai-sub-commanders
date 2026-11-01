@@ -264,6 +264,14 @@ out wrong.
   where, and restore the player's order when ours lands after it. Every test game lost its first lab
   to this. (sbx-labdiag)
 
+- **Docker Desktop's file sharing hides appends from a writer that keeps the file open.** The container
+  sees the new bytes only after the writer closes the file, through an open handle or a fresh open. The
+  widget held its link segment open with `flush()`, so the bridge got each 2 MB segment only when it was
+  full. In a real game it showed "AI online" with "waiting for the strategist" for an hour, because the
+  bridge never saw AI turned on. Pings still went the other way, so the link looked healthy. The widget
+  now opens, appends and closes on every write (`sc_link.lua`). To check: the bridge's
+  `/proc/1/fdinfo` for the `w2b` file stays at `pos: 0` while the file grows on the host.
+
 ## Process traps
 
 - **Read `make lint`'s exit status, not a grep of its output.** `make lint | grep passed` showed "87

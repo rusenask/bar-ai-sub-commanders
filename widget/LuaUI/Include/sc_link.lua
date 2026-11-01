@@ -110,11 +110,19 @@ return function(opts)
 		f:write(L.session)
 		f:close()
 		local seg, written, inOffset, lastRead = L.segment or 0, 0, 0, -1
-		local function open()
-			return fio.open(DIR .. L.session .. ".w2b." .. seg .. ".jsonl", "a")
+		-- each write opens the segment, appends and closes it: Docker Desktop's file sharing shows the
+		-- bridge's container what was appended only once the writer closes the file (a segment held open
+		-- reached the bridge only when full, an hour into the game)
+		local function append(s)
+			local out = fio.open(DIR .. L.session .. ".w2b." .. seg .. ".jsonl", "a")
+			if not out then
+				return false
+			end
+			out:write(s)
+			out:close()
+			return true
 		end
-		local out = open()
-		if not out then
+		if not append("") then
 			return nil
 		end
 		return {
@@ -123,20 +131,15 @@ return function(opts)
 				return nil -- online once the bridge answers (deliver)
 			end,
 			write = function(s)
-				out:write(s)
+				local ok = append(s)
 				written = written + #s
-				if written >= SEGMENT then
+				if ok and written >= SEGMENT then
 					-- close this segment: the bridge moves on and deletes it
-					out:write(json.encode({ type = "next" }) .. "\n")
-					out:close()
+					ok = append(json.encode({ type = "next" }) .. "\n")
 					seg, written = seg + 1, 0
 					L.segment = seg
-					out = open()
 				end
-				if out then
-					out:flush()
-				end
-				return #s, out == nil
+				return #s, not ok
 			end,
 			read = function()
 				-- at most 5 times a second: Update runs every frame, the bridge polls every 150 ms anyway
@@ -157,11 +160,7 @@ return function(opts)
 				end
 				return nil, false
 			end,
-			close = function()
-				if out then
-					out:close()
-				end
-			end,
+			close = function() end,
 		}
 	end
 
